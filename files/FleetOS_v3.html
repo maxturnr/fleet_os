@@ -1018,8 +1018,8 @@ async function loadAll(){
       sb.from('cars').select('*').eq('type','owned').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('cars').select('*').eq('type','sor').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('transactions').select('*').eq('account_id',accountId).order('date',{ascending:false}),
-      sb.from('transaction_splits').select('*'),
-      sb.from('transaction_documents').select('*'),
+      sb.from('transaction_splits').select('*').then(res => res).catch(() => ({data: []})),
+      sb.from('transaction_documents').select('*').then(res => res).catch(() => ({data: []})),
       sb.from('balance_sheet').select('*').eq('account_id',accountId).limit(1).single(),
       sb.from('settings').select('*').eq('account_id',accountId),
     ])
@@ -2176,6 +2176,7 @@ async function saveTxEdit(id){
   }
   
   // Normal single-car assignment
+  const allStock = [...ownedCars, ...sorCars]
   const car = stockId ? allStock.find(c=>c.id==stockId) : null
   const updates = {
     date: document.getElementById(`edit-tx-date-${id}`).value,
