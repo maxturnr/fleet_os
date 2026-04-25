@@ -1044,6 +1044,13 @@ async function initApp(){
   document.getElementById('pnl-to').value=today()
   checkQBCallback()
   await loadAll()
+  
+  // Restore last viewed tab
+  const savedTab = localStorage.getItem('fleet_current_tab')
+  if(savedTab && savedTab !== 'dashboard'){
+    const tabBtn = document.querySelector(`[onclick*="showTab('${savedTab}"]`)
+    if(tabBtn) showTab(savedTab, tabBtn)
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -1054,7 +1061,9 @@ function showTab(name,btn){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'))
   document.getElementById('tab-'+name).classList.add('active')
   if(btn) btn.classList.add('active')
-  currentTab=name; renderCurrentTab()
+  currentTab=name
+  localStorage.setItem('fleet_current_tab', name)
+  renderCurrentTab()
 }
 function renderCurrentTab(){
   if(currentTab==='dashboard') renderDashboard()
@@ -1101,7 +1110,7 @@ function openModal(name){
     document.getElementById('tx-date').value=today()
     ;['tx-amount','tx-supplier','tx-notes'].forEach(id=>document.getElementById(id).value='')
     const sel=document.getElementById('tx-stock-id')
-    sel.innerHTML='<option value="">— Overhead —</option>'
+    sel.innerHTML='<option value="">— Overhead —</option><option value="SPLIT">🔀 Split across multiple cars</option>'
     const allStock=[...ownedCars.map(c=>({...c,_type:'owned'})),...sorCars.map(c=>({...c,_type:'sor'}))]
     allStock.forEach(c=>{
       const o=document.createElement('option')
@@ -1109,6 +1118,9 @@ function openModal(name){
       o.textContent=`${c.stock_number} · ${c.reg} — ${c.make} ${c.model}`
       sel.appendChild(o)
     })
+    // Reset split state
+    addTxSplits = []
+    document.getElementById('add-split-section').style.display = 'none'
   }
   if(name==='edit-balance'){
     document.getElementById('bs-acc1').value=balanceSheet.acc1||0
