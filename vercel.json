@@ -4,11 +4,11 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/FleetOS_v2.html"
+      "destination": "/FleetOS_v3_CLEAN.html"
     },
     {
       "source": "/(.*)",
-      "destination": "/FleetOS_v2.html"
+      "destination": "/FleetOS_v3_CLEAN.html"
     }
   ]
 }
