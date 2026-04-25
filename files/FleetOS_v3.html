@@ -585,7 +585,7 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
           </select>
         </div>
         <div class="form-group"><label class="form-label">Assign to Stock (blank = overhead)</label>
-          <select class="form-control" id="tx-stock-id" onchange="toggleAddSplitMode(this.value)"><option value="">— Overhead —</option><option value="SPLIT">🔀 Split across multiple cars</option></select>
+          <select class="form-control" id="tx-stock-id"><option value="">— Overhead —</option></select>
         </div>
         <div class="form-group"><label class="form-label">VAT?</label>
           <select class="form-control" id="tx-vat"><option value="Yes">Yes</option><option value="No">No</option></select>
@@ -595,10 +595,14 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
         </div>
         <div class="form-group span2"><label class="form-label">Notes</label><input class="form-control" type="text" id="tx-notes" placeholder="Optional"></div>
       </div>
-      <div id="add-split-section" class="split-section" style="display:none;">
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2);">Need to split this cost across multiple cars?</div>
+        <button class="btn-split" type="button" id="toggle-split-btn" onclick="toggleAddSplitSection()">🔀 Split Cost</button>
+      </div>
+      <div id="add-split-section" class="split-section" style="display:none;margin-top:0;padding-top:16px;border-top:none;">
         <div class="split-header">
-          <div class="split-title">Split Cost Across Cars</div>
-          <button class="btn-split" type="button" onclick="addAddSplitRow()">+ Add Car</button>
+          <div class="split-title">Split This Cost</div>
+          <button class="btn-split" type="button" onclick="addAddSplitRow()">+ Add Line</button>
         </div>
         <div id="add-split-list" class="split-list"></div>
         <div class="split-total">
@@ -1110,7 +1114,7 @@ function openModal(name){
     document.getElementById('tx-date').value=today()
     ;['tx-amount','tx-supplier','tx-notes'].forEach(id=>document.getElementById(id).value='')
     const sel=document.getElementById('tx-stock-id')
-    sel.innerHTML='<option value="">— Overhead —</option><option value="SPLIT">🔀 Split across multiple cars</option>'
+    sel.innerHTML='<option value="">— Overhead —</option>'
     const allStock=[...ownedCars.map(c=>({...c,_type:'owned'})),...sorCars.map(c=>({...c,_type:'sor'}))]
     allStock.forEach(c=>{
       const o=document.createElement('option')
@@ -1121,6 +1125,7 @@ function openModal(name){
     // Reset split state
     addTxSplits = []
     document.getElementById('add-split-section').style.display = 'none'
+    document.getElementById('toggle-split-btn').textContent = '🔀 Split Cost'
   }
   if(name==='edit-balance'){
     document.getElementById('bs-acc1').value=balanceSheet.acc1||0
@@ -1208,8 +1213,12 @@ async function saveTx(){
   let dueDate=null
   if(isThirty&&dateVal){const d=new Date(dateVal+'T12:00:00');d.setDate(d.getDate()+30);dueDate=d.toISOString().split('T')[0]}
 
+  // Check if split section is active
+  const splitSection = document.getElementById('add-split-section')
+  const isSplitting = splitSection.style.display !== 'none'
+  
   // Handle split costs
-  if(stockId === 'SPLIT'){
+  if(isSplitting){
     if(!addTxSplits || addTxSplits.length === 0){
       toast('Please add at least one car to split the cost', true)
       btn.disabled=false; btn.textContent='Save'
@@ -1889,13 +1898,18 @@ async function toggleTxExpand(id){
 
 let txSplits = {}
 
-function toggleAddSplitMode(value){
+function toggleAddSplitSection(){
   const splitSection = document.getElementById('add-split-section')
-  if(value === 'SPLIT'){
+  const btn = document.getElementById('toggle-split-btn')
+  
+  if(splitSection.style.display === 'none'){
     splitSection.style.display = 'block'
+    btn.textContent = '✕ Cancel Split'
     if(addTxSplits.length === 0) addAddSplitRow()
   } else {
     splitSection.style.display = 'none'
+    btn.textContent = '🔀 Split Cost'
+    addTxSplits = []
   }
 }
 
