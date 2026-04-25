@@ -118,6 +118,24 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
 .badge-purple{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(155,89,182,0.2);}
 .badge-muted{background:rgba(255,255,255,0.04);color:var(--muted2);border:1px solid var(--border2);}
 
+/* EXPANDABLE ROW */
+.data-table tr.clickable{cursor:pointer;}
+.data-table tr.clickable:hover{background:var(--surface3)!important;}
+.expand-row{display:none;}
+.expand-row.open{display:table-row;}
+.expand-row td{padding:0!important;border-bottom:1px solid var(--border2)!important;background:var(--surface2)!important;}
+.expand-content{padding:24px;animation:fadeUp 0.2s ease both;}
+.expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.expand-field{display:flex;flex-direction:column;gap:6px;}
+.expand-field.span2{grid-column:span 2;}
+.expand-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted2);}
+.expand-input{background:var(--surface3);border:1px solid var(--border2);color:var(--white);padding:10px 12px;font-family:'Instrument Sans',sans-serif;font-size:14px;border-radius:var(--radius);outline:none;transition:border-color 0.15s;}
+.expand-input:focus{border-color:var(--gold);}
+.expand-input:disabled{opacity:0.5;cursor:not-allowed;background:var(--surface);}
+.expand-actions{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
+.btn-delete{background:transparent;color:var(--red);border:1px solid var(--red);padding:8px 14px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;border-radius:var(--radius);transition:all 0.15s;display:flex;align-items:center;gap:6px;}
+.btn-delete:hover{background:var(--red);color:#fff;}
+
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
 .modal-overlay.open{display:flex;}
@@ -1404,6 +1422,8 @@ function renderDashboard(){
 // ══════════════════════════════════════════════
 // OWNED STOCK
 // ══════════════════════════════════════════════
+let expandedCarId = null
+
 function renderOwned(){
   const statusF=document.getElementById('owned-status-filter').value
   const makeF=document.getElementById('owned-make-filter').value
@@ -1424,7 +1444,8 @@ function renderOwned(){
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🚗</div><div class="empty-text">No cars match filters</div></div></td></tr>`;return}
   tbody.innerHTML=filtered.map(c=>{
     const p=ownedProfit(c); const costs=getDirectCosts(c.id)
-    return `<tr>
+    const isExpanded = expandedCarId === c.id
+    return `<tr class="clickable" onclick="toggleCarExpand(${c.id})">
       <td><span class="stock-num">${c.stock_number||'—'}</span></td>
       <td><span class="reg-badge">${c.reg}</span></td>
       <td><span style="font-weight:500">${c.make||''}</span> <span class="muted-text">${c.model||''}</span></td>
@@ -1434,12 +1455,60 @@ function renderOwned(){
       <td class="num muted-text">${vatRegistered&&p&&p.vat?fmt(p.vat):'<span class="muted-text">—</span>'}</td>
       <td class="num" style="color:${p?pc(p.gross):''}">${p?fmt(p.gross):'<span class="muted-text">—</span>'}</td>
       <td class="num" style="color:var(--red)">${p&&p.tax>0?fmt(p.tax):'<span class="muted-text">—</span>'}</td>
-      <td class="num" style="color:${p?pc(p.net):''};font-weight:600">${p?fmt(p.net):'<span class="muted-text">—</span>'}</td>
+      <td class="num" style="color:${p?pc(p.net):''}; font-weight:600">${p?fmt(p.net):'<span class="muted-text">—</span>'}</td>
       <td>${statusBadge(c.status)}</td>
       <td class="num muted-text" style="font-size:11px">${daysInStock(c)}d</td>
-      <td><button class="action-btn" onclick="deleteCar(${c.id})">×</button></td>
+      <td onclick="event.stopPropagation()"></td>
+    </tr>
+    <tr class="expand-row ${isExpanded?'open':''}" id="expand-${c.id}">
+      <td colspan="13">
+        <div class="expand-content">
+          <div class="expand-grid">
+            <div class="expand-field"><label class="expand-label">Registration</label><input class="expand-input" type="text" id="edit-reg-${c.id}" value="${c.reg||''}" style="text-transform:uppercase"></div>
+            <div class="expand-field"><label class="expand-label">Make</label><input class="expand-input" type="text" id="edit-make-${c.id}" value="${c.make||''}"></div>
+            <div class="expand-field span2"><label class="expand-label">Model</label><input class="expand-input" type="text" id="edit-model-${c.id}" value="${c.model||''}"></div>
+            <div class="expand-field"><label class="expand-label">Buy Price (£)</label><input class="expand-input" type="number" id="edit-paid-${c.id}" value="${c.paid||''}" step="0.01"></div>
+            <div class="expand-field"><label class="expand-label">Date Purchased</label><input class="expand-input" type="date" id="edit-purchase-date-${c.id}" value="${c.purchase_date||''}"></div>
+            <div class="expand-field"><label class="expand-label">Sold For (£)</label><input class="expand-input" type="number" id="edit-sold-${c.id}" value="${c.sold||''}" step="0.01"></div>
+            <div class="expand-field"><label class="expand-label">Sale Date</label><input class="expand-input" type="date" id="edit-sale-date-${c.id}" value="${c.sale_date||''}"></div>
+            <div class="expand-field"><label class="expand-label">Direct Costs</label><input class="expand-input" type="text" value="${fmt(costs)}" disabled></div>
+            <div class="expand-field"><label class="expand-label">Status</label><select class="expand-input" id="edit-status-${c.id}"><option ${c.status==='In Stock'?'selected':''}>In Stock</option><option ${c.status==='Sold'?'selected':''}>Sold</option><option ${c.status==='Part Exchange'?'selected':''}>Part Exchange</option></select></div>
+          </div>
+          <div class="expand-actions">
+            <button class="btn-delete" onclick="event.stopPropagation();deleteCar(${c.id})">🗑️ Delete</button>
+            <button class="btn-cancel" onclick="event.stopPropagation();toggleCarExpand(${c.id})">Cancel</button>
+            <button class="btn-primary" onclick="event.stopPropagation();saveCarEdit(${c.id})">Save Changes</button>
+          </div>
+        </div>
+      </td>
     </tr>`
   }).join('')
+}
+
+function toggleCarExpand(id){
+  if(expandedCarId === id){
+    expandedCarId = null
+  } else {
+    expandedCarId = id
+  }
+  renderOwned()
+}
+
+async function saveCarEdit(id){
+  const updates = {
+    reg: document.getElementById(`edit-reg-${id}`).value.toUpperCase(),
+    make: document.getElementById(`edit-make-${id}`).value,
+    model: document.getElementById(`edit-model-${id}`).value,
+    paid: parseFloat(document.getElementById(`edit-paid-${id}`).value) || null,
+    purchase_date: document.getElementById(`edit-purchase-date-${id}`).value || null,
+    sold: parseFloat(document.getElementById(`edit-sold-${id}`).value) || null,
+    sale_date: document.getElementById(`edit-sale-date-${id}`).value || null,
+    status: document.getElementById(`edit-status-${id}`).value
+  }
+  await sb.from('cars').update(updates).eq('id', id)
+  expandedCarId = null
+  await loadAll()
+  toast('Car updated')
 }
 function setOwnedPeriod(p){
   const now=new Date(); let from,to=today()
@@ -1459,6 +1528,8 @@ function clearOwnedFilters(){
 // ══════════════════════════════════════════════
 // SALE OR RETURN
 // ══════════════════════════════════════════════
+let expandedSORId = null
+
 function renderSOR(){
   const statusF=document.getElementById('sor-status-filter').value
   const dateFrom=document.getElementById('sor-date-from').value
@@ -1479,7 +1550,8 @@ function renderSOR(){
     const p=sorProfit(c); const costs=getDirectCosts(c.id)
     const netFee=c.fee?sorNetFee(c):null
     const vatLabel=c.fee_vat==='none'?'No VAT':c.fee_vat==='inclusive'?'Incl VAT':'+ VAT'
-    return `<tr>
+    const isExpanded = expandedSORId === c.id
+    return `<tr class="clickable" onclick="toggleSORExpand(${c.id})">
       <td><span class="stock-num" style="color:var(--purple)">${c.stock_number||'—'}</span></td>
       <td><span class="reg-badge sor">${c.reg}</span></td>
       <td><span style="font-weight:500">${c.make||''}</span> <span class="muted-text">${c.model||''}</span></td>
@@ -1493,9 +1565,63 @@ function renderSOR(){
       <td class="num" style="color:var(--red)">${p&&p.tax>0?fmt(p.tax):'<span class="muted-text">—</span>'}</td>
       <td>${statusBadge(c.status,'sor')}</td>
       <td class="num muted-text" style="font-size:11px">${daysInStock(c)}d</td>
-      <td><button class="action-btn" onclick="deleteCar(${c.id})">×</button></td>
+      <td onclick="event.stopPropagation()"></td>
+    </tr>
+    <tr class="expand-row ${isExpanded?'open':''}" id="expand-sor-${c.id}">
+      <td colspan="14">
+        <div class="expand-content">
+          <div class="expand-grid">
+            <div class="expand-field"><label class="expand-label">Registration</label><input class="expand-input" type="text" id="edit-sor-reg-${c.id}" value="${c.reg||''}" style="text-transform:uppercase"></div>
+            <div class="expand-field"><label class="expand-label">Make</label><input class="expand-input" type="text" id="edit-sor-make-${c.id}" value="${c.make||''}"></div>
+            <div class="expand-field span2"><label class="expand-label">Model</label><input class="expand-input" type="text" id="edit-sor-model-${c.id}" value="${c.model||''}"></div>
+            <div class="expand-field"><label class="expand-label">Owner Name</label><input class="expand-input" type="text" id="edit-sor-owner-${c.id}" value="${c.owner_name||''}"></div>
+            <div class="expand-field"><label class="expand-label">Agreed Min (£)</label><input class="expand-input" type="number" id="edit-sor-min-${c.id}" value="${c.min_price||''}" step="0.01"></div>
+            <div class="expand-field"><label class="expand-label">Date Received</label><input class="expand-input" type="date" id="edit-sor-received-${c.id}" value="${c.received_date||''}"></div>
+            <div class="expand-field"><label class="expand-label">Sale Price (£)</label><input class="expand-input" type="number" id="edit-sor-sale-price-${c.id}" value="${c.sale_price||''}" step="0.01"></div>
+            <div class="expand-field"><label class="expand-label">Sale Date</label><input class="expand-input" type="date" id="edit-sor-sale-date-${c.id}" value="${c.sale_date||''}"></div>
+            <div class="expand-field"><label class="expand-label">Your Fee (£)</label><input class="expand-input" type="number" id="edit-sor-fee-${c.id}" value="${c.fee||''}" step="0.01"></div>
+            <div class="expand-field"><label class="expand-label">Fee VAT</label><select class="expand-input" id="edit-sor-fee-vat-${c.id}"><option value="none" ${c.fee_vat==='none'?'selected':''}>No VAT</option><option value="inclusive" ${c.fee_vat==='inclusive'?'selected':''}>Fee Includes VAT (÷1.2)</option><option value="exclusive" ${c.fee_vat==='exclusive'?'selected':''}>Fee + VAT (×1.2)</option></select></div>
+            <div class="expand-field"><label class="expand-label">Direct Costs</label><input class="expand-input" type="text" value="${fmt(costs)}" disabled></div>
+            <div class="expand-field"><label class="expand-label">Status</label><select class="expand-input" id="edit-sor-status-${c.id}"><option ${c.status==='On Site'?'selected':''}>On Site</option><option ${c.status==='Sold'?'selected':''}>Sold</option><option ${c.status==='Returned'?'selected':''}>Returned</option></select></div>
+          </div>
+          <div class="expand-actions">
+            <button class="btn-delete" onclick="event.stopPropagation();deleteCar(${c.id})">🗑️ Delete</button>
+            <button class="btn-cancel" onclick="event.stopPropagation();toggleSORExpand(${c.id})">Cancel</button>
+            <button class="btn-primary purple" onclick="event.stopPropagation();saveSOREdit(${c.id})">Save Changes</button>
+          </div>
+        </div>
+      </td>
     </tr>`
   }).join('')
+}
+
+function toggleSORExpand(id){
+  if(expandedSORId === id){
+    expandedSORId = null
+  } else {
+    expandedSORId = id
+  }
+  renderSOR()
+}
+
+async function saveSOREdit(id){
+  const updates = {
+    reg: document.getElementById(`edit-sor-reg-${id}`).value.toUpperCase(),
+    make: document.getElementById(`edit-sor-make-${id}`).value,
+    model: document.getElementById(`edit-sor-model-${id}`).value,
+    owner_name: document.getElementById(`edit-sor-owner-${id}`).value,
+    min_price: parseFloat(document.getElementById(`edit-sor-min-${id}`).value) || null,
+    received_date: document.getElementById(`edit-sor-received-${id}`).value || null,
+    sale_price: parseFloat(document.getElementById(`edit-sor-sale-price-${id}`).value) || null,
+    sale_date: document.getElementById(`edit-sor-sale-date-${id}`).value || null,
+    fee: parseFloat(document.getElementById(`edit-sor-fee-${id}`).value) || null,
+    fee_vat: document.getElementById(`edit-sor-fee-vat-${id}`).value,
+    status: document.getElementById(`edit-sor-status-${id}`).value
+  }
+  await sb.from('cars').update(updates).eq('id', id)
+  expandedSORId = null
+  await loadAll()
+  toast('SOR car updated')
 }
 function setSORPeriod(p){
   const now=new Date(); let from,to=today()
@@ -1514,6 +1640,8 @@ function clearSORFilters(){
 // ══════════════════════════════════════════════
 // TRANSACTIONS
 // ══════════════════════════════════════════════
+let expandedTxId = null
+
 function renderTransactions(){
   const unassignedQB=transactions.filter(t=>!t.assigned&&t.source==='quickbooks')
   const alertEl=document.getElementById('unassigned-alert')
@@ -1547,7 +1675,8 @@ function renderTransactions(){
   tbody.innerHTML=filtered.map(t=>{
     const linked=allStock.find(c=>c.id===t.stock_id)
     const isUnassignedQB=!t.assigned&&t.source==='quickbooks'
-    return `<tr style="${isUnassignedQB?'background:rgba(231,76,60,0.04)':''}cursor:pointer" onclick="openEditTx(${t.id})" title="Click to edit">
+    const isExpanded = expandedTxId === t.id
+    return `<tr class="clickable" style="${isUnassignedQB?'background:rgba(231,76,60,0.04)':''}" onclick="toggleTxExpand(${t.id})">
       <td class="muted-text">${fmtDate(t.date)}</td>
       <td>${t.supplier||''}</td>
       <td><span class="badge badge-muted">${t.type}</span></td>
@@ -1563,9 +1692,64 @@ function renderTransactions(){
       <td class="muted-text" style="font-size:11px">${t.due_date?fmtDate(t.due_date):'—'}</td>
       <td>${payBadge(t.status)}</td>
       <td><span class="badge ${t.source==='quickbooks'?'badge-blue':'badge-muted'}">${t.source==='quickbooks'?'QB':'Manual'}</span></td>
-      <td onclick="event.stopPropagation()"><button class="action-btn" onclick="deleteTx(${t.id})">×</button></td>
+      <td onclick="event.stopPropagation()"></td>
+    </tr>
+    <tr class="expand-row ${isExpanded?'open':''}" id="expand-tx-${t.id}">
+      <td colspan="11">
+        <div class="expand-content">
+          <div class="expand-grid">
+            <div class="expand-field"><label class="expand-label">Date</label><input class="expand-input" type="date" id="edit-tx-date-${t.id}" value="${t.date||''}"></div>
+            <div class="expand-field"><label class="expand-label">Amount (£)</label><input class="expand-input" type="number" id="edit-tx-amount-${t.id}" value="${t.amount||''}" step="0.01"></div>
+            <div class="expand-field span2"><label class="expand-label">Supplier</label><input class="expand-input" type="text" id="edit-tx-supplier-${t.id}" value="${t.supplier||''}"></div>
+            <div class="expand-field"><label class="expand-label">Type</label><select class="expand-input" id="edit-tx-type-${t.id}"><option ${t.type==='Fuel'?'selected':''}>Fuel</option><option ${t.type==='Parts'?'selected':''}>Parts</option><option ${t.type==='Mechanics'?'selected':''}>Mechanics</option><option ${t.type==='Tyres'?'selected':''}>Tyres</option><option ${t.type==='MOT'?'selected':''}>MOT</option><option ${t.type==='Warranty'?'selected':''}>Warranty</option><option ${t.type==='Advertising'?'selected':''}>Advertising</option><option ${t.type==='Cleaning'?'selected':''}>Cleaning</option><option ${t.type==='HPI'?'selected':''}>HPI</option><option ${t.type==='Travel'?'selected':''}>Travel</option><option ${t.type==='Overhead-Other'?'selected':''}>Overhead-Other</option></select></div>
+            <div class="expand-field"><label class="expand-label">Assign to Stock</label><select class="expand-input" id="edit-tx-stock-${t.id}"><option value="">Overhead (no car)</option>${allStock.map(c=>`<option value="${c.id}" ${c.id===t.stock_id?'selected':''}>${c.stock_number} - ${c.reg}</option>`).join('')}</select></div>
+            <div class="expand-field"><label class="expand-label">VAT</label><select class="expand-input" id="edit-tx-vat-${t.id}"><option ${t.vat==='0%'?'selected':''}>0%</option><option ${t.vat==='20%'?'selected':''}>20%</option></select></div>
+            <div class="expand-field"><label class="expand-label">30-Day Account</label><select class="expand-input" id="edit-tx-thirty-${t.id}"><option ${t.thirty_day==='No'?'selected':''}>No</option><option ${t.thirty_day==='Yes'?'selected':''}>Yes</option></select></div>
+            <div class="expand-field"><label class="expand-label">Due Date</label><input class="expand-input" type="date" id="edit-tx-due-${t.id}" value="${t.due_date||''}"></div>
+            <div class="expand-field"><label class="expand-label">Status</label><select class="expand-input" id="edit-tx-status-${t.id}"><option ${t.status==='Paid'?'selected':''}>Paid</option><option ${t.status==='Unpaid'?'selected':''}>Unpaid</option><option ${t.status==='Overdue'?'selected':''}>Overdue</option></select></div>
+            <div class="expand-field span2"><label class="expand-label">Notes</label><input class="expand-input" type="text" id="edit-tx-notes-${t.id}" value="${t.notes||''}"></div>
+          </div>
+          <div class="expand-actions">
+            <button class="btn-delete" onclick="event.stopPropagation();deleteTx(${t.id})">🗑️ Delete</button>
+            <button class="btn-cancel" onclick="event.stopPropagation();toggleTxExpand(${t.id})">Cancel</button>
+            <button class="btn-primary" onclick="event.stopPropagation();saveTxEdit(${t.id})">Save Changes</button>
+          </div>
+        </div>
+      </td>
     </tr>`
   }).join('')
+}
+
+function toggleTxExpand(id){
+  if(expandedTxId === id){
+    expandedTxId = null
+  } else {
+    expandedTxId = id
+  }
+  renderTransactions()
+}
+
+async function saveTxEdit(id){
+  const stockId = document.getElementById(`edit-tx-stock-${id}`).value
+  const car = stockId ? allStock.find(c=>c.id==stockId) : null
+  const updates = {
+    date: document.getElementById(`edit-tx-date-${id}`).value,
+    supplier: document.getElementById(`edit-tx-supplier-${id}`).value,
+    type: document.getElementById(`edit-tx-type-${id}`).value,
+    amount: parseFloat(document.getElementById(`edit-tx-amount-${id}`).value) || 0,
+    vat: document.getElementById(`edit-tx-vat-${id}`).value,
+    thirty_day: document.getElementById(`edit-tx-thirty-${id}`).value,
+    due_date: document.getElementById(`edit-tx-due-${id}`).value || null,
+    status: document.getElementById(`edit-tx-status-${id}`).value,
+    notes: document.getElementById(`edit-tx-notes-${id}`).value,
+    stock_id: stockId || null,
+    car_reg: car?.reg || null,
+    assigned: true
+  }
+  await sb.from('transactions').update(updates).eq('id', id)
+  expandedTxId = null
+  await loadAll()
+  toast('Transaction updated')
 }
 function setTxPeriod(p){
   const now=new Date(); let from,to=today()
