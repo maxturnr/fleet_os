@@ -1,0 +1,17 @@
+[build]
+  publish = "files"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/*"
+  to = "/FleetOS_v2.html"
+  status = 200
+  force = false
+  conditions = {Role = ["public"]}
+
+[dev]
+  functions = "netlify/functions"
+  publish = "files"
