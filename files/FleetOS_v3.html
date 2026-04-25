@@ -136,6 +136,22 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
 .btn-delete{background:transparent;color:var(--red);border:1px solid var(--red);padding:8px 14px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;border-radius:var(--radius);transition:all 0.15s;display:flex;align-items:center;gap:6px;}
 .btn-delete:hover{background:var(--red);color:#fff;}
 
+/* SPLIT COSTS */
+.split-section{margin-top:20px;padding-top:20px;border-top:1px solid var(--border);}
+.split-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.split-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);}
+.btn-split{background:transparent;color:var(--gold);border:1px solid var(--gold);padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border-radius:var(--radius);transition:all 0.15s;}
+.btn-split:hover{background:var(--gold);color:var(--bg);}
+.split-list{display:flex;flex-direction:column;gap:10px;}
+.split-item{display:grid;grid-template-columns:1fr 120px 32px;gap:10px;align-items:end;}
+.split-total{margin-top:12px;padding:12px;background:var(--surface3);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:12px;}
+.split-total-label{color:var(--muted2);}
+.split-total-value{font-weight:600;color:var(--gold);}
+.split-total-value.error{color:var(--red);}
+.split-total-value.success{color:var(--green);}
+.btn-remove-split{background:transparent;color:var(--red);border:1px solid var(--red);padding:6px 8px;font-size:14px;cursor:pointer;border-radius:var(--radius);transition:all 0.15s;line-height:1;}
+.btn-remove-split:hover{background:var(--red);color:#fff;}
+
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
 .modal-overlay.open{display:flex;}
@@ -681,6 +697,7 @@ const QB_REDIRECT = window.location.origin + window.location.pathname
 let ownedCars = []   // type = 'owned'
 let sorCars = []     // type = 'sor'
 let transactions = []
+let transactionSplits = []
 let balanceSheet = {acc1:0,acc2:0,parts30:0,mech30:0,debtors:0,other_liab:0}
 let vatRegistered = false
 let qbConnected = false
@@ -708,7 +725,11 @@ function toast(msg,isError=false){
 }
 
 function getDirectCosts(stockId){
-  return transactions.filter(t=>t.stock_id===stockId).reduce((s,t)=>s+Number(t.amount),0)
+  // Direct assignments
+  const directCosts = transactions.filter(t=>t.stock_id===stockId).reduce((s,t)=>s+Number(t.amount),0)
+  // Split costs
+  const splitCosts = transactionSplits.filter(s=>s.car_id===stockId).reduce((sum,s)=>sum+Number(s.amount),0)
+  return directCosts + splitCosts
 }
 
 function sorNetFee(car){
@@ -953,16 +974,18 @@ async function loadAll(){
   }
   loading(true,'Syncing...')
   try {
-    const [ownedRes,sorRes,txRes,bsRes,settingsRes] = await Promise.all([
+    const [ownedRes,sorRes,txRes,splitsRes,bsRes,settingsRes] = await Promise.all([
       sb.from('cars').select('*').eq('type','owned').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('cars').select('*').eq('type','sor').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('transactions').select('*').eq('account_id',accountId).order('date',{ascending:false}),
+      sb.from('transaction_splits').select('*'),
       sb.from('balance_sheet').select('*').eq('account_id',accountId).limit(1).single(),
       sb.from('settings').select('*').eq('account_id',accountId),
     ])
     if(ownedRes.data) ownedCars=ownedRes.data
     if(sorRes.data) sorCars=sorRes.data
     if(txRes.data) transactions=txRes.data
+    if(splitsRes.data) transactionSplits=splitsRes.data
     if(bsRes.data) balanceSheet=bsRes.data
     if(settingsRes.data){
       const v=settingsRes.data.find(s=>s.key==='vat_registered')
@@ -1681,7 +1704,8 @@ function renderTransactions(){
       <td>${t.supplier||''}</td>
       <td><span class="badge badge-muted">${t.type}</span></td>
       <td>
-        ${linked?`<span class="reg-badge ${linked.type==='sor'?'sor':''}">${linked.stock_number}</span> <span class="muted-text" style="font-size:11px">${linked.reg}</span>`
+        ${t.car_reg==='SPLIT'?'<span class="badge badge-gold">🔀 SPLIT</span>'
+        :linked?`<span class="reg-badge ${linked.type==='sor'?'sor':''}">${linked.stock_number}</span> <span class="muted-text" style="font-size:11px">${linked.reg}</span>`
         :t.stock_id?'<span class="muted-text">Unknown</span>'
         :'<span class="muted-text" style="font-size:11px">overhead</span>'}
         ${isUnassignedQB?`<button class="link-btn" onclick="event.stopPropagation();openAssignModal(${t.id})">Assign →</button>`:''}
@@ -1702,12 +1726,23 @@ function renderTransactions(){
             <div class="expand-field"><label class="expand-label">Amount (£)</label><input class="expand-input" type="number" id="edit-tx-amount-${t.id}" value="${t.amount||''}" step="0.01"></div>
             <div class="expand-field span2"><label class="expand-label">Supplier</label><input class="expand-input" type="text" id="edit-tx-supplier-${t.id}" value="${t.supplier||''}"></div>
             <div class="expand-field"><label class="expand-label">Type</label><select class="expand-input" id="edit-tx-type-${t.id}"><option ${t.type==='Fuel'?'selected':''}>Fuel</option><option ${t.type==='Parts'?'selected':''}>Parts</option><option ${t.type==='Mechanics'?'selected':''}>Mechanics</option><option ${t.type==='Tyres'?'selected':''}>Tyres</option><option ${t.type==='MOT'?'selected':''}>MOT</option><option ${t.type==='Warranty'?'selected':''}>Warranty</option><option ${t.type==='Advertising'?'selected':''}>Advertising</option><option ${t.type==='Cleaning'?'selected':''}>Cleaning</option><option ${t.type==='HPI'?'selected':''}>HPI</option><option ${t.type==='Travel'?'selected':''}>Travel</option><option ${t.type==='Overhead-Other'?'selected':''}>Overhead-Other</option></select></div>
-            <div class="expand-field"><label class="expand-label">Assign to Stock</label><select class="expand-input" id="edit-tx-stock-${t.id}"><option value="">Overhead (no car)</option>${allStock.map(c=>`<option value="${c.id}" ${c.id===t.stock_id?'selected':''}>${c.stock_number} - ${c.reg}</option>`).join('')}</select></div>
+            <div class="expand-field"><label class="expand-label">Assign to Stock</label><select class="expand-input" id="edit-tx-stock-${t.id}" onchange="toggleSplitMode(${t.id}, this.value)"><option value="">Overhead (no car)</option><option value="SPLIT">🔀 Split across multiple cars</option>${allStock.map(c=>`<option value="${c.id}" ${c.id===t.stock_id?'selected':''}>${c.stock_number} - ${c.reg}</option>`).join('')}</select></div>
             <div class="expand-field"><label class="expand-label">VAT</label><select class="expand-input" id="edit-tx-vat-${t.id}"><option ${t.vat==='0%'?'selected':''}>0%</option><option ${t.vat==='20%'?'selected':''}>20%</option></select></div>
             <div class="expand-field"><label class="expand-label">30-Day Account</label><select class="expand-input" id="edit-tx-thirty-${t.id}"><option ${t.thirty_day==='No'?'selected':''}>No</option><option ${t.thirty_day==='Yes'?'selected':''}>Yes</option></select></div>
             <div class="expand-field"><label class="expand-label">Due Date</label><input class="expand-input" type="date" id="edit-tx-due-${t.id}" value="${t.due_date||''}"></div>
             <div class="expand-field"><label class="expand-label">Status</label><select class="expand-input" id="edit-tx-status-${t.id}"><option ${t.status==='Paid'?'selected':''}>Paid</option><option ${t.status==='Unpaid'?'selected':''}>Unpaid</option><option ${t.status==='Overdue'?'selected':''}>Overdue</option></select></div>
             <div class="expand-field span2"><label class="expand-label">Notes</label><input class="expand-input" type="text" id="edit-tx-notes-${t.id}" value="${t.notes||''}"></div>
+          </div>
+          <div id="split-section-${t.id}" class="split-section" style="display:none;">
+            <div class="split-header">
+              <div class="split-title">Split Cost Across Cars</div>
+              <button class="btn-split" onclick="event.stopPropagation();addSplitRow(${t.id})">+ Add Car</button>
+            </div>
+            <div id="split-list-${t.id}" class="split-list"></div>
+            <div class="split-total">
+              <span class="split-total-label">Total Allocated:</span>
+              <span id="split-total-${t.id}" class="split-total-value">£0.00</span>
+            </div>
           </div>
           <div class="expand-actions">
             <button class="btn-delete" onclick="event.stopPropagation();deleteTx(${t.id})">🗑️ Delete</button>
@@ -1729,8 +1764,147 @@ function toggleTxExpand(id){
   renderTransactions()
 }
 
+let txSplits = {}
+
+function toggleSplitMode(txId, value){
+  const splitSection = document.getElementById(`split-section-${txId}`)
+  if(value === 'SPLIT'){
+    splitSection.style.display = 'block'
+    if(!txSplits[txId]) txSplits[txId] = []
+    if(txSplits[txId].length === 0) addSplitRow(txId)
+  } else {
+    splitSection.style.display = 'none'
+  }
+}
+
+function addSplitRow(txId){
+  if(!txSplits[txId]) txSplits[txId] = []
+  txSplits[txId].push({car_id: '', amount: ''})
+  renderSplitRows(txId)
+}
+
+function removeSplitRow(txId, index){
+  txSplits[txId].splice(index, 1)
+  renderSplitRows(txId)
+}
+
+function renderSplitRows(txId){
+  const allStock = [...ownedCars, ...sorCars]
+  const listEl = document.getElementById(`split-list-${txId}`)
+  if(!txSplits[txId] || txSplits[txId].length === 0){
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;text-align:center;padding:20px">Click "+ Add Car" to split this cost</div>'
+    updateSplitTotal(txId)
+    return
+  }
+  
+  listEl.innerHTML = txSplits[txId].map((split, i) => `
+    <div class="split-item">
+      <div class="expand-field">
+        <label class="expand-label">Car</label>
+        <select class="expand-input" id="split-car-${txId}-${i}" onchange="updateSplit(${txId}, ${i}, 'car_id', this.value)">
+          <option value="">Select car...</option>
+          ${allStock.map(c => `<option value="${c.id}" ${split.car_id==c.id?'selected':''}>${c.stock_number} - ${c.reg}</option>`).join('')}
+        </select>
+      </div>
+      <div class="expand-field">
+        <label class="expand-label">Amount (£)</label>
+        <input class="expand-input" type="number" step="0.01" id="split-amount-${txId}-${i}" value="${split.amount||''}" oninput="updateSplit(${txId}, ${i}, 'amount', this.value)">
+      </div>
+      <button class="btn-remove-split" onclick="event.stopPropagation();removeSplitRow(${txId}, ${i})">×</button>
+    </div>
+  `).join('')
+  updateSplitTotal(txId)
+}
+
+function updateSplit(txId, index, field, value){
+  if(!txSplits[txId]) return
+  txSplits[txId][index][field] = value
+  updateSplitTotal(txId)
+}
+
+function updateSplitTotal(txId){
+  const totalEl = document.getElementById(`split-total-${txId}`)
+  if(!txSplits[txId]){
+    totalEl.textContent = '£0.00'
+    totalEl.className = 'split-total-value'
+    return
+  }
+  
+  const total = txSplits[txId].reduce((sum, split) => sum + (parseFloat(split.amount) || 0), 0)
+  const txAmount = parseFloat(document.getElementById(`edit-tx-amount-${txId}`).value) || 0
+  
+  totalEl.textContent = fmt(total)
+  totalEl.className = 'split-total-value'
+  
+  if(total > txAmount + 0.01){
+    totalEl.className = 'split-total-value error'
+  } else if(Math.abs(total - txAmount) < 0.01 && total > 0){
+    totalEl.className = 'split-total-value success'
+  }
+}
+
 async function saveTxEdit(id){
   const stockId = document.getElementById(`edit-tx-stock-${id}`).value
+  
+  // Handle split costs
+  if(stockId === 'SPLIT'){
+    if(!txSplits[id] || txSplits[id].length === 0){
+      toast('Please add at least one car to split the cost', 'error')
+      return
+    }
+    
+    const txAmount = parseFloat(document.getElementById(`edit-tx-amount-${id}`).value) || 0
+    const splitTotal = txSplits[id].reduce((sum, split) => sum + (parseFloat(split.amount) || 0), 0)
+    
+    if(Math.abs(splitTotal - txAmount) > 0.01){
+      toast(`Split total (${fmt(splitTotal)}) must equal transaction amount (${fmt(txAmount)})`, 'error')
+      return
+    }
+    
+    // Validate all splits have a car selected
+    for(let split of txSplits[id]){
+      if(!split.car_id || !split.amount){
+        toast('All splits must have a car and amount', 'error')
+        return
+      }
+    }
+    
+    // Save main transaction
+    const updates = {
+      date: document.getElementById(`edit-tx-date-${id}`).value,
+      supplier: document.getElementById(`edit-tx-supplier-${id}`).value,
+      type: document.getElementById(`edit-tx-type-${id}`).value,
+      amount: txAmount,
+      vat: document.getElementById(`edit-tx-vat-${id}`).value,
+      thirty_day: document.getElementById(`edit-tx-thirty-${id}`).value,
+      due_date: document.getElementById(`edit-tx-due-${id}`).value || null,
+      status: document.getElementById(`edit-tx-status-${id}`).value,
+      notes: document.getElementById(`edit-tx-notes-${id}`).value,
+      stock_id: null,
+      car_reg: 'SPLIT',
+      assigned: true
+    }
+    await sb.from('transactions').update(updates).eq('id', id)
+    
+    // Delete existing splits
+    await sb.from('transaction_splits').delete().eq('transaction_id', id)
+    
+    // Insert new splits
+    const splitInserts = txSplits[id].map(split => ({
+      transaction_id: id,
+      car_id: parseInt(split.car_id),
+      amount: parseFloat(split.amount)
+    }))
+    await sb.from('transaction_splits').insert(splitInserts)
+    
+    delete txSplits[id]
+    expandedTxId = null
+    await loadAll()
+    toast('Split transaction saved')
+    return
+  }
+  
+  // Normal single-car assignment
   const car = stockId ? allStock.find(c=>c.id==stockId) : null
   const updates = {
     date: document.getElementById(`edit-tx-date-${id}`).value,
@@ -1747,6 +1921,10 @@ async function saveTxEdit(id){
     assigned: true
   }
   await sb.from('transactions').update(updates).eq('id', id)
+  
+  // Delete any existing splits
+  await sb.from('transaction_splits').delete().eq('transaction_id', id)
+  
   expandedTxId = null
   await loadAll()
   toast('Transaction updated')
