@@ -666,6 +666,8 @@ let vatRegistered = false
 let qbConnected = false
 let currentTab = 'dashboard'
 let assigningTxId = null
+let currentUser = null  // {id, email, full_name, role, account_id, dealer_name}
+let accountId = null
 
 // ══════════════════════════════════════════════
 // HELPERS
@@ -750,35 +752,129 @@ const payBadge = s => {
 // ══════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════
-function doLogin(){
-  const u=document.getElementById('lu').value.trim()
-  const p=document.getElementById('lp').value
+async function hashPassword(password){
+  const encoder = new TextEncoder()
+  const data = encoder.encode(password)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function doLogin(){
+  const email=document.getElementById('lu').value.trim()
+  const password=document.getElementById('lp').value
   document.getElementById('login-error').textContent=''
-  if(u==='admin'&&p==='fleet2024'){
+  
+  if(!email||!password){
+    document.getElementById('login-error').textContent='Please enter email and password'
+    return
+  }
+  
+  loading(true, 'Logging in...')
+  
+  try {
+    // Hash the password
+    const passwordHash = await hashPassword(password)
+    
+    // Query database for user
+    const {data: users, error} = await sb
+      .from('users')
+      .select(`
+        id,
+        email,
+        password_hash,
+        full_name,
+        role,
+        account_id,
+        active,
+        accounts!inner(dealer_name, active)
+      `)
+      .eq('email', email)
+      .eq('active', true)
+    
+    if(error) throw error
+    
+    if(!users || users.length === 0){
+      document.getElementById('login-error').textContent='Invalid email or password'
+      loading(false)
+      return
+    }
+    
+    const user = users[0]
+    
+    // Check if account is active
+    if(!user.accounts.active){
+      document.getElementById('login-error').textContent='Account is inactive. Contact support.'
+      loading(false)
+      return
+    }
+    
+    // Verify password
+    if(user.password_hash !== passwordHash){
+      document.getElementById('login-error').textContent='Invalid email or password'
+      loading(false)
+      return
+    }
+    
+    // Update last login
+    await sb.from('users').update({last_login: new Date().toISOString()}).eq('id', user.id)
+    
+    // Store session
+    currentUser = {
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      role: user.role,
+      account_id: user.account_id,
+      dealer_name: user.accounts.dealer_name
+    }
+    accountId = user.account_id
+    
+    localStorage.setItem('fleet_user', JSON.stringify(currentUser))
     localStorage.setItem('fleet_auth', 'true')
+    
     document.getElementById('login-screen').style.display='none'
     document.getElementById('app').style.display='flex'
     document.getElementById('app').style.flexDirection='column'
+    
+    loading(false)
     initApp()
-  } else {
-    document.getElementById('login-error').textContent='Incorrect credentials'
+    
+  } catch(err){
+    console.error('Login error:', err)
+    document.getElementById('login-error').textContent='Login failed. Please try again.'
+    loading(false)
   }
 }
+
 document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()})
+
 function doLogout(){
+  currentUser = null
+  accountId = null
   localStorage.removeItem('fleet_auth')
+  localStorage.removeItem('fleet_user')
   document.getElementById('app').style.display='none'
   document.getElementById('login-screen').style.display='flex'
   document.getElementById('lu').value=''; document.getElementById('lp').value=''
 }
 
 // Check if already logged in on page load
-function checkAuth(){
-  if(localStorage.getItem('fleet_auth')==='true'){
-    document.getElementById('login-screen').style.display='none'
-    document.getElementById('app').style.display='flex'
-    document.getElementById('app').style.flexDirection='column'
-    initApp()
+async function checkAuth(){
+  const storedUser = localStorage.getItem('fleet_user')
+  if(localStorage.getItem('fleet_auth')==='true' && storedUser){
+    try {
+      currentUser = JSON.parse(storedUser)
+      accountId = currentUser.account_id
+      
+      document.getElementById('login-screen').style.display='none'
+      document.getElementById('app').style.display='flex'
+      document.getElementById('app').style.flexDirection='column'
+      initApp()
+    } catch(err){
+      console.error('Session restore error:', err)
+      doLogout()
+    }
   }
 }
 checkAuth()
@@ -844,14 +940,18 @@ function updateQBBadge(){
 // LOAD DATA
 // ══════════════════════════════════════════════
 async function loadAll(){
+  if(!accountId){
+    console.error('No account ID - user not logged in')
+    return
+  }
   loading(true,'Syncing...')
   try {
     const [ownedRes,sorRes,txRes,bsRes,settingsRes] = await Promise.all([
-      sb.from('cars').select('*').eq('type','owned').order('created_at',{ascending:false}),
-      sb.from('cars').select('*').eq('type','sor').order('created_at',{ascending:false}),
-      sb.from('transactions').select('*').order('date',{ascending:false}),
-      sb.from('balance_sheet').select('*').limit(1).single(),
-      sb.from('settings').select('*'),
+      sb.from('cars').select('*').eq('type','owned').eq('account_id',accountId).order('created_at',{ascending:false}),
+      sb.from('cars').select('*').eq('type','sor').eq('account_id',accountId).order('created_at',{ascending:false}),
+      sb.from('transactions').select('*').eq('account_id',accountId).order('date',{ascending:false}),
+      sb.from('balance_sheet').select('*').eq('account_id',accountId).limit(1).single(),
+      sb.from('settings').select('*').eq('account_id',accountId),
     ])
     if(ownedRes.data) ownedCars=ownedRes.data
     if(sorRes.data) sorCars=sorRes.data
@@ -968,6 +1068,7 @@ async function saveOwned(){
   const paid=parseFloat(document.getElementById('owned-paid').value)
   const sold=parseFloat(document.getElementById('owned-sold').value)
   const row={
+    account_id:accountId,
     type:'owned',
     stock_number:nextStockNum('owned'),
     reg:document.getElementById('owned-reg').value.toUpperCase().trim(),
@@ -995,6 +1096,7 @@ async function saveSOR(){
   const salePrice=parseFloat(document.getElementById('sor-sale-price').value)
   const fee=parseFloat(document.getElementById('sor-fee').value)
   const row={
+    account_id:accountId,
     type:'sor',
     stock_number:nextStockNum('sor'),
     reg:document.getElementById('sor-reg').value.toUpperCase().trim(),
@@ -1033,6 +1135,7 @@ async function saveTx(){
   const linkedCar=allStock.find(c=>String(c.id)===String(stockId))
 
   const row={
+    account_id:accountId,
     date:dateVal,
     supplier:document.getElementById('tx-supplier').value||'Unknown',
     type:document.getElementById('tx-type').value,
