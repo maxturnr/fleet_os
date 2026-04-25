@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetOS v3 - Clean Build</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080808;--surface:#101010;--surface2:#161616;--surface3:#1e1e1e;
+  --border:#222;--border2:#2a2a2a;
+  --gold:#c9a84c;--gold2:#e8d08a;--gold-dim:rgba(201,168,76,0.12);
+  --white:#f0ebe0;--muted:#555;--muted2:#888;
+  --green:#2ecc71;--red:#e74c3c;
+  --radius:4px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-serif;font-weight:300;min-height:100vh;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.login-box{width:380px;padding:48px 40px;border:1px solid var(--border2);background:var(--surface);}
+.login-logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--gold);letter-spacing:-0.02em;margin-bottom:6px;}
+.login-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:36px;}
+.login-label{font-size:11px;color:var(--muted2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;display:block;}
+.login-input{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--white);padding:12px 14px;font-family:'Instrument Sans',sans-serif;font-size:14px;outline:none;margin-bottom:16px;border-radius:var(--radius);}
+.login-input:focus{border-color:var(--gold);}
+.login-btn{width:100%;background:var(--gold);color:#000;border:none;padding:14px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;border-radius:var(--radius);}
+.login-btn:hover{background:var(--gold2);}
+.login-error{color:var(--red);font-size:12px;font-family:'DM Mono',monospace;margin-top:8px;text-align:center;min-height:16px;}
+
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh;}
+.topbar{height:56px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;padding:0 20px;gap:20px;}
+.topbar-logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--gold);}
+.topbar-info{flex:1;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2);}
+.logout-btn{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);background:none;border:1px solid var(--border2);padding:5px 10px;border-radius:var(--radius);cursor:pointer;}
+.logout-btn:hover{color:var(--white);}
+
+.content{flex:1;padding:40px;}
+.welcome{font-family:'Syne',sans-serif;font-size:32px;font-weight:700;margin-bottom:20px;}
+.welcome span{color:var(--gold);}
+.info{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted2);line-height:1.8;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">FleetOS</div>
+    <div class="login-sub">Dealership Management</div>
+    <label class="login-label">Email</label>
+    <input class="login-input" id="email" type="email" placeholder="your@email.com" autocomplete="email">
+    <label class="login-label">Password</label>
+    <input class="login-input" id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="login-btn" onclick="login()">Sign In</button>
+    <div class="login-error" id="error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">FleetOS</div>
+    <div class="topbar-info" id="user-info"></div>
+    <button class="logout-btn" onclick="logout()">Log Out</button>
+  </div>
+  <div class="content">
+    <div class="welcome">Welcome to <span>FleetOS</span></div>
+    <div class="info">
+      ✅ Authentication working<br>
+      ✅ User session active<br>
+      ✅ Dealership data loaded<br>
+      <br>
+      Ready to add features!
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// SUPABASE SETUP
+// ═══════════════════════════════════════════════════════════
+const {createClient} = supabase
+const sb = createClient(
+  'https://hnypmigzwfavwcwarmnk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhueXBtaWd6d2Zhdndjd2FybW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMDU3MjcsImV4cCI6MjA5MjY4MTcyN30.uRC82cHVPLmDmUe-QKDyEPF8pfpnaMwSNXwfwO-qFBQ'
+)
+
+let currentUser = null
+let accountId = null
+
+// ═══════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════
+async function login() {
+  const email = document.getElementById('email').value.trim()
+  const password = document.getElementById('password').value
+  const errorEl = document.getElementById('error')
+  
+  errorEl.textContent = ''
+  
+  if (!email || !password) {
+    errorEl.textContent = 'Please enter email and password'
+    return
+  }
+  
+  try {
+    // Step 1: Sign in with Supabase Auth
+    const {data: authData, error: authError} = await sb.auth.signInWithPassword({
+      email,
+      password
+    })
+    
+    if (authError) throw authError
+    
+    // Step 2: Get account linked to this user
+    const {data: account, error: accountError} = await sb
+      .from('accounts')
+      .select('*')
+      .eq('user_id', authData.user.id)
+      .eq('active', true)
+      .single()
+    
+    if (accountError || !account) {
+      await sb.auth.signOut()
+      errorEl.textContent = 'No active account found for this user'
+      return
+    }
+    
+    // Step 3: Store session
+    currentUser = {
+      id: authData.user.id,
+      email: authData.user.email,
+      account_id: account.id,
+      dealer_name: account.dealer_name
+    }
+    accountId = account.id
+    
+    // Step 4: Show app
+    document.getElementById('login-screen').style.display = 'none'
+    document.getElementById('app').style.display = 'flex'
+    document.getElementById('user-info').textContent = 
+      `${currentUser.dealer_name} · ${currentUser.email}`
+    
+  } catch (err) {
+    console.error('Login error:', err)
+    errorEl.textContent = err.message || 'Login failed'
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOGOUT
+// ═══════════════════════════════════════════════════════════
+async function logout() {
+  await sb.auth.signOut()
+  currentUser = null
+  accountId = null
+  document.getElementById('app').style.display = 'none'
+  document.getElementById('login-screen').style.display = 'flex'
+  document.getElementById('email').value = ''
+  document.getElementById('password').value = ''
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUTO-LOGIN IF SESSION EXISTS
+// ═══════════════════════════════════════════════════════════
+async function checkSession() {
+  const {data: {session}} = await sb.auth.getSession()
+  
+  if (session) {
+    try {
+      const {data: account, error} = await sb
+        .from('accounts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('active', true)
+        .single()
+      
+      if (account) {
+        currentUser = {
+          id: session.user.id,
+          email: session.user.email,
+          account_id: account.id,
+          dealer_name: account.dealer_name
+        }
+        accountId = account.id
+        
+        document.getElementById('login-screen').style.display = 'none'
+        document.getElementById('app').style.display = 'flex'
+        document.getElementById('user-info').textContent = 
+          `${currentUser.dealer_name} · ${currentUser.email}`
+      }
+    } catch (err) {
+      console.error('Session restore error:', err)
+    }
+  }
+}
+
+// Check for existing session on load
+checkSession()
+
+// Enter key to login
+document.getElementById('password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login()
+})
+</script>
+</body>
+</html>
