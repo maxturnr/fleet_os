@@ -752,16 +752,8 @@ const payBadge = s => {
 }
 
 // ══════════════════════════════════════════════
-// AUTH
+// AUTH - SUPABASE AUTH
 // ══════════════════════════════════════════════
-async function hashPassword(password){
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-}
-
 async function doLogin(){
   const email=document.getElementById('lu').value.trim()
   const password=document.getElementById('lp').value
@@ -775,65 +767,39 @@ async function doLogin(){
   loading(true, 'Logging in...')
   
   try {
-    // Hash the password
-    const passwordHash = await hashPassword(password)
+    // Sign in with Supabase Auth
+    const {data: authData, error: authError} = await sb.auth.signInWithPassword({
+      email,
+      password
+    })
     
-    // Query database for user
-    const {data: users, error} = await sb
-      .from('users')
-      .select(`
-        id,
-        email,
-        password_hash,
-        full_name,
-        role,
-        account_id,
-        active,
-        accounts!inner(dealer_name, active)
-      `)
-      .eq('email', email)
+    if(authError) throw authError
+    
+    // Get account info
+    const {data: accounts, error: accountError} = await sb
+      .from('accounts')
+      .select('*')
+      .eq('user_id', authData.user.id)
       .eq('active', true)
+      .single()
     
-    if(error) throw error
-    
-    if(!users || users.length === 0){
-      document.getElementById('login-error').textContent='Invalid email or password'
+    if(accountError || !accounts){
+      await sb.auth.signOut()
+      document.getElementById('login-error').textContent='No active account found for this user'
       loading(false)
       return
     }
-    
-    const user = users[0]
-    
-    // Check if account is active
-    if(!user.accounts.active){
-      document.getElementById('login-error').textContent='Account is inactive. Contact support.'
-      loading(false)
-      return
-    }
-    
-    // Verify password
-    if(user.password_hash !== passwordHash){
-      document.getElementById('login-error').textContent='Invalid email or password'
-      loading(false)
-      return
-    }
-    
-    // Update last login
-    await sb.from('users').update({last_login: new Date().toISOString()}).eq('id', user.id)
     
     // Store session
     currentUser = {
-      id: user.id,
-      email: user.email,
-      full_name: user.full_name,
-      role: user.role,
-      account_id: user.account_id,
-      dealer_name: user.accounts.dealer_name
+      id: authData.user.id,
+      email: authData.user.email,
+      account_id: accounts.id,
+      dealer_name: accounts.dealer_name
     }
-    accountId = user.account_id
+    accountId = accounts.id
     
     localStorage.setItem('fleet_user', JSON.stringify(currentUser))
-    localStorage.setItem('fleet_auth', 'true')
     
     document.getElementById('login-screen').style.display='none'
     document.getElementById('app').style.display='flex'
@@ -844,17 +810,17 @@ async function doLogin(){
     
   } catch(err){
     console.error('Login error:', err)
-    document.getElementById('login-error').textContent='Login failed. Please try again.'
+    document.getElementById('login-error').textContent=err.message || 'Login failed. Please try again.'
     loading(false)
   }
 }
 
 document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()})
 
-function doLogout(){
+async function doLogout(){
+  await sb.auth.signOut()
   currentUser = null
   accountId = null
-  localStorage.removeItem('fleet_auth')
   localStorage.removeItem('fleet_user')
   document.getElementById('app').style.display='none'
   document.getElementById('login-screen').style.display='flex'
@@ -863,11 +829,32 @@ function doLogout(){
 
 // Check if already logged in on page load
 async function checkAuth(){
-  const storedUser = localStorage.getItem('fleet_user')
-  if(localStorage.getItem('fleet_auth')==='true' && storedUser){
+  const {data: {session}} = await sb.auth.getSession()
+  
+  if(session){
     try {
-      currentUser = JSON.parse(storedUser)
-      accountId = currentUser.account_id
+      // Get account info
+      const {data: accounts, error} = await sb
+        .from('accounts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('active', true)
+        .single()
+      
+      if(error || !accounts){
+        await sb.auth.signOut()
+        return
+      }
+      
+      currentUser = {
+        id: session.user.id,
+        email: session.user.email,
+        account_id: accounts.id,
+        dealer_name: accounts.dealer_name
+      }
+      accountId = accounts.id
+      
+      localStorage.setItem('fleet_user', JSON.stringify(currentUser))
       
       document.getElementById('login-screen').style.display='none'
       document.getElementById('app').style.display='flex'
@@ -875,7 +862,7 @@ async function checkAuth(){
       initApp()
     } catch(err){
       console.error('Session restore error:', err)
-      doLogout()
+      await sb.auth.signOut()
     }
   }
 }
