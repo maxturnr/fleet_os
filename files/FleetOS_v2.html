@@ -234,13 +234,12 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
   <div class="login-box">
     <div class="login-logo">FleetOS</div>
     <div class="login-sub">Dealership Management</div>
-    <label class="login-label">Username</label>
-    <input class="login-input" id="lu" type="text" placeholder="admin">
+    <label class="login-label">Email</label>
+    <input class="login-input" id="lu" type="email" placeholder="your@email.com" autocomplete="email">
     <label class="login-label">Password</label>
-    <input class="login-input" id="lp" type="password" placeholder="••••••••">
+    <input class="login-input" id="lp" type="password" placeholder="••••••••" autocomplete="current-password">
     <button class="login-btn" onclick="doLogin()">Sign In</button>
     <div class="login-error" id="login-error"></div>
-    <div class="login-hint">admin / fleet2024</div>
   </div>
 </div>
 
