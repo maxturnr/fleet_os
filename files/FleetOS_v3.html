@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>FleetOS v2.1</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080808;--surface:#101010;--surface2:#161616;--surface3:#1e1e1e;
+  --border:#222;--border2:#2a2a2a;
+  --gold:#c9a84c;--gold2:#e8d08a;--gold-dim:rgba(201,168,76,0.12);
+  --white:#f0ebe0;--muted:#555;--muted2:#888;
+  --green:#2ecc71;--green-dim:rgba(46,204,113,0.1);
+  --red:#e74c3c;--red-dim:rgba(231,76,60,0.1);
+  --blue:#3498db;--blue-dim:rgba(52,152,219,0.1);
+  --purple:#9b59b6;--purple-dim:rgba(155,89,182,0.1);
+  --radius:4px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;background-image:radial-gradient(ellipse at 20% 50%,rgba(201,168,76,0.04) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(201,168,76,0.03) 0%,transparent 50%);}
+.login-box{width:380px;padding:48px 40px;border:1px solid var(--border2);background:var(--surface);animation:fadeUp 0.5s ease both;}
+.login-logo{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--gold);letter-spacing:-0.02em;margin-bottom:6px;}
+.login-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:36px;}
+.login-label{font-size:11px;color:var(--muted2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;display:block;}
+.login-input{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--white);padding:12px 14px;font-family:'Instrument Sans',sans-serif;font-size:14px;outline:none;margin-bottom:16px;border-radius:var(--radius);transition:border-color 0.2s;}
+.login-input:focus{border-color:var(--gold);}
+.login-btn{width:100%;background:var(--gold);color:#000;border:none;padding:14px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.05em;cursor:pointer;border-radius:var(--radius);transition:background 0.2s;}
+.login-btn:hover{background:var(--gold2);}
+.login-hint{font-size:11px;color:var(--muted);margin-top:16px;text-align:center;font-family:'DM Mono',monospace;}
+.login-error{color:var(--red);font-size:12px;font-family:'DM Mono',monospace;margin-top:8px;text-align:center;min-height:16px;}
+
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh;}
+
+/* TOPBAR */
+.topbar{height:56px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;padding:0 20px;gap:4px;position:sticky;top:0;z-index:100;flex-wrap:wrap;}
+.topbar-logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--gold);letter-spacing:-0.02em;margin-right:12px;}
+.topbar-nav{display:flex;gap:2px;flex:1;flex-wrap:wrap;}
+.nav-btn{padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;border:none;background:transparent;color:var(--muted2);cursor:pointer;border-radius:var(--radius);transition:all 0.15s;white-space:nowrap;position:relative;}
+.nav-btn:hover{color:var(--white);background:var(--surface3);}
+.nav-btn.active{color:var(--gold);background:var(--gold-dim);}
+.nav-badge{position:absolute;top:2px;right:2px;background:var(--red);color:#fff;font-size:8px;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;}
+.topbar-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.vat-badge{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;padding:4px 10px;border-radius:20px;cursor:pointer;transition:all 0.2s;border:1px solid var(--border2);color:var(--muted2);}
+.vat-badge.active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+.qb-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border-radius:20px;cursor:pointer;transition:all 0.2s;border:1px solid var(--border2);color:var(--muted2);}
+.qb-btn.connected{border-color:var(--green);color:var(--green);background:var(--green-dim);}
+.logout-btn{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);background:none;border:1px solid var(--border2);padding:5px 10px;border-radius:var(--radius);cursor:pointer;transition:all 0.2s;letter-spacing:0.08em;text-transform:uppercase;}
+.logout-btn:hover{color:var(--white);}
+
+/* CONTENT */
+.content{flex:1;padding:24px;}
+.tab-panel{display:none;animation:fadeUp 0.3s ease both;}
+.tab-panel.active{display:block;}
+
+/* PAGE HEADER */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap;}
+.page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;}
+.page-title span{color:var(--gold);}
+.page-title span.sor{color:var(--purple);}
+.page-sub{font-size:12px;color:var(--muted2);margin-top:4px;font-family:'DM Mono',monospace;}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:24px;}
+.kpi{background:var(--surface);padding:18px 20px;}
+.kpi-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted2);margin-bottom:8px;}
+.kpi-value{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em;line-height:1;}
+.kpi-value.gold{color:var(--gold);}
+.kpi-value.green{color:var(--green);}
+.kpi-value.red{color:var(--red);}
+.kpi-value.purple{color:var(--purple);}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace;}
+
+/* FILTERS */
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.filter-select,.filter-input{background:var(--surface2);border:1px solid var(--border2);color:var(--white);padding:7px 11px;font-family:'DM Mono',monospace;font-size:11px;border-radius:var(--radius);outline:none;cursor:pointer;transition:border-color 0.15s;}
+.filter-select:focus,.filter-input:focus{border-color:var(--gold);}
+.filter-select option{background:var(--surface2);}
+.filter-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);letter-spacing:0.1em;text-transform:uppercase;}
+.filter-sep{width:1px;height:26px;background:var(--border2);}
+.btn-primary{background:var(--gold);color:#000;border:none;padding:8px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.05em;cursor:pointer;border-radius:var(--radius);transition:background 0.15s;white-space:nowrap;}
+.btn-primary:hover{background:var(--gold2);}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-primary.purple{background:var(--purple);color:#fff;}
+.btn-primary.purple:hover{background:#b07cc6;}
+.btn-ghost{background:transparent;color:var(--muted2);border:1px solid var(--border2);padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;border-radius:var(--radius);transition:all 0.15s;}
+.btn-ghost:hover{color:var(--white);border-color:var(--muted2);}
+
+/* TABLE */
+.table-wrap{border:1px solid var(--border);overflow:hidden;overflow-x:auto;}
+.data-table{width:100%;border-collapse:collapse;min-width:600px;}
+.data-table th{background:var(--surface2);padding:10px 14px;text-align:left;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);border-bottom:1px solid var(--border2);white-space:nowrap;}
+.data-table th.purple-hdr{color:var(--purple);}
+.data-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:nth-child(even) td{background:rgba(255,255,255,0.01);}
+.data-table tr:hover td{background:var(--surface2);}
+.num{font-family:'DM Mono',monospace;text-align:right;}
+.muted-text{color:var(--muted2);font-size:12px;}
+.reg-badge{font-family:'DM Mono',monospace;font-size:11px;background:var(--surface3);border:1px solid var(--border2);padding:3px 8px;border-radius:2px;letter-spacing:0.05em;}
+.reg-badge.sor{border-color:rgba(155,89,182,0.4);color:var(--purple);}
+.stock-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);}
+
+/* BADGES */
+.badge{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;padding:3px 8px;border-radius:2px;}
+.badge-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(46,204,113,0.2);}
+.badge-gold{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,0.2);}
+.badge-red{background:var(--red-dim);color:var(--red);border:1px solid rgba(231,76,60,0.2);}
+.badge-blue{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(52,152,219,0.2);}
+.badge-purple{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(155,89,182,0.2);}
+.badge-muted{background:rgba(255,255,255,0.04);color:var(--muted2);border:1px solid var(--border2);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;animation:fadeUp 0.25s ease both;}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;}
+.modal-close{background:none;border:none;color:var(--muted2);font-size:20px;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--white);}
+.modal-body{padding:24px;}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.span2{grid-column:span 2;}
+.form-group.span3{grid-column:span 3;}
+.form-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted2);}
+.form-control{background:var(--surface2);border:1px solid var(--border2);color:var(--white);padding:10px 12px;font-family:'Instrument Sans',sans-serif;font-size:14px;border-radius:var(--radius);outline:none;transition:border-color 0.15s;width:100%;}
+.form-control:focus{border-color:var(--gold);}
+.form-control.purple-focus:focus{border-color:var(--purple);}
+.form-control option{background:var(--surface2);}
+.btn-cancel{background:transparent;color:var(--muted2);border:1px solid var(--border2);padding:10px 18px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;border-radius:var(--radius);transition:all 0.15s;}
+.btn-cancel:hover{color:var(--white);}
+.form-note{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);padding:8px 12px;background:var(--surface3);border-radius:var(--radius);border-left:2px solid var(--border2);}
+.form-note.purple{border-left-color:var(--purple);}
+
+/* P&L */
+.pnl-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.pnl-section{border:1px solid var(--border);}
+.pnl-section-title{padding:14px 18px;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);background:var(--surface2);}
+.pnl-row{display:flex;justify-content:space-between;align-items:center;padding:11px 18px;border-bottom:1px solid var(--border);font-size:13px;}
+.pnl-row:last-child{border-bottom:none;}
+.pnl-row.indent{padding-left:30px;}
+.pnl-row.indent .pnl-row-label{color:var(--muted2);font-size:12px;}
+.pnl-row.total{background:var(--surface2);}
+.pnl-row.total .pnl-row-label{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;}
+.pnl-row-value{font-family:'DM Mono',monospace;font-size:13px;}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);margin-bottom:20px;}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);}
+.card-body{padding:20px;}
+
+/* CHART */
+.chart-area{height:150px;display:flex;align-items:flex-end;gap:5px;padding:0 4px;}
+.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.chart-bar{width:100%;background:var(--gold-dim);border-top:2px solid var(--gold);border-radius:2px 2px 0 0;min-height:4px;cursor:pointer;}
+.chart-bar:hover{background:rgba(201,168,76,0.25);}
+.chart-bar.green-bar{background:var(--green-dim);border-color:var(--green);}
+.chart-bar.purple-bar{background:var(--purple-dim);border-color:var(--purple);}
+.chart-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);text-align:center;overflow:hidden;max-width:100%;}
+
+/* ASSIGN MODAL */
+.assign-search{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--white);padding:10px 14px;font-family:'DM Mono',monospace;font-size:12px;border-radius:var(--radius);outline:none;margin-bottom:12px;}
+.assign-search:focus{border-color:var(--gold);}
+.assign-results{max-height:240px;overflow-y:auto;border:1px solid var(--border2);border-radius:var(--radius);}
+.assign-item{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;}
+.assign-item:last-child{border-bottom:none;}
+.assign-item:hover{background:var(--surface2);}
+.assign-item-reg{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);}
+.assign-item-detail{font-size:12px;color:var(--muted2);margin-top:2px;}
+.assign-item-stock{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* UNASSIGNED ALERT */
+.unassigned-bar{background:var(--red-dim);border:1px solid rgba(231,76,60,0.3);padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;border-radius:var(--radius);}
+.unassigned-bar-text{font-family:'DM Mono',monospace;font-size:11px;color:var(--red);}
+.unassigned-bar-btn{background:var(--red);color:#fff;border:none;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border-radius:var(--radius);}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty-icon{font-size:28px;margin-bottom:10px;opacity:0.3;}
+.empty-text{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;}
+
+/* LOADING */
+.loading-overlay{position:fixed;inset:0;background:rgba(8,8,8,0.85);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.loading-box{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);letter-spacing:0.2em;text-align:center;}
+.spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border2);padding:12px 18px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.05em;z-index:999;border-left:3px solid var(--green);transform:translateY(80px);opacity:0;transition:all 0.3s ease;border-radius:var(--radius);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.error{border-left-color:var(--red);}
+
+/* DASH */
+.dash-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+.divider{height:1px;background:var(--border);margin:14px 0;}
+.profit-positive{color:var(--green);}
+.profit-negative{color:var(--red);}
+.action-btn{background:none;border:none;color:var(--muted2);cursor:pointer;padding:4px 8px;border-radius:var(--radius);font-size:12px;transition:color 0.15s;}
+.action-btn:hover{color:var(--red);}
+.link-btn{background:none;border:none;color:var(--blue);cursor:pointer;padding:4px 8px;border-radius:var(--radius);font-size:12px;font-family:'DM Mono',monospace;transition:color 0.15s;text-decoration:underline;}
+.link-btn:hover{color:var(--white);}
+
+/* SOR section divider */
+.section-tab-row{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border);}
+.section-tab{padding:10px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;}
+.section-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.section-tab.active.sor-tab{color:var(--purple);border-bottom-color:var(--purple);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(max-width:900px){
+  .pnl-grid,.dash-two-col{grid-template-columns:1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .form-group.span2,.form-group.span3{grid-column:span 1;}
+  .content{padding:14px;}
+  .topbar{height:auto;padding:10px 14px;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">FleetOS</div>
+    <div class="login-sub">Dealership Management</div>
+    <label class="login-label">Email</label>
+    <input class="login-input" id="lu" type="email" placeholder="your@email.com" autocomplete="email">
+    <label class="login-label">Password</label>
+    <input class="login-input" id="lp" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">FleetOS</div>
+    <nav class="topbar-nav">
+      <button class="nav-btn active" onclick="showTab('dashboard',this)">Dashboard</button>
+      <button class="nav-btn" onclick="showTab('stock-owned',this)">Owned Stock</button>
+      <button class="nav-btn" onclick="showTab('stock-sor',this)">Sale or Return</button>
+      <button class="nav-btn" onclick="showTab('transactions',this)" id="tx-nav-btn">Transactions</button>
+      <button class="nav-btn" onclick="showTab('pnl',this)">Overall P&L</button>
+      <button class="nav-btn" onclick="showTab('balance',this)">Balance Sheet</button>
+    </nav>
+    <div class="topbar-right">
+      <div class="vat-badge" id="vat-badge" onclick="toggleVAT()">VAT: OFF</div>
+      <div class="qb-btn" id="qb-btn" onclick="connectQB()">QB: OFF</div>
+      <button class="logout-btn" onclick="doLogout()">Log Out</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="tab-panel active" id="tab-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Good morning. <span>Here's your business.</span></div>
+          <div class="page-sub" id="dash-date"></div>
+        </div>
+        <button class="btn-ghost" onclick="loadAll()">↻ Refresh</button>
+      </div>
+      <div class="kpi-row" id="dash-kpis"></div>
+      <div class="dash-two-col">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Net Profit — All Sold Cars</div></div>
+          <div class="card-body"><div class="chart-area" id="profit-chart"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Stock Overview</div></div>
+          <div class="card-body" id="stock-overview"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Recent Transactions</div></div>
+        <div id="recent-tx"></div>
+      </div>
+    </div>
+
+    <!-- OWNED STOCK -->
+    <div class="tab-panel" id="tab-stock-owned">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Owned <span>Stock</span></div>
+          <div class="page-sub">STK prefix · Full buy/sell P&L · Assets on Balance Sheet</div>
+        </div>
+        <button class="btn-primary" onclick="openModal('add-owned')">+ Add Owned Car</button>
+      </div>
+      <div class="filter-bar">
+        <select class="filter-select" id="owned-status-filter" onchange="renderOwned()">
+          <option value="">All Status</option>
+          <option>In Stock</option><option>Sold</option><option>Part Exchange</option>
+        </select>
+        <select class="filter-select" id="owned-make-filter" onchange="renderOwned()">
+          <option value="">All Makes</option>
+        </select>
+        <div class="filter-sep"></div>
+        <span class="filter-label">Sale Date:</span>
+        <input type="date" class="filter-input" id="owned-date-from" onchange="renderOwned()">
+        <span class="filter-label">to</span>
+        <input type="date" class="filter-input" id="owned-date-to" onchange="renderOwned()">
+        <div class="filter-sep"></div>
+        <button class="btn-ghost" onclick="setOwnedPeriod('week')">This Week</button>
+        <button class="btn-ghost" onclick="setOwnedPeriod('month')">This Month</button>
+        <button class="btn-ghost" onclick="setOwnedPeriod('quarter')">This Quarter</button>
+        <button class="btn-ghost" onclick="clearOwnedFilters()">Clear</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Stock #</th><th>Reg</th><th>Make / Model</th><th>Paid</th><th>Sold For</th>
+            <th>Direct Costs</th><th>VAT</th><th>Gross Profit</th><th>Corp Tax</th>
+            <th>Net Profit</th><th>Status</th><th>Days</th><th></th>
+          </tr></thead>
+          <tbody id="owned-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SALE OR RETURN -->
+    <div class="tab-panel" id="tab-stock-sor">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Sale or <span class="sor">Return</span></div>
+          <div class="page-sub">SOR prefix · Fee-based P&L · Not owned — not on Balance Sheet</div>
+        </div>
+        <button class="btn-primary purple" onclick="openModal('add-sor')">+ Add SOR Car</button>
+      </div>
+      <div class="filter-bar">
+        <select class="filter-select" id="sor-status-filter" onchange="renderSOR()">
+          <option value="">All Status</option>
+          <option>On Site</option><option>Sold</option><option>Returned</option>
+        </select>
+        <div class="filter-sep"></div>
+        <span class="filter-label">Sale Date:</span>
+        <input type="date" class="filter-input" id="sor-date-from" onchange="renderSOR()">
+        <span class="filter-label">to</span>
+        <input type="date" class="filter-input" id="sor-date-to" onchange="renderSOR()">
+        <div class="filter-sep"></div>
+        <button class="btn-ghost" onclick="setSORPeriod('week')">This Week</button>
+        <button class="btn-ghost" onclick="setSORPeriod('month')">This Month</button>
+        <button class="btn-ghost" onclick="clearSORFilters()">Clear</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th class="purple-hdr">Stock #</th><th>Reg</th><th>Make / Model</th>
+            <th>Agreed Min (£)</th><th>Sale Price (£)</th><th>Fee (£)</th>
+            <th>Fee VAT</th><th>Net Fee</th><th>Direct Costs</th>
+            <th>Net Profit</th><th>Corp Tax</th><th>Status</th><th>Days</th><th></th>
+          </tr></thead>
+          <tbody id="sor-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div class="tab-panel" id="tab-transactions">
+      <div class="page-header">
+        <div>
+          <div class="page-title"><span>Transactions</span></div>
+          <div class="page-sub">Log costs manually or receive from QuickBooks. Assign each to a stock record.</div>
+        </div>
+        <button class="btn-primary" onclick="openModal('add-tx')">+ Log Cost</button>
+      </div>
+      <div id="unassigned-alert"></div>
+      <div class="filter-bar">
+        <select class="filter-select" id="tx-type-filter" onchange="renderTransactions()">
+          <option value="">All Types</option>
+          <option>Fuel</option><option>Parts</option><option>Mechanics</option>
+          <option>Tyres</option><option>MOT</option><option>Warranty</option>
+          <option>Advertising</option><option>Cleaning</option><option>HPI</option>
+          <option>Travel</option><option>Overhead-Other</option>
+        </select>
+        <select class="filter-select" id="tx-assign-filter" onchange="renderTransactions()">
+          <option value="">All</option>
+          <option value="unassigned">Unassigned</option>
+          <option value="assigned">Assigned to Car</option>
+          <option value="overhead">Overhead</option>
+        </select>
+        <select class="filter-select" id="tx-status-filter" onchange="renderTransactions()">
+          <option value="">All Status</option>
+          <option>Paid</option><option>Unpaid</option><option>Overdue</option>
+        </select>
+        <div class="filter-sep"></div>
+        <input type="date" class="filter-input" id="tx-date-from" onchange="renderTransactions()">
+        <span class="filter-label">to</span>
+        <input type="date" class="filter-input" id="tx-date-to" onchange="renderTransactions()">
+        <div class="filter-sep"></div>
+        <button class="btn-ghost" onclick="setTxPeriod('week')">This Week</button>
+        <button class="btn-ghost" onclick="setTxPeriod('month')">This Month</button>
+        <button class="btn-ghost" onclick="setTxPeriod('last-month')">Last Month</button>
+        <button class="btn-ghost" onclick="clearTxFilters()">Clear</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Date</th><th>Supplier</th><th>Type</th><th>Assigned To</th>
+            <th>Amount</th><th>VAT</th><th>30-Day</th><th>Due</th><th>Status</th><th>Source</th><th></th>
+          </tr></thead>
+          <tbody id="tx-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- P&L -->
+    <div class="tab-panel" id="tab-pnl">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Overall <span>P&L</span></div>
+          <div class="page-sub">Sold cars only. Unsold stock costs are working capital — not expenses.</div>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <span class="filter-label">Period:</span>
+        <button class="btn-ghost" onclick="setPnlPeriod('month')">This Month</button>
+        <button class="btn-ghost" onclick="setPnlPeriod('last-month')">Last Month</button>
+        <button class="btn-ghost" onclick="setPnlPeriod('quarter')">This Quarter</button>
+        <button class="btn-ghost" onclick="setPnlPeriod('tax-year')">This Tax Year</button>
+        <button class="btn-ghost" onclick="setPnlPeriod('all')">All Time</button>
+        <div class="filter-sep"></div>
+        <input type="date" class="filter-input" id="pnl-from" onchange="renderPnl()">
+        <span class="filter-label">to</span>
+        <input type="date" class="filter-input" id="pnl-to" onchange="renderPnl()">
+      </div>
+      <div class="pnl-grid" id="pnl-content"></div>
+    </div>
+
+    <!-- BALANCE -->
+    <div class="tab-panel" id="tab-balance">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Balance <span>Sheet</span></div>
+          <div class="page-sub">SOR cars are not assets — only owned stock appears here.</div>
+        </div>
+        <button class="btn-primary" onclick="openModal('edit-balance')">Update Balances</button>
+      </div>
+      <div class="pnl-grid" id="bs-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading" style="display:none">
+  <div class="loading-box"><div class="spinner"></div><div id="loading-msg">Loading...</div></div>
+</div>
+
+<!-- MODAL: Add Owned Car -->
+<div class="modal-overlay" id="modal-add-owned">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add Owned Car</div><button class="modal-close" onclick="closeModal('add-owned')">×</button></div>
+    <div class="modal-body">
+      <div class="form-note" style="margin-bottom:16px">Stock number assigned automatically: <strong id="next-stk-preview">STK-001</strong></div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Registration</label><input class="form-control" type="text" id="owned-reg" placeholder="AB12 CDE" style="text-transform:uppercase"></div>
+        <div class="form-group"><label class="form-label">Make</label><input class="form-control" type="text" id="owned-make" placeholder="Ford"></div>
+        <div class="form-group span2"><label class="form-label">Model</label><input class="form-control" type="text" id="owned-model" placeholder="Focus 1.0T EcoBoost"></div>
+        <div class="form-group"><label class="form-label">Buy Price (£)</label><input class="form-control" type="number" id="owned-paid" placeholder="0.00" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Date Purchased</label><input class="form-control" type="date" id="owned-purchase-date"></div>
+        <div class="form-group"><label class="form-label">Sold For (£) — if sold</label><input class="form-control" type="number" id="owned-sold" placeholder="Leave blank if unsold" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Sale Date — if sold</label><input class="form-control" type="date" id="owned-sale-date"></div>
+        <div class="form-group span2"><label class="form-label">Status</label>
+          <select class="form-control" id="owned-status"><option>In Stock</option><option>Sold</option><option>Part Exchange</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('add-owned')">Cancel</button><button class="btn-primary" id="save-owned-btn" onclick="saveOwned()">Add to Stock</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Add SOR Car -->
+<div class="modal-overlay" id="modal-add-sor">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Add Sale or Return Car</div><button class="modal-close" onclick="closeModal('add-sor')">×</button></div>
+    <div class="modal-body">
+      <div class="form-note purple" style="margin-bottom:16px">SOR number assigned automatically: <strong id="next-sor-preview">SOR-001</strong><br><span style="opacity:0.7">This car is not owned by the business — it will not appear as an asset.</span></div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Registration</label><input class="form-control purple-focus" type="text" id="sor-reg" placeholder="AB12 CDE" style="text-transform:uppercase"></div>
+        <div class="form-group"><label class="form-label">Make</label><input class="form-control" type="text" id="sor-make" placeholder="Ford"></div>
+        <div class="form-group span2"><label class="form-label">Model</label><input class="form-control" type="text" id="sor-model" placeholder="Focus 1.0T EcoBoost"></div>
+        <div class="form-group"><label class="form-label">Owner Name</label><input class="form-control" type="text" id="sor-owner" placeholder="Owner's name"></div>
+        <div class="form-group"><label class="form-label">Agreed Min Price (£)</label><input class="form-control" type="number" id="sor-min-price" placeholder="What owner expects" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Date Received</label><input class="form-control" type="date" id="sor-received-date"></div>
+        <div class="form-group"><label class="form-label">Status</label>
+          <select class="form-control" id="sor-status"><option>On Site</option><option>Sold</option><option>Returned</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Sale Price (£) — when sold</label><input class="form-control" type="number" id="sor-sale-price" placeholder="Actual sale price" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Sale Date — when sold</label><input class="form-control" type="date" id="sor-sale-date"></div>
+        <div class="form-group"><label class="form-label">Your Fee (£)</label><input class="form-control" type="number" id="sor-fee" placeholder="Your agreed fee" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Fee VAT Treatment</label>
+          <select class="form-control" id="sor-fee-vat">
+            <option value="none">No VAT</option>
+            <option value="inclusive">Fee Includes VAT (÷1.2)</option>
+            <option value="exclusive">Fee + VAT (×1.2)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('add-sor')">Cancel</button><button class="btn-primary purple" id="save-sor-btn" onclick="saveSOR()">Add SOR Car</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Add Transaction -->
+<div class="modal-overlay" id="modal-add-tx">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Log a Cost</div><button class="modal-close" onclick="closeModal('add-tx')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Date</label><input class="form-control" type="date" id="tx-date"></div>
+        <div class="form-group"><label class="form-label">Amount (£)</label><input class="form-control" type="number" id="tx-amount" placeholder="0.00" step="0.01" min="0"></div>
+        <div class="form-group span2"><label class="form-label">Supplier / Payee</label><input class="form-control" type="text" id="tx-supplier" placeholder="e.g. Mike's Bodyshop"></div>
+        <div class="form-group"><label class="form-label">Cost Type</label>
+          <select class="form-control" id="tx-type">
+            <option>Fuel</option><option>Parts</option><option>Mechanics</option><option>Tyres</option><option>MOT</option><option>Warranty</option><option>Advertising</option><option>Cleaning</option><option>HPI</option><option>Travel</option><option>Overhead-Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Assign to Stock (blank = overhead)</label>
+          <select class="form-control" id="tx-stock-id"><option value="">— Overhead —</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">VAT?</label>
+          <select class="form-control" id="tx-vat"><option value="Yes">Yes</option><option value="No">No</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Payment Method</label>
+          <select class="form-control" id="tx-method"><option>Bank Transfer</option><option>Card</option><option>30-Day Account</option></select>
+        </div>
+        <div class="form-group span2"><label class="form-label">Notes</label><input class="form-control" type="text" id="tx-notes" placeholder="Optional"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('add-tx')">Cancel</button><button class="btn-primary" id="save-tx-btn" onclick="saveTx()">Save</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Assign Transaction -->
+<div class="modal-overlay" id="modal-assign-tx">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Assign Transaction</div>
+        <div style="font-size:12px;color:var(--muted2);margin-top:4px;font-family:'DM Mono',monospace" id="assign-tx-detail"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('assign-tx')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted2);margin-bottom:14px">Search by registration or stock number. Leave unassigned to treat as overhead.</p>
+      <input class="assign-search" type="text" id="assign-search" placeholder="Search reg or stock number..." oninput="filterAssignResults()">
+      <div class="assign-results" id="assign-results"></div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <button class="btn-ghost" onclick="assignToOverhead()" style="width:100%">Mark as Overhead (no car)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Edit Transaction -->
+<div class="modal-overlay" id="modal-edit-tx">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Transaction</div>
+      <button class="modal-close" onclick="closeModal('edit-tx')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Date</label><input class="form-control" type="date" id="edit-tx-date"></div>
+        <div class="form-group"><label class="form-label">Supplier</label><input class="form-control" type="text" id="edit-tx-supplier" placeholder="Supplier name"></div>
+        <div class="form-group"><label class="form-label">Type</label>
+          <select class="form-control" id="edit-tx-type">
+            <option>Parts</option><option>Repairs</option><option>Transport</option><option>Valeting</option>
+            <option>Advertising</option><option>Admin</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Amount (£)</label><input class="form-control" type="number" id="edit-tx-amount" step="0.01"></div>
+        <div class="form-group"><label class="form-label">VAT</label>
+          <select class="form-control" id="edit-tx-vat">
+            <option value="0%">0% (No VAT)</option>
+            <option value="20%">20% (Standard)</option>
+            <option value="5%">5% (Reduced)</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">30-Day Terms?</label>
+          <select class="form-control" id="edit-tx-thirty">
+            <option>No</option><option>Yes</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Due Date</label><input class="form-control" type="date" id="edit-tx-due"></div>
+        <div class="form-group"><label class="form-label">Payment Status</label>
+          <select class="form-control" id="edit-tx-status">
+            <option>Paid</option><option>Unpaid</option><option>Overdue</option>
+          </select>
+        </div>
+        <div class="form-group span2">
+          <label class="form-label">Assigned To</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select class="form-control" id="edit-tx-stock" style="flex:1">
+              <option value="">Overhead (no car)</option>
+            </select>
+            <button class="btn-ghost" onclick="openAssignFromEdit()" style="white-space:nowrap">Change →</button>
+          </div>
+        </div>
+        <div class="form-group span2"><label class="form-label">Notes</label><input class="form-control" type="text" id="edit-tx-notes" placeholder="Optional"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('edit-tx')">Cancel</button>
+      <button class="btn-primary" onclick="saveEditTx()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Balance Sheet -->
+<div class="modal-overlay" id="modal-edit-balance">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Update Cash Balances</div><button class="modal-close" onclick="closeModal('edit-balance')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Account 1 — Stock Buying (£)</label><input class="form-control" type="number" id="bs-acc1" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Account 2 — Reserve (£)</label><input class="form-control" type="number" id="bs-acc2" step="0.01"></div>
+        <div class="form-group"><label class="form-label">30-Day Owed — Parts (£)</label><input class="form-control" type="number" id="bs-parts" step="0.01"></div>
+        <div class="form-group"><label class="form-label">30-Day Owed — Mechanics (£)</label><input class="form-control" type="number" id="bs-mech" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Money Owed To You (£)</label><input class="form-control" type="number" id="bs-debtors" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Other Liabilities (£)</label><input class="form-control" type="number" id="bs-other-liab" step="0.01"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('edit-balance')">Cancel</button><button class="btn-primary" id="save-balance-btn" onclick="saveBalance()">Save</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════════
+const {createClient} = supabase
+const sb = createClient(
+  'https://hnypmigzwfavwcwarmnk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhueXBtaWd6d2Zhdndjd2FybW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMDU3MjcsImV4cCI6MjA5MjY4MTcyN30.uRC82cHVPLmDmUe-QKDyEPF8pfpnaMwSNXwfwO-qFBQ'
+)
+
+// QuickBooks Client ID (secret stored server-side only)
+const QB_CLIENT_ID = 'ABcPoVXTxYiF0DTS1XHFuh9NJMYamffDlLGFPIq155E5ZdPIXZ'
+const QB_REDIRECT = window.location.origin + window.location.pathname
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let ownedCars = []   // type = 'owned'
+let sorCars = []     // type = 'sor'
+let transactions = []
+let balanceSheet = {acc1:0,acc2:0,parts30:0,mech30:0,debtors:0,other_liab:0}
+let vatRegistered = false
+let qbConnected = false
+let currentTab = 'dashboard'
+let assigningTxId = null
+let currentUser = null  // {id, email, full_name, role, account_id, dealer_name}
+let accountId = null
+
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+const fmt = n => n==null?'—':'£'+Number(n).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})
+const fmtDate = d => d?new Date(d+'T12:00:00').toLocaleDateString('en-GB'):'—'
+const today = () => new Date().toISOString().split('T')[0]
+const pc = v => v==null?'var(--white)':v>=0?'var(--green)':'var(--red)'
+
+function loading(show,msg='Loading...'){
+  document.getElementById('loading').style.display=show?'flex':'none'
+  document.getElementById('loading-msg').textContent=msg
+}
+function toast(msg,isError=false){
+  const t=document.getElementById('toast')
+  t.textContent=msg; t.className='toast'+(isError?' error':'')
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800)
+}
+
+function getDirectCosts(stockId){
+  return transactions.filter(t=>t.stock_id===stockId).reduce((s,t)=>s+Number(t.amount),0)
+}
+
+function sorNetFee(car){
+  if(!car.fee) return 0
+  const fee = Number(car.fee)
+  if(car.fee_vat==='inclusive') return fee/1.2
+  if(car.fee_vat==='exclusive') return fee  // they receive fee+vat but net is fee
+  return fee  // no vat
+}
+
+function sorProfit(car){
+  if(!car.fee) return null
+  const netFee = sorNetFee(car)
+  const costs = getDirectCosts(car.id)
+  const net = netFee - costs
+  const tax = net>0?net*0.19:0
+  return {netFee,costs,net,tax,afterTax:net-tax}
+}
+
+function ownedProfit(car){
+  if(!car.paid||!car.sold) return null
+  const costs = getDirectCosts(car.id)
+  const margin = Number(car.sold)-Number(car.paid)
+  const vat = vatRegistered?margin/6:0
+  const gross = margin-costs-vat
+  const tax = gross>0?gross*0.19:0
+  return {margin,vat,costs,gross,tax,net:gross-tax}
+}
+
+function daysInStock(car){
+  const start = new Date(car.purchase_date||car.received_date||car.created_at)
+  const end = car.sale_date?new Date(car.sale_date):new Date()
+  return Math.max(0,Math.floor((end-start)/86400000))
+}
+
+function nextStockNum(type){
+  const prefix = type==='sor'?'SOR':'STK'
+  const all = type==='sor'?sorCars:ownedCars
+  const nums = all.map(c=>{
+    const m = (c.stock_number||'').match(/\d+$/)
+    return m?parseInt(m[0]):0
+  })
+  const next = nums.length?Math.max(...nums)+1:1
+  return `${prefix}-${String(next).padStart(3,'0')}`
+}
+
+const statusBadge = (s,type='owned') => {
+  const map = {
+    'In Stock':'badge-gold','Sold':'badge-green','Part Exchange':'badge-blue',
+    'On Site':'badge-purple','Returned':'badge-muted'
+  }
+  return `<span class="badge ${map[s]||'badge-muted'}">${s}</span>`
+}
+const payBadge = s => {
+  if(s==='Paid') return `<span class="badge badge-green">Paid</span>`
+  if(s==='Unpaid') return `<span class="badge badge-gold">Unpaid</span>`
+  if(s==='Overdue') return `<span class="badge badge-red">Overdue</span>`
+  return `<span class="badge badge-muted">${s||'—'}</span>`
+}
+
+// ══════════════════════════════════════════════
+// AUTH - SUPABASE AUTH
+// ══════════════════════════════════════════════
+async function doLogin(){
+  const email=document.getElementById('lu').value.trim()
+  const password=document.getElementById('lp').value
+  document.getElementById('login-error').textContent=''
+  
+  if(!email||!password){
+    document.getElementById('login-error').textContent='Please enter email and password'
+    return
+  }
+  
+  loading(true, 'Logging in...')
+  
+  try {
+    // Sign in with Supabase Auth
+    const {data: authData, error: authError} = await sb.auth.signInWithPassword({
+      email,
+      password
+    })
+    
+    if(authError) throw authError
+    
+    // Get account info
+    const {data: accounts, error: accountError} = await sb
+      .from('accounts')
+      .select('*')
+      .eq('user_id', authData.user.id)
+      .eq('active', true)
+      .single()
+    
+    if(accountError || !accounts){
+      await sb.auth.signOut()
+      document.getElementById('login-error').textContent='No active account found for this user'
+      loading(false)
+      return
+    }
+    
+    // Store session
+    currentUser = {
+      id: authData.user.id,
+      email: authData.user.email,
+      account_id: accounts.id,
+      dealer_name: accounts.dealer_name
+    }
+    accountId = accounts.id
+    
+    localStorage.setItem('fleet_user', JSON.stringify(currentUser))
+    
+    document.getElementById('login-screen').style.display='none'
+    document.getElementById('app').style.display='flex'
+    document.getElementById('app').style.flexDirection='column'
+    
+    loading(false)
+    initApp()
+    
+  } catch(err){
+    console.error('Login error:', err)
+    document.getElementById('login-error').textContent=err.message || 'Login failed. Please try again.'
+    loading(false)
+  }
+}
+
+document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()})
+
+async function doLogout(){
+  await sb.auth.signOut()
+  currentUser = null
+  accountId = null
+  localStorage.removeItem('fleet_user')
+  document.getElementById('app').style.display='none'
+  document.getElementById('login-screen').style.display='flex'
+  document.getElementById('lu').value=''; document.getElementById('lp').value=''
+}
+
+// Check if already logged in on page load
+async function checkAuth(){
+  const {data: {session}} = await sb.auth.getSession()
+  
+  if(session){
+    try {
+      // Get account info
+      const {data: accounts, error} = await sb
+        .from('accounts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('active', true)
+        .single()
+      
+      if(error || !accounts){
+        await sb.auth.signOut()
+        return
+      }
+      
+      currentUser = {
+        id: session.user.id,
+        email: session.user.email,
+        account_id: accounts.id,
+        dealer_name: accounts.dealer_name
+      }
+      accountId = accounts.id
+      
+      localStorage.setItem('fleet_user', JSON.stringify(currentUser))
+      
+      document.getElementById('login-screen').style.display='none'
+      document.getElementById('app').style.display='flex'
+      document.getElementById('app').style.flexDirection='column'
+      initApp()
+    } catch(err){
+      console.error('Session restore error:', err)
+      await sb.auth.signOut()
+    }
+  }
+}
+checkAuth()
+
+// ══════════════════════════════════════════════
+// QUICKBOOKS OAUTH
+// ══════════════════════════════════════════════
+function connectQB(){
+  if(qbConnected){toast('QuickBooks already connected');return}
+  const state = Math.random().toString(36).substring(2)
+  sessionStorage.setItem('qb_state',state)
+  const params = new URLSearchParams({
+    client_id: QB_CLIENT_ID,
+    scope: 'com.intuit.quickbooks.accounting',
+    redirect_uri: QB_REDIRECT,
+    response_type: 'code',
+    state,
+    access_type: 'offline'
+  })
+  window.location.href = `https://appcenter.intuit.com/connect/oauth2?${params}`
+}
+
+function checkQBCallback(){
+  const params = new URLSearchParams(window.location.search)
+  if(params.get('code')&&params.get('state')){
+    const saved = sessionStorage.getItem('qb_state')
+    if(params.get('state')===saved){
+      // Exchange code for token via Supabase Edge Function
+      const code = params.get('code')
+      exchangeQBCode(code)
+      window.history.replaceState({},'',window.location.pathname)
+    }
+  }
+}
+
+async function exchangeQBCode(code){
+  toast('Connecting QuickBooks...')
+  try {
+    const res = await fetch(`https://hnypmigzwfavwcwarmnk.supabase.co/functions/v1/qb-auth`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhueXBtaWd6d2Zhdndjd2FybW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMDU3MjcsImV4cCI6MjA5MjY4MTcyN30.uRC82cHVPLmDmUe-QKDyEPF8pfpnaMwSNXwfwO-qFBQ`},
+      body: JSON.stringify({code, redirect_uri: QB_REDIRECT})
+    })
+    if(res.ok){
+      qbConnected=true; updateQBBadge()
+      toast('QuickBooks connected!')
+      await sb.from('settings').upsert({key:'qb_connected',value:'true'},{onConflict:'key'})
+    } else {
+      toast('QB connection failed — edge function not deployed yet',true)
+    }
+  } catch(e){
+    toast('QB edge function not deployed yet — see setup guide',true)
+  }
+}
+
+function updateQBBadge(){
+  const b=document.getElementById('qb-btn')
+  b.textContent=qbConnected?'QB: ON':'QB: OFF'
+  b.classList.toggle('connected',qbConnected)
+}
+
+// ══════════════════════════════════════════════
+// LOAD DATA
+// ══════════════════════════════════════════════
+async function loadAll(){
+  if(!accountId){
+    console.error('No account ID - user not logged in')
+    return
+  }
+  loading(true,'Syncing...')
+  try {
+    const [ownedRes,sorRes,txRes,bsRes,settingsRes] = await Promise.all([
+      sb.from('cars').select('*').eq('type','owned').eq('account_id',accountId).order('created_at',{ascending:false}),
+      sb.from('cars').select('*').eq('type','sor').eq('account_id',accountId).order('created_at',{ascending:false}),
+      sb.from('transactions').select('*').eq('account_id',accountId).order('date',{ascending:false}),
+      sb.from('balance_sheet').select('*').eq('account_id',accountId).limit(1).single(),
+      sb.from('settings').select('*').eq('account_id',accountId),
+    ])
+    if(ownedRes.data) ownedCars=ownedRes.data
+    if(sorRes.data) sorCars=sorRes.data
+    if(txRes.data) transactions=txRes.data
+    if(bsRes.data) balanceSheet=bsRes.data
+    if(settingsRes.data){
+      const v=settingsRes.data.find(s=>s.key==='vat_registered')
+      if(v){vatRegistered=v.value==='true';updateVatBadge()}
+      const q=settingsRes.data.find(s=>s.key==='qb_connected')
+      if(q){qbConnected=q.value==='true';updateQBBadge()}
+    }
+    populateFilters()
+    renderCurrentTab()
+    updateUnassignedBadge()
+    loading(false)
+  } catch(e){
+    loading(false)
+    toast('Error loading: '+e.message,true)
+  }
+}
+
+async function initApp(){
+  document.getElementById('dash-date').textContent =
+    new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
+  const now=new Date()
+  document.getElementById('pnl-from').value=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0]
+  document.getElementById('pnl-to').value=today()
+  checkQBCallback()
+  await loadAll()
+}
+
+// ══════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════
+function showTab(name,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'))
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'))
+  document.getElementById('tab-'+name).classList.add('active')
+  if(btn) btn.classList.add('active')
+  currentTab=name; renderCurrentTab()
+}
+function renderCurrentTab(){
+  if(currentTab==='dashboard') renderDashboard()
+  else if(currentTab==='stock-owned') renderOwned()
+  else if(currentTab==='stock-sor') renderSOR()
+  else if(currentTab==='transactions') renderTransactions()
+  else if(currentTab==='pnl') renderPnl()
+  else if(currentTab==='balance') renderBalance()
+}
+
+// ══════════════════════════════════════════════
+// VAT
+// ══════════════════════════════════════════════
+function updateVatBadge(){
+  const b=document.getElementById('vat-badge')
+  b.textContent=vatRegistered?'VAT: ON':'VAT: OFF'
+  b.classList.toggle('active',vatRegistered)
+}
+async function toggleVAT(){
+  vatRegistered=!vatRegistered; updateVatBadge()
+  await sb.from('settings').upsert({key:'vat_registered',value:String(vatRegistered)},{onConflict:'key'})
+  renderCurrentTab()
+  toast(vatRegistered?'VAT Margin Scheme enabled':'VAT disabled')
+}
+
+// ══════════════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════════════
+function openModal(name){
+  if(name==='add-owned'){
+    ['owned-reg','owned-make','owned-model','owned-sold','owned-sale-date'].forEach(id=>document.getElementById(id).value='')
+    document.getElementById('owned-purchase-date').value=today()
+    document.getElementById('owned-status').value='In Stock'
+    document.getElementById('next-stk-preview').textContent=nextStockNum('owned')
+  }
+  if(name==='add-sor'){
+    ['sor-reg','sor-make','sor-model','sor-owner','sor-min-price','sor-sale-price','sor-sale-date','sor-fee'].forEach(id=>document.getElementById(id).value='')
+    document.getElementById('sor-received-date').value=today()
+    document.getElementById('sor-status').value='On Site'
+    document.getElementById('sor-fee-vat').value='none'
+    document.getElementById('next-sor-preview').textContent=nextStockNum('sor')
+  }
+  if(name==='add-tx'){
+    document.getElementById('tx-date').value=today()
+    ;['tx-amount','tx-supplier','tx-notes'].forEach(id=>document.getElementById(id).value='')
+    const sel=document.getElementById('tx-stock-id')
+    sel.innerHTML='<option value="">— Overhead —</option>'
+    const allStock=[...ownedCars.map(c=>({...c,_type:'owned'})),...sorCars.map(c=>({...c,_type:'sor'}))]
+    allStock.forEach(c=>{
+      const o=document.createElement('option')
+      o.value=c.id
+      o.textContent=`${c.stock_number} · ${c.reg} — ${c.make} ${c.model}`
+      sel.appendChild(o)
+    })
+  }
+  if(name==='edit-balance'){
+    document.getElementById('bs-acc1').value=balanceSheet.acc1||0
+    document.getElementById('bs-acc2').value=balanceSheet.acc2||0
+    document.getElementById('bs-parts').value=balanceSheet.parts30||0
+    document.getElementById('bs-mech').value=balanceSheet.mech30||0
+    document.getElementById('bs-debtors').value=balanceSheet.debtors||0
+    document.getElementById('bs-other-liab').value=balanceSheet.other_liab||0
+  }
+  document.getElementById('modal-'+name).classList.add('open')
+}
+function closeModal(name){document.getElementById('modal-'+name).classList.remove('open')}
+
+// ══════════════════════════════════════════════
+// SAVE — OWNED CAR
+// ══════════════════════════════════════════════
+async function saveOwned(){
+  const btn=document.getElementById('save-owned-btn')
+  btn.disabled=true; btn.textContent='Saving...'
+  const paid=parseFloat(document.getElementById('owned-paid').value)
+  const sold=parseFloat(document.getElementById('owned-sold').value)
+  const row={
+    account_id:accountId,
+    type:'owned',
+    stock_number:nextStockNum('owned'),
+    reg:document.getElementById('owned-reg').value.toUpperCase().trim(),
+    make:document.getElementById('owned-make').value,
+    model:document.getElementById('owned-model').value,
+    paid:isNaN(paid)?null:paid,
+    sold:isNaN(sold)||sold===0?null:sold,
+    purchase_date:document.getElementById('owned-purchase-date').value||null,
+    sale_date:document.getElementById('owned-sale-date').value||null,
+    status:document.getElementById('owned-status').value,
+  }
+  const {error}=await sb.from('cars').insert(row)
+  btn.disabled=false; btn.textContent='Add to Stock'
+  if(error){toast('Error: '+error.message,true);return}
+  closeModal('add-owned'); await loadAll(); toast('Car added — '+row.stock_number)
+}
+
+// ══════════════════════════════════════════════
+// SAVE — SOR CAR
+// ══════════════════════════════════════════════
+async function saveSOR(){
+  const btn=document.getElementById('save-sor-btn')
+  btn.disabled=true; btn.textContent='Saving...'
+  const minPrice=parseFloat(document.getElementById('sor-min-price').value)
+  const salePrice=parseFloat(document.getElementById('sor-sale-price').value)
+  const fee=parseFloat(document.getElementById('sor-fee').value)
+  const row={
+    account_id:accountId,
+    type:'sor',
+    stock_number:nextStockNum('sor'),
+    reg:document.getElementById('sor-reg').value.toUpperCase().trim(),
+    make:document.getElementById('sor-make').value,
+    model:document.getElementById('sor-model').value,
+    owner_name:document.getElementById('sor-owner').value,
+    min_price:isNaN(minPrice)?null:minPrice,
+    sale_price:isNaN(salePrice)?null:salePrice,
+    sale_date:document.getElementById('sor-sale-date').value||null,
+    received_date:document.getElementById('sor-received-date').value||null,
+    fee:isNaN(fee)?null:fee,
+    fee_vat:document.getElementById('sor-fee-vat').value,
+    status:document.getElementById('sor-status').value,
+  }
+  const {error}=await sb.from('cars').insert(row)
+  btn.disabled=false; btn.textContent='Add SOR Car'
+  if(error){toast('Error: '+error.message,true);return}
+  closeModal('add-sor'); await loadAll(); toast('SOR car added — '+row.stock_number)
+}
+
+// ══════════════════════════════════════════════
+// SAVE — TRANSACTION
+// ══════════════════════════════════════════════
+async function saveTx(){
+  const btn=document.getElementById('save-tx-btn')
+  btn.disabled=true; btn.textContent='Saving...'
+  const method=document.getElementById('tx-method').value
+  const isThirty=method==='30-Day Account'
+  const dateVal=document.getElementById('tx-date').value
+  const stockId=document.getElementById('tx-stock-id').value
+  let dueDate=null
+  if(isThirty&&dateVal){const d=new Date(dateVal+'T12:00:00');d.setDate(d.getDate()+30);dueDate=d.toISOString().split('T')[0]}
+
+  // find reg for legacy support
+  const allStock=[...ownedCars,...sorCars]
+  const linkedCar=allStock.find(c=>String(c.id)===String(stockId))
+
+  const row={
+    account_id:accountId,
+    date:dateVal,
+    supplier:document.getElementById('tx-supplier').value||'Unknown',
+    type:document.getElementById('tx-type').value,
+    stock_id:stockId?Number(stockId):null,
+    car_reg:linkedCar?linkedCar.reg:null,
+    amount:parseFloat(document.getElementById('tx-amount').value)||0,
+    vat:document.getElementById('tx-vat').value,
+    method,
+    thirty_day:isThirty?'Yes':'No',
+    due_date:dueDate,
+    status:isThirty?'Unpaid':'Paid',
+    notes:document.getElementById('tx-notes').value,
+    source:'manual',
+    assigned:stockId?true:false,
+  }
+  const {error}=await sb.from('transactions').insert(row)
+  btn.disabled=false; btn.textContent='Save'
+  if(error){toast('Error: '+error.message,true);return}
+  closeModal('add-tx'); await loadAll(); toast('Transaction saved')
+}
+
+// ══════════════════════════════════════════════
+// SAVE — BALANCE
+// ══════════════════════════════════════════════
+async function saveBalance(){
+  const btn=document.getElementById('save-balance-btn')
+  btn.disabled=true; btn.textContent='Saving...'
+  const updates={
+    acc1:parseFloat(document.getElementById('bs-acc1').value)||0,
+    acc2:parseFloat(document.getElementById('bs-acc2').value)||0,
+    parts30:parseFloat(document.getElementById('bs-parts').value)||0,
+    mech30:parseFloat(document.getElementById('bs-mech').value)||0,
+    debtors:parseFloat(document.getElementById('bs-debtors').value)||0,
+    other_liab:parseFloat(document.getElementById('bs-other-liab').value)||0,
+    updated_at:new Date().toISOString(),
+  }
+  const {error}=await sb.from('balance_sheet').update(updates).eq('id',balanceSheet.id)
+  btn.disabled=false; btn.textContent='Save'
+  if(error){toast('Error: '+error.message,true);return}
+  Object.assign(balanceSheet,updates); closeModal('edit-balance'); renderBalance(); toast('Balances updated')
+}
+
+// ══════════════════════════════════════════════
+// ASSIGN TRANSACTION
+// ══════════════════════════════════════════════
+function openAssignModal(txId){
+  assigningTxId=txId
+  const tx=transactions.find(t=>t.id===txId)
+  if(!tx) return
+  document.getElementById('assign-tx-detail').textContent=
+    `${fmtDate(tx.date)} · ${tx.supplier} · ${fmt(tx.amount)}`
+  document.getElementById('assign-search').value=''
+  filterAssignResults()
+  document.getElementById('modal-assign-tx').classList.add('open')
+}
+
+function filterAssignResults(){
+  const q=document.getElementById('assign-search').value.toLowerCase()
+  const allStock=[
+    ...ownedCars.map(c=>({...c,_type:'owned'})),
+    ...sorCars.map(c=>({...c,_type:'sor'}))
+  ]
+  const filtered=allStock.filter(c=>
+    !q||
+    c.reg.toLowerCase().includes(q)||
+    (c.stock_number||'').toLowerCase().includes(q)||
+    (c.make||'').toLowerCase().includes(q)||
+    (c.model||'').toLowerCase().includes(q)
+  )
+  const el=document.getElementById('assign-results')
+  el.innerHTML=filtered.length?filtered.map(c=>`
+    <div class="assign-item" onclick="assignTxToCar(${c.id},'${c.reg}')">
+      <div class="assign-item-reg">${c.reg} <span style="color:var(--muted2);font-size:10px">${c._type==='sor'?'· SOR':''}</span></div>
+      <div class="assign-item-detail">${c.make} ${c.model}</div>
+      <div class="assign-item-stock">${c.stock_number||''}</div>
+    </div>`).join(''):'<div class="empty-state"><div class="empty-text">No stock matches</div></div>'
+}
+
+async function assignTxToCar(carId,reg){
+  if(!assigningTxId) return
+  const allStock=[...ownedCars,...sorCars]
+  const car=allStock.find(c=>c.id===carId)
+  await sb.from('transactions').update({stock_id:carId,car_reg:reg,assigned:true}).eq('id',assigningTxId)
+  closeModal('assign-tx'); await loadAll()
+  toast(`Assigned to ${car?.stock_number||reg}`)
+}
+
+async function assignToOverhead(){
+  if(!assigningTxId) return
+  await sb.from('transactions').update({stock_id:null,car_reg:null,assigned:true}).eq('id',assigningTxId)
+  closeModal('assign-tx'); await loadAll(); toast('Marked as overhead')
+}
+
+function updateUnassignedBadge(){
+  const unassigned=transactions.filter(t=>!t.assigned&&t.source==='quickbooks').length
+  const badge=document.getElementById('tx-nav-btn')
+  const existing=badge.querySelector('.nav-badge')
+  if(existing) existing.remove()
+  if(unassigned>0){
+    const b=document.createElement('span')
+    b.className='nav-badge'; b.textContent=unassigned
+    badge.appendChild(b)
+  }
+}
+
+// ══════════════════════════════════════════════
+// EDIT TRANSACTION
+// ══════════════════════════════════════════════
+let editingTxId = null
+
+function openEditTx(txId){
+  editingTxId = txId
+  const tx = transactions.find(t=>t.id===txId)
+  if(!tx) return
+  
+  document.getElementById('edit-tx-date').value = tx.date||''
+  document.getElementById('edit-tx-supplier').value = tx.supplier||''
+  document.getElementById('edit-tx-type').value = tx.type||'Other'
+  document.getElementById('edit-tx-amount').value = tx.amount||''
+  document.getElementById('edit-tx-vat').value = tx.vat||'0%'
+  document.getElementById('edit-tx-thirty').value = tx.thirty_day||'No'
+  document.getElementById('edit-tx-due').value = tx.due_date||''
+  document.getElementById('edit-tx-status').value = tx.status||'Paid'
+  document.getElementById('edit-tx-notes').value = tx.notes||''
+  
+  // Populate car dropdown
+  const allStock = [...ownedCars, ...sorCars]
+  const stockSelect = document.getElementById('edit-tx-stock')
+  stockSelect.innerHTML = '<option value="">Overhead (no car)</option>' + 
+    allStock.map(c=>`<option value="${c.id}" ${c.id===tx.stock_id?'selected':''}>${c.stock_number} - ${c.reg}</option>`).join('')
+  
+  document.getElementById('modal-edit-tx').classList.add('open')
+}
+
+async function saveEditTx(){
+  if(!editingTxId) return
+  
+  const stockId = document.getElementById('edit-tx-stock').value
+  const allStock = [...ownedCars, ...sorCars]
+  const car = stockId ? allStock.find(c=>c.id==stockId) : null
+  
+  await sb.from('transactions').update({
+    date: document.getElementById('edit-tx-date').value,
+    supplier: document.getElementById('edit-tx-supplier').value,
+    type: document.getElementById('edit-tx-type').value,
+    amount: document.getElementById('edit-tx-amount').value,
+    vat: document.getElementById('edit-tx-vat').value,
+    thirty_day: document.getElementById('edit-tx-thirty').value,
+    due_date: document.getElementById('edit-tx-due').value||null,
+    status: document.getElementById('edit-tx-status').value,
+    notes: document.getElementById('edit-tx-notes').value,
+    stock_id: stockId||null,
+    car_reg: car?.reg||null,
+    assigned: true
+  }).eq('id', editingTxId)
+  
+  closeModal('edit-tx')
+  await loadAll()
+  toast('Transaction updated')
+  editingTxId = null
+}
+
+function openAssignFromEdit(){
+  if(!editingTxId) return
+  closeModal('edit-tx')
+  openAssignModal(editingTxId)
+}
+
+// ══════════════════════════════════════════════
+// DELETE
+// ══════════════════════════════════════════════
+async function deleteCar(id){
+  if(!confirm('Remove this car?')) return
+  await sb.from('cars').delete().eq('id',id)
+  await loadAll(); toast('Car removed')
+}
+async function deleteTx(id){
+  if(!confirm('Remove this transaction?')) return
+  await sb.from('transactions').delete().eq('id',id)
+  await loadAll(); toast('Transaction removed')
+}
+
+// ══════════════════════════════════════════════
+// POPULATE FILTERS
+// ══════════════════════════════════════════════
+function populateFilters(){
+  const makes=[...new Set(ownedCars.map(c=>c.make).filter(Boolean))].sort()
+  const mf=document.getElementById('owned-make-filter')
+  const cur=mf.value
+  mf.innerHTML='<option value="">All Makes</option>'+makes.map(m=>`<option${m===cur?' selected':''}>${m}</option>`).join('')
+}
+
+// ══════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════
+function renderDashboard(){
+  const soldOwned=ownedCars.filter(c=>c.status==='Sold'&&c.paid&&c.sold)
+  const soldSOR=sorCars.filter(c=>c.status==='Sold'&&c.fee)
+  const inStockOwned=ownedCars.filter(c=>c.status==='In Stock')
+  const onSiteSOR=sorCars.filter(c=>c.status==='On Site')
+
+  const ownedRevenue=soldOwned.reduce((s,c)=>s+Number(c.sold),0)
+  const sorRevenue=soldSOR.reduce((s,c)=>s+sorNetFee(c),0)
+  const totalRevenue=ownedRevenue+sorRevenue
+
+  const ownedProfit_=soldOwned.reduce((s,c)=>{const p=ownedProfit(c);return s+(p?p.net:0)},0)
+  const sorProfit_=soldSOR.reduce((s,c)=>{const p=sorProfit(c);return s+(p?p.afterTax:0)},0)
+  const totalProfit=ownedProfit_+sorProfit_
+
+  const unpaid=transactions.filter(t=>t.status==='Unpaid').reduce((s,t)=>s+Number(t.amount),0)
+  const unassignedCount=transactions.filter(t=>!t.assigned&&t.source==='quickbooks').length
+
+  document.getElementById('dash-kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Total Revenue</div><div class="kpi-value gold">${fmt(totalRevenue)}</div><div class="kpi-sub">${soldOwned.length} owned + ${soldSOR.length} SOR sold</div></div>
+    <div class="kpi"><div class="kpi-label">Net Profit</div><div class="kpi-value ${totalProfit>=0?'green':'red'}">${fmt(totalProfit)}</div><div class="kpi-sub">after costs & 19% tax</div></div>
+    <div class="kpi"><div class="kpi-label">Owned In Stock</div><div class="kpi-value">${inStockOwned.length}</div><div class="kpi-sub">STK units</div></div>
+    <div class="kpi"><div class="kpi-label">SOR On Site</div><div class="kpi-value purple">${onSiteSOR.length}</div><div class="kpi-sub">SOR units</div></div>
+    <div class="kpi"><div class="kpi-label">Unpaid 30-Day</div><div class="kpi-value ${unpaid>0?'red':'green'}">${fmt(unpaid)}</div><div class="kpi-sub">owed to suppliers</div></div>
+    ${unassignedCount>0?`<div class="kpi" style="border-left:2px solid var(--red)"><div class="kpi-label">⚠ Unassigned QB Tx</div><div class="kpi-value red">${unassignedCount}</div><div class="kpi-sub">needs assignment</div></div>`:''}
+  `
+
+  // Chart — all sold cars combined
+  const allSold=[
+    ...soldOwned.map(c=>({label:c.reg,net:(ownedProfit(c)||{net:0}).net,type:'owned'})),
+    ...soldSOR.map(c=>({label:c.reg,net:(sorProfit(c)||{afterTax:0}).afterTax,type:'sor'}))
+  ].slice(0,10)
+  const chartEl=document.getElementById('profit-chart')
+  if(!allSold.length){
+    chartEl.innerHTML='<div class="empty-state" style="width:100%"><div class="empty-icon">📊</div><div class="empty-text">No sold cars yet</div></div>'
+  } else {
+    const max=Math.max(...allSold.map(p=>Math.abs(p.net)),1)
+    chartEl.innerHTML=allSold.map(p=>`
+      <div class="chart-bar-wrap">
+        <div class="chart-bar ${p.net>=0?(p.type==='sor'?'purple-bar':'green-bar'):''}" style="height:${Math.max(4,(Math.abs(p.net)/max)*130)}px" title="${p.label}: ${fmt(p.net)}"></div>
+        <div class="chart-label">${p.label.split(' ')[0]}</div>
+      </div>`).join('')
+  }
+
+  // Stock overview
+  const makes={}; inStockOwned.forEach(c=>{makes[c.make]=(makes[c.make]||0)+1})
+  const stockVal=inStockOwned.reduce((s,c)=>s+Number(c.paid||0),0)
+  document.getElementById('stock-overview').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px">
+      ${Object.entries(makes).sort((a,b)=>b[1]-a[1]).map(([make,count])=>`
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:80px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2)">${make}</div>
+          <div style="flex:1;background:var(--surface3);border-radius:2px;height:4px"><div style="width:${inStockOwned.length?(count/inStockOwned.length)*100:0}%;background:var(--gold);height:4px;border-radius:2px"></div></div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2)">${count}</div>
+        </div>`).join('')}
+      ${!inStockOwned.length?'<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace">No owned stock</div>':''}
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px">Owned Stock Value</div><div style="font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:var(--gold)">${fmt(stockVal)}</div></div>
+      <div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted2);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px">SOR On Site</div><div style="font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:var(--purple)">${onSiteSOR.length} cars</div></div>
+    </div>
+  `
+
+  const recent=[...transactions].slice(0,6)
+  document.getElementById('recent-tx').innerHTML=recent.length?`
+    <table class="data-table">
+      <thead><tr><th>Date</th><th>Supplier</th><th>Type</th><th>Assigned To</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>${recent.map(t=>{
+        const allStock=[...ownedCars,...sorCars]
+        const linked=allStock.find(c=>c.id===t.stock_id)
+        return `<tr>
+          <td class="muted-text">${fmtDate(t.date)}</td>
+          <td>${t.supplier||''}</td>
+          <td><span class="badge badge-muted">${t.type}</span></td>
+          <td>${linked?`<span class="reg-badge ${linked.type==='sor'?'sor':''}">${linked.stock_number}</span>`:'<span class="muted-text">overhead</span>'}</td>
+          <td class="num">${fmt(t.amount)}</td>
+          <td>${payBadge(t.status)}</td>
+        </tr>`}).join('')}</tbody>
+    </table>`:'<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No transactions yet</div></div>'
+}
+
+// ══════════════════════════════════════════════
+// OWNED STOCK
+// ══════════════════════════════════════════════
+function renderOwned(){
+  const statusF=document.getElementById('owned-status-filter').value
+  const makeF=document.getElementById('owned-make-filter').value
+  const dateFrom=document.getElementById('owned-date-from').value
+  const dateTo=document.getElementById('owned-date-to').value
+  let filtered=ownedCars.filter(c=>{
+    if(statusF&&c.status!==statusF) return false
+    if(makeF&&c.make!==makeF) return false
+    if(dateFrom&&c.sale_date&&c.sale_date<dateFrom) return false
+    if(dateTo&&c.sale_date&&c.sale_date>dateTo) return false
+    return true
+  }).sort((a,b)=>{
+    const numA = parseInt((a.stock_number||'').match(/\d+$/)?.[0]||'0')
+    const numB = parseInt((b.stock_number||'').match(/\d+$/)?.[0]||'0')
+    return numA - numB
+  })
+  const tbody=document.getElementById('owned-tbody')
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🚗</div><div class="empty-text">No cars match filters</div></div></td></tr>`;return}
+  tbody.innerHTML=filtered.map(c=>{
+    const p=ownedProfit(c); const costs=getDirectCosts(c.id)
+    return `<tr>
+      <td><span class="stock-num">${c.stock_number||'—'}</span></td>
+      <td><span class="reg-badge">${c.reg}</span></td>
+      <td><span style="font-weight:500">${c.make||''}</span> <span class="muted-text">${c.model||''}</span></td>
+      <td class="num">${c.paid?fmt(c.paid):'<span class="muted-text">—</span>'}</td>
+      <td class="num">${c.sold?fmt(c.sold):'<span class="muted-text">—</span>'}</td>
+      <td class="num muted-text">${fmt(costs)}</td>
+      <td class="num muted-text">${vatRegistered&&p&&p.vat?fmt(p.vat):'<span class="muted-text">—</span>'}</td>
+      <td class="num" style="color:${p?pc(p.gross):''}">${p?fmt(p.gross):'<span class="muted-text">—</span>'}</td>
+      <td class="num" style="color:var(--red)">${p&&p.tax>0?fmt(p.tax):'<span class="muted-text">—</span>'}</td>
+      <td class="num" style="color:${p?pc(p.net):''};font-weight:600">${p?fmt(p.net):'<span class="muted-text">—</span>'}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td class="num muted-text" style="font-size:11px">${daysInStock(c)}d</td>
+      <td><button class="action-btn" onclick="deleteCar(${c.id})">×</button></td>
+    </tr>`
+  }).join('')
+}
+function setOwnedPeriod(p){
+  const now=new Date(); let from,to=today()
+  if(p==='week'){const d=new Date();d.setDate(d.getDate()-7);from=d.toISOString().split('T')[0]}
+  if(p==='month'){from=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0]}
+  if(p==='quarter'){const q=Math.floor(now.getMonth()/3);from=new Date(now.getFullYear(),q*3,1).toISOString().split('T')[0]}
+  document.getElementById('owned-date-from').value=from||''
+  document.getElementById('owned-date-to').value=to
+  document.getElementById('owned-status-filter').value='Sold'
+  renderOwned()
+}
+function clearOwnedFilters(){
+  ['owned-status-filter','owned-make-filter','owned-date-from','owned-date-to'].forEach(id=>document.getElementById(id).value='')
+  renderOwned()
+}
+
+// ══════════════════════════════════════════════
+// SALE OR RETURN
+// ══════════════════════════════════════════════
+function renderSOR(){
+  const statusF=document.getElementById('sor-status-filter').value
+  const dateFrom=document.getElementById('sor-date-from').value
+  const dateTo=document.getElementById('sor-date-to').value
+  let filtered=sorCars.filter(c=>{
+    if(statusF&&c.status!==statusF) return false
+    if(dateFrom&&c.sale_date&&c.sale_date<dateFrom) return false
+    if(dateTo&&c.sale_date&&c.sale_date>dateTo) return false
+    return true
+  }).sort((a,b)=>{
+    const numA = parseInt((a.stock_number||'').match(/\d+$/)?.[0]||'0')
+    const numB = parseInt((b.stock_number||'').match(/\d+$/)?.[0]||'0')
+    return numA - numB
+  })
+  const tbody=document.getElementById('sor-tbody')
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="14"><div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-text">No sale or return cars</div></div></td></tr>`;return}
+  tbody.innerHTML=filtered.map(c=>{
+    const p=sorProfit(c); const costs=getDirectCosts(c.id)
+    const netFee=c.fee?sorNetFee(c):null
+    const vatLabel=c.fee_vat==='none'?'No VAT':c.fee_vat==='inclusive'?'Incl VAT':'+ VAT'
+    return `<tr>
+      <td><span class="stock-num" style="color:var(--purple)">${c.stock_number||'—'}</span></td>
+      <td><span class="reg-badge sor">${c.reg}</span></td>
+      <td><span style="font-weight:500">${c.make||''}</span> <span class="muted-text">${c.model||''}</span></td>
+      <td class="num muted-text">${c.min_price?fmt(c.min_price):'—'}</td>
+      <td class="num">${c.sale_price?fmt(c.sale_price):'<span class="muted-text">—</span>'}</td>
+      <td class="num">${c.fee?fmt(c.fee):'<span class="muted-text">—</span>'}</td>
+      <td><span class="badge ${c.fee_vat==='none'?'badge-muted':'badge-blue'}">${vatLabel}</span></td>
+      <td class="num" style="color:var(--gold)">${netFee?fmt(netFee):'<span class="muted-text">—</span>'}</td>
+      <td class="num muted-text">${fmt(costs)}</td>
+      <td class="num" style="color:${p?pc(p.net):''};font-weight:600">${p?fmt(p.net):'<span class="muted-text">—</span>'}</td>
+      <td class="num" style="color:var(--red)">${p&&p.tax>0?fmt(p.tax):'<span class="muted-text">—</span>'}</td>
+      <td>${statusBadge(c.status,'sor')}</td>
+      <td class="num muted-text" style="font-size:11px">${daysInStock(c)}d</td>
+      <td><button class="action-btn" onclick="deleteCar(${c.id})">×</button></td>
+    </tr>`
+  }).join('')
+}
+function setSORPeriod(p){
+  const now=new Date(); let from,to=today()
+  if(p==='week'){const d=new Date();d.setDate(d.getDate()-7);from=d.toISOString().split('T')[0]}
+  if(p==='month'){from=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0]}
+  document.getElementById('sor-date-from').value=from||''
+  document.getElementById('sor-date-to').value=to
+  document.getElementById('sor-status-filter').value='Sold'
+  renderSOR()
+}
+function clearSORFilters(){
+  ['sor-status-filter','sor-date-from','sor-date-to'].forEach(id=>document.getElementById(id).value='')
+  renderSOR()
+}
+
+// ══════════════════════════════════════════════
+// TRANSACTIONS
+// ══════════════════════════════════════════════
+function renderTransactions(){
+  const unassignedQB=transactions.filter(t=>!t.assigned&&t.source==='quickbooks')
+  const alertEl=document.getElementById('unassigned-alert')
+  if(unassignedQB.length>0){
+    alertEl.innerHTML=`<div class="unassigned-bar">
+      <span class="unassigned-bar-text">⚠ ${unassignedQB.length} QuickBooks transaction${unassignedQB.length>1?'s':''} need assigning</span>
+      <button class="unassigned-bar-btn" onclick="document.getElementById('tx-assign-filter').value='unassigned';renderTransactions()">View Unassigned</button>
+    </div>`
+  } else { alertEl.innerHTML='' }
+
+  const typeF=document.getElementById('tx-type-filter').value
+  const assignF=document.getElementById('tx-assign-filter').value
+  const statusF=document.getElementById('tx-status-filter').value
+  const dateFrom=document.getElementById('tx-date-from').value
+  const dateTo=document.getElementById('tx-date-to').value
+
+  let filtered=transactions.filter(t=>{
+    if(typeF&&t.type!==typeF) return false
+    if(assignF==='unassigned'&&(t.assigned||t.source!=='quickbooks')) return false
+    if(assignF==='assigned'&&!t.stock_id) return false
+    if(assignF==='overhead'&&t.stock_id) return false
+    if(statusF&&t.status!==statusF) return false
+    if(dateFrom&&t.date<dateFrom) return false
+    if(dateTo&&t.date>dateTo) return false
+    return true
+  })
+
+  const allStock=[...ownedCars,...sorCars]
+  const tbody=document.getElementById('tx-tbody')
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No transactions match</div></div></td></tr>`;return}
+  tbody.innerHTML=filtered.map(t=>{
+    const linked=allStock.find(c=>c.id===t.stock_id)
+    const isUnassignedQB=!t.assigned&&t.source==='quickbooks'
+    return `<tr style="${isUnassignedQB?'background:rgba(231,76,60,0.04)':''}cursor:pointer" onclick="openEditTx(${t.id})" title="Click to edit">
+      <td class="muted-text">${fmtDate(t.date)}</td>
+      <td>${t.supplier||''}</td>
+      <td><span class="badge badge-muted">${t.type}</span></td>
+      <td>
+        ${linked?`<span class="reg-badge ${linked.type==='sor'?'sor':''}">${linked.stock_number}</span> <span class="muted-text" style="font-size:11px">${linked.reg}</span>`
+        :t.stock_id?'<span class="muted-text">Unknown</span>'
+        :'<span class="muted-text" style="font-size:11px">overhead</span>'}
+        ${isUnassignedQB?`<button class="link-btn" onclick="event.stopPropagation();openAssignModal(${t.id})">Assign →</button>`:''}
+      </td>
+      <td class="num">${fmt(t.amount)}</td>
+      <td class="muted-text" style="text-align:center;font-family:'DM Mono',monospace;font-size:11px">${t.vat}</td>
+      <td style="text-align:center">${t.thirty_day==='Yes'?'<span class="badge badge-gold">30-day</span>':'<span class="muted-text">—</span>'}</td>
+      <td class="muted-text" style="font-size:11px">${t.due_date?fmtDate(t.due_date):'—'}</td>
+      <td>${payBadge(t.status)}</td>
+      <td><span class="badge ${t.source==='quickbooks'?'badge-blue':'badge-muted'}">${t.source==='quickbooks'?'QB':'Manual'}</span></td>
+      <td onclick="event.stopPropagation()"><button class="action-btn" onclick="deleteTx(${t.id})">×</button></td>
+    </tr>`
+  }).join('')
+}
+function setTxPeriod(p){
+  const now=new Date(); let from,to=today()
+  if(p==='week'){const d=new Date();d.setDate(d.getDate()-7);from=d.toISOString().split('T')[0]}
+  if(p==='month'){from=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0]}
+  if(p==='last-month'){from=new Date(now.getFullYear(),now.getMonth()-1,1).toISOString().split('T')[0];to=new Date(now.getFullYear(),now.getMonth(),0).toISOString().split('T')[0]}
+  document.getElementById('tx-date-from').value=from||''
+  document.getElementById('tx-date-to').value=to
+  renderTransactions()
+}
+function clearTxFilters(){
+  ['tx-type-filter','tx-assign-filter','tx-status-filter','tx-date-from','tx-date-to'].forEach(id=>document.getElementById(id).value='')
+  renderTransactions()
+}
+
+// ══════════════════════════════════════════════
+// P&L
+// ══════════════════════════════════════════════
+function setPnlPeriod(p){
+  const now=new Date(); let from,to=today()
+  if(p==='month'){from=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0]}
+  if(p==='last-month'){from=new Date(now.getFullYear(),now.getMonth()-1,1).toISOString().split('T')[0];to=new Date(now.getFullYear(),now.getMonth(),0).toISOString().split('T')[0]}
+  if(p==='quarter'){const q=Math.floor(now.getMonth()/3);from=new Date(now.getFullYear(),q*3,1).toISOString().split('T')[0]}
+  if(p==='tax-year'){const yr=now.getMonth()>3||(now.getMonth()===3&&now.getDate()>=6)?now.getFullYear():now.getFullYear()-1;from=`${yr}-04-06`}
+  if(p==='all'){from='2020-01-01'}
+  document.getElementById('pnl-from').value=from||''
+  document.getElementById('pnl-to').value=to
+  renderPnl()
+}
+
+function renderPnl(){
+  const from=document.getElementById('pnl-from').value
+  const to=document.getElementById('pnl-to').value
+  const inPeriod=c=>!from||!c.sale_date||c.sale_date>=from&&(!to||c.sale_date<=to)
+
+  // Owned
+  const soldOwned=ownedCars.filter(c=>c.status==='Sold'&&c.paid&&c.sold&&inPeriod(c))
+  const ownedRev=soldOwned.reduce((s,c)=>s+Number(c.sold),0)
+  const ownedBuy=soldOwned.reduce((s,c)=>s+Number(c.paid),0)
+  const ownedDirect=soldOwned.reduce((s,c)=>s+getDirectCosts(c.id),0)
+  const ownedVat=vatRegistered?soldOwned.reduce((s,c)=>s+(Number(c.sold)-Number(c.paid))/6,0):0
+  const ownedGross=ownedRev-ownedBuy-ownedDirect-ownedVat
+
+  // SOR
+  const soldSOR=sorCars.filter(c=>c.status==='Sold'&&c.fee&&inPeriod(c))
+  const sorFees=soldSOR.reduce((s,c)=>s+sorNetFee(c),0)
+  const sorDirect=soldSOR.reduce((s,c)=>s+getDirectCosts(c.id),0)
+  const sorGross=sorFees-sorDirect
+
+  const totalGross=ownedGross+sorGross
+  const overhead=transactions.filter(t=>!t.stock_id&&(!from||t.date>=from)&&(!to||t.date<=to)).reduce((s,t)=>s+Number(t.amount),0)
+  const netBeforeTax=totalGross-overhead
+  const corpTax=netBeforeTax>0?netBeforeTax*0.19:0
+  const netAfterTax=netBeforeTax-corpTax
+
+  const allCosts=transactions.filter(t=>(!from||t.date>=from)&&(!to||t.date<=to)).reduce((s,t)=>s+Number(t.amount),0)
+  const totalRevenue=ownedRev+sorFees
+
+  const unsoldOwned=ownedCars.filter(c=>c.status==='In Stock'||c.status==='Part Exchange')
+  const unsoldCapital=unsoldOwned.reduce((s,c)=>s+Number(c.paid||0),0)
+  const unsoldCosts=unsoldOwned.reduce((s,c)=>s+getDirectCosts(c.id),0)
+
+  const prow=(label,val,color='var(--white)',indent=false,bold=false)=>`
+    <div class="pnl-row${indent?' indent':''}${bold?' total':''}">
+      <span class="pnl-row-label">${label}</span>
+      <span class="pnl-row-value" style="color:${color}">${fmt(val)}</span>
+    </div>`
+
+  document.getElementById('pnl-content').innerHTML=`
+    <div>
+      <div class="pnl-section">
+        <div class="pnl-section-title">Money In vs Out — Cash Flow</div>
+        ${prow('Revenue from sold cars',totalRevenue,'var(--gold)',false,true)}
+        ${prow('All costs in period',allCosts,'var(--red)',true)}
+        <div class="pnl-row total">
+          <span class="pnl-row-label">Net Cash Position</span>
+          <span class="pnl-row-value" style="color:${pc(totalRevenue-allCosts)};font-size:18px;font-family:'Syne',sans-serif;font-weight:700">${fmt(totalRevenue-allCosts)}</span>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+      <div class="pnl-section">
+        <div class="pnl-section-title">Unsold Owned Stock — Working Capital</div>
+        ${prow('Buy price of unsold stock',unsoldCapital,'var(--muted2)',true)}
+        ${prow('Prep costs on unsold cars',unsoldCosts,'var(--muted2)',true)}
+        <div class="pnl-row" style="background:var(--surface3)"><span style="font-size:11px;color:var(--muted2);font-style:italic;font-family:'DM Mono',monospace">Assets on Balance Sheet — not losses. SOR cars excluded.</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="pnl-section">
+        <div class="pnl-section-title">Profit & Loss — Sold Cars Only</div>
+        <div class="pnl-row" style="background:var(--surface3)"><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace;letter-spacing:0.05em">OWNED CARS</span></div>
+        ${prow('Revenue (owned)',ownedRev,'var(--gold)',true)}
+        ${prow('Buy costs',ownedBuy,'var(--red)',true)}
+        ${prow('Direct prep costs',ownedDirect,'var(--red)',true)}
+        ${vatRegistered?prow('VAT on margin (÷6)',ownedVat,'var(--red)',true):''}
+        ${prow('Owned Gross Profit',ownedGross,pc(ownedGross),false,true)}
+        <div class="pnl-row" style="background:var(--surface3);margin-top:4px"><span style="font-size:11px;color:var(--purple);font-family:'DM Mono',monospace;letter-spacing:0.05em">SALE OR RETURN</span></div>
+        ${prow('Net fees received',sorFees,'var(--purple)',true)}
+        ${prow('Direct costs on SOR',sorDirect,'var(--red)',true)}
+        ${prow('SOR Gross Profit',sorGross,pc(sorGross),false,true)}
+        <div class="pnl-row total" style="border-top:1px solid var(--border2)">
+          <span class="pnl-row-label">Combined Gross Profit</span>
+          <span class="pnl-row-value" style="color:${pc(totalGross)}">${fmt(totalGross)}</span>
+        </div>
+        ${prow('Overhead costs',overhead,'var(--red)',true)}
+        <div class="pnl-row total">
+          <span class="pnl-row-label">Net Profit Before Tax</span>
+          <span class="pnl-row-value" style="color:${pc(netBeforeTax)}">${fmt(netBeforeTax)}</span>
+        </div>
+        ${prow('Corporation Tax (19%)',corpTax,'var(--red)',true)}
+        <div class="pnl-row total" style="border-top:2px solid ${pc(netAfterTax)}">
+          <span class="pnl-row-label" style="color:${pc(netAfterTax)}">NET PROFIT AFTER TAX</span>
+          <span class="pnl-row-value" style="color:${pc(netAfterTax)};font-size:22px;font-family:'Syne',sans-serif;font-weight:800">${fmt(netAfterTax)}</span>
+        </div>
+        ${corpTax>0?`<div class="pnl-row" style="background:var(--red-dim)"><span style="font-size:11px;color:var(--red);font-family:'DM Mono',monospace">→ Ringfence ${fmt(corpTax)} into Account 2</span></div>`:''}
+      </div>
+    </div>`
+}
+
+// ══════════════════════════════════════════════
+// BALANCE SHEET
+// ══════════════════════════════════════════════
+function renderBalance(){
+  const unsoldOwned=ownedCars.filter(c=>c.status==='In Stock'||c.status==='Part Exchange')
+  const stockVal=unsoldOwned.reduce((s,c)=>s+Number(c.paid||0),0)
+  const stockCosts=unsoldOwned.reduce((s,c)=>s+getDirectCosts(c.id),0)
+
+  // Corp tax from all-time P&L
+  const allSoldOwned=ownedCars.filter(c=>c.status==='Sold'&&c.paid&&c.sold)
+  const allSoldSOR=sorCars.filter(c=>c.status==='Sold'&&c.fee)
+  const aRev=allSoldOwned.reduce((s,c)=>s+Number(c.sold),0)+allSoldSOR.reduce((s,c)=>s+sorNetFee(c),0)
+  const aBuy=allSoldOwned.reduce((s,c)=>s+Number(c.paid),0)
+  const aDirect=allSoldOwned.reduce((s,c)=>s+getDirectCosts(c.id),0)+allSoldSOR.reduce((s,c)=>s+getDirectCosts(c.id),0)
+  const aVat=vatRegistered?allSoldOwned.reduce((s,c)=>s+(Number(c.sold)-Number(c.paid))/6,0):0
+  const aOverhead=transactions.filter(t=>!t.stock_id).reduce((s,t)=>s+Number(t.amount),0)
+  const nbt=aRev-aBuy-aDirect-aVat-aOverhead
+  const corpTaxReserve=nbt>0?nbt*0.19:0
+
+  const totalAssets=(balanceSheet.acc1||0)+(balanceSheet.acc2||0)+stockVal+stockCosts+(balanceSheet.debtors||0)
+  const totalLiab=(balanceSheet.parts30||0)+(balanceSheet.mech30||0)+corpTaxReserve+(balanceSheet.other_liab||0)
+  const netWorth=totalAssets-totalLiab
+
+  const brow=(label,val,color='var(--white)',indent=false,bold=false)=>`
+    <div class="pnl-row${indent?' indent':''}${bold?' total':''}">
+      <span class="pnl-row-label"${bold?` style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px"`:''}>
+        ${label}
+      </span>
+      <span class="pnl-row-value" style="color:${color}${bold?`;font-family:'Syne',sans-serif;font-weight:700;font-size:16px`:''}">${fmt(val)}</span>
+    </div>`
+
+  document.getElementById('bs-content').innerHTML=`
+    <div>
+      <div class="pnl-section">
+        <div class="pnl-section-title">Assets — What the Business Owns</div>
+        ${brow('Cash — Account 1 (Stock Buying)',balanceSheet.acc1||0,'var(--gold)',true)}
+        ${brow('Cash — Account 2 (Reserve)',balanceSheet.acc2||0,'var(--gold)',true)}
+        ${brow('Owned Stock — Buy Price',stockVal,'var(--muted2)',true)}
+        ${brow('Owned Stock — Prep Costs',stockCosts,'var(--muted2)',true)}
+        ${brow('Money Owed To You',balanceSheet.debtors||0,'var(--muted2)',true)}
+        <div class="pnl-row indent"><span class="pnl-row-label" style="font-style:italic;font-size:11px">SOR cars excluded — not owned by business</span></div>
+        ${brow('TOTAL ASSETS',totalAssets,'var(--gold2)',false,true)}
+      </div>
+      <div style="height:16px"></div>
+      <div class="pnl-section">
+        <div class="pnl-section-title">Net Position</div>
+        ${brow('NET WORTH OF BUSINESS',netWorth,netWorth>=0?'var(--green)':'var(--red)',false,true)}
+        <div class="pnl-row" style="background:${netWorth>=0?'var(--green-dim)':'var(--red-dim)'}">
+          <span style="font-size:11px;color:var(--muted2);font-style:italic;font-family:'DM Mono',monospace">Total Assets minus Total Liabilities</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="pnl-section">
+        <div class="pnl-section-title">Liabilities — What the Business Owes</div>
+        ${brow('30-Day Owed — Parts',balanceSheet.parts30||0,'var(--red)',true)}
+        ${brow('30-Day Owed — Mechanics',balanceSheet.mech30||0,'var(--red)',true)}
+        ${brow('Corporation Tax Reserve (19%)',corpTaxReserve,'var(--red)',true)}
+        ${brow('VAT Owed (when registered)',0,'var(--muted2)',true)}
+        ${brow('Other Liabilities',balanceSheet.other_liab||0,'var(--muted2)',true)}
+        ${brow('TOTAL LIABILITIES',totalLiab,'var(--red)',false,true)}
+      </div>
+      <div style="height:16px"></div>
+      <div class="pnl-section">
+        <div class="pnl-section-title">Auto-Calculated</div>
+        <div class="pnl-row indent"><span class="pnl-row-label">Owned stock values</span><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace">From Owned Stock tab</span></div>
+        <div class="pnl-row indent"><span class="pnl-row-label">Corp Tax Reserve</span><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace">All-time P&L × 19%</span></div>
+        <div class="pnl-row indent"><span class="pnl-row-label">SOR cars</span><span style="font-size:11px;color:var(--purple);font-family:'DM Mono',monospace">Never appear here</span></div>
+      </div>
+    </div>`
+}
+</script>
+</body>
+</html>

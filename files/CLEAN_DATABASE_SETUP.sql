@@ -26,7 +26,14 @@ CREATE TABLE IF NOT EXISTS cars (
   purchase_date DATE,
   sale_date DATE,
   status TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  owner_name TEXT,
+  min_price NUMERIC,
+  sale_price NUMERIC,
+  received_date DATE,
+  fee NUMERIC,
+  fee_vat TEXT DEFAULT 'none',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- 3. CREATE TRANSACTIONS TABLE
@@ -37,12 +44,36 @@ CREATE TABLE IF NOT EXISTS transactions (
   supplier TEXT,
   type TEXT,
   amount NUMERIC,
-  stock_id BIGINT REFERENCES cars(id),
+  vat TEXT,
+  method TEXT,
+  thirty_day BOOLEAN DEFAULT FALSE,
+  due_date DATE,
+  status TEXT,
   notes TEXT,
+  car_reg TEXT,
+  stock_id BIGINT REFERENCES cars(id),
+  source TEXT DEFAULT 'manual',
+  assigned BOOLEAN DEFAULT TRUE,
+  qb_id TEXT UNIQUE,
+  qb_type TEXT,
+  raw_data JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 4. CREATE SETTINGS TABLE
+-- 4. CREATE BALANCE SHEET TABLE
+CREATE TABLE IF NOT EXISTS balance_sheet (
+  id BIGSERIAL PRIMARY KEY,
+  account_id BIGINT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  acc1 NUMERIC DEFAULT 0,
+  acc2 NUMERIC DEFAULT 0,
+  parts30 NUMERIC DEFAULT 0,
+  mech30 NUMERIC DEFAULT 0,
+  debtors NUMERIC DEFAULT 0,
+  other_liab NUMERIC DEFAULT 0,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 5. CREATE SETTINGS TABLE
 CREATE TABLE IF NOT EXISTS settings (
   id BIGSERIAL PRIMARY KEY,
   account_id BIGINT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
@@ -51,26 +82,38 @@ CREATE TABLE IF NOT EXISTS settings (
   UNIQUE(account_id, key)
 );
 
--- 5. CREATE INDEXES
+-- 6. CREATE INDEXES
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_cars_account_id ON cars(account_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_account_id ON transactions(account_id);
+CREATE INDEX IF NOT EXISTS idx_balance_sheet_account_id ON balance_sheet(account_id);
 CREATE INDEX IF NOT EXISTS idx_settings_account_id ON settings(account_id);
 
--- 6. DISABLE RLS (for now - we'll add proper policies later)
+-- 7. DISABLE RLS (for now - we'll add proper policies later)
 ALTER TABLE accounts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE cars DISABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE balance_sheet DISABLE ROW LEVEL SECURITY;
 ALTER TABLE settings DISABLE ROW LEVEL SECURITY;
 
--- 7. CREATE YOUR DEALERSHIP ACCOUNT
+-- 8. CREATE YOUR DEALERSHIP ACCOUNT
 INSERT INTO accounts (dealer_name, active)
 SELECT 'THG Automotive', true
 WHERE NOT EXISTS (
   SELECT 1 FROM accounts WHERE dealer_name = 'THG Automotive'
 );
 
--- 8. VERIFY SETUP
+-- 9. CREATE INITIAL BALANCE SHEET
+INSERT INTO balance_sheet (account_id, acc1, acc2, parts30, mech30, debtors, other_liab)
+SELECT id, 0, 0, 0, 0, 0, 0
+FROM accounts
+WHERE dealer_name = 'THG Automotive'
+  AND NOT EXISTS (
+    SELECT 1 FROM balance_sheet 
+    WHERE account_id = (SELECT id FROM accounts WHERE dealer_name = 'THG Automotive')
+  );
+
+-- 10. VERIFY SETUP
 SELECT 
   'Setup Complete!' as status,
   (SELECT COUNT(*) FROM accounts) as accounts,
