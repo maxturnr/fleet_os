@@ -152,6 +152,25 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
 .btn-remove-split{background:transparent;color:var(--red);border:1px solid var(--red);padding:6px 8px;font-size:14px;cursor:pointer;border-radius:var(--radius);transition:all 0.15s;line-height:1;}
 .btn-remove-split:hover{background:var(--red);color:#fff;}
 
+/* DOCUMENTS */
+.docs-section{margin-top:20px;padding-top:20px;border-top:1px solid var(--border);}
+.docs-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.docs-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--blue);}
+.btn-upload{background:transparent;color:var(--blue);border:1px solid var(--blue);padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border-radius:var(--radius);transition:all 0.15s;position:relative;overflow:hidden;}
+.btn-upload:hover{background:var(--blue);color:#fff;}
+.btn-upload input[type="file"]{position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;left:0;top:0;}
+.docs-list{display:flex;flex-direction:column;gap:8px;}
+.doc-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface3);border-radius:var(--radius);border:1px solid var(--border2);}
+.doc-icon{font-size:20px;}
+.doc-info{flex:1;min-width:0;}
+.doc-name{font-family:'DM Mono',monospace;font-size:12px;color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.doc-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);margin-top:2px;}
+.btn-doc-view{background:transparent;color:var(--blue);border:1px solid var(--blue);padding:4px 10px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border-radius:var(--radius);transition:all 0.15s;}
+.btn-doc-view:hover{background:var(--blue);color:#fff;}
+.btn-doc-delete{background:transparent;color:var(--red);border:1px solid var(--red);padding:4px 8px;font-size:12px;cursor:pointer;border-radius:var(--radius);transition:all 0.15s;line-height:1;}
+.btn-doc-delete:hover{background:var(--red);color:#fff;}
+.upload-progress{margin-top:8px;padding:8px 12px;background:var(--surface3);border-radius:var(--radius);font-family:'DM Mono',monospace;font-size:11px;color:var(--blue);}
+
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
 .modal-overlay.open{display:flex;}
@@ -698,6 +717,7 @@ let ownedCars = []   // type = 'owned'
 let sorCars = []     // type = 'sor'
 let transactions = []
 let transactionSplits = []
+let transactionDocuments = []
 let balanceSheet = {acc1:0,acc2:0,parts30:0,mech30:0,debtors:0,other_liab:0}
 let vatRegistered = false
 let qbConnected = false
@@ -974,11 +994,12 @@ async function loadAll(){
   }
   loading(true,'Syncing...')
   try {
-    const [ownedRes,sorRes,txRes,splitsRes,bsRes,settingsRes] = await Promise.all([
+    const [ownedRes,sorRes,txRes,splitsRes,docsRes,bsRes,settingsRes] = await Promise.all([
       sb.from('cars').select('*').eq('type','owned').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('cars').select('*').eq('type','sor').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('transactions').select('*').eq('account_id',accountId).order('date',{ascending:false}),
       sb.from('transaction_splits').select('*'),
+      sb.from('transaction_documents').select('*'),
       sb.from('balance_sheet').select('*').eq('account_id',accountId).limit(1).single(),
       sb.from('settings').select('*').eq('account_id',accountId),
     ])
@@ -986,6 +1007,7 @@ async function loadAll(){
     if(sorRes.data) sorCars=sorRes.data
     if(txRes.data) transactions=txRes.data
     if(splitsRes.data) transactionSplits=splitsRes.data
+    if(docsRes.data) transactionDocuments=docsRes.data
     if(bsRes.data) balanceSheet=bsRes.data
     if(settingsRes.data){
       const v=settingsRes.data.find(s=>s.key==='vat_registered')
@@ -1744,6 +1766,17 @@ function renderTransactions(){
               <span id="split-total-${t.id}" class="split-total-value">£0.00</span>
             </div>
           </div>
+          <div class="docs-section">
+            <div class="docs-header">
+              <div class="docs-title">📎 Receipts & Invoices</div>
+              <button class="btn-upload" onclick="event.stopPropagation()">
+                📷 Upload / Take Photo
+                <input type="file" accept="image/*,application/pdf" capture="environment" onchange="handleDocUpload(${t.id}, this.files[0])" onclick="event.stopPropagation()">
+              </button>
+            </div>
+            <div id="docs-list-${t.id}" class="docs-list"></div>
+            <div id="upload-progress-${t.id}"></div>
+          </div>
           <div class="expand-actions">
             <button class="btn-delete" onclick="event.stopPropagation();deleteTx(${t.id})">🗑️ Delete</button>
             <button class="btn-cancel" onclick="event.stopPropagation();toggleTxExpand(${t.id})">Cancel</button>
@@ -1755,13 +1788,16 @@ function renderTransactions(){
   }).join('')
 }
 
-function toggleTxExpand(id){
+async function toggleTxExpand(id){
   if(expandedTxId === id){
     expandedTxId = null
   } else {
     expandedTxId = id
   }
   renderTransactions()
+  if(expandedTxId === id){
+    await renderTxDocuments(id)
+  }
 }
 
 let txSplits = {}
@@ -1941,6 +1977,117 @@ function setTxPeriod(p){
 function clearTxFilters(){
   ['tx-type-filter','tx-assign-filter','tx-status-filter','tx-date-from','tx-date-to'].forEach(id=>document.getElementById(id).value='')
   renderTransactions()
+}
+
+// ══════════════════════════════════════════════
+// DOCUMENT UPLOAD
+// ══════════════════════════════════════════════
+async function renderTxDocuments(txId){
+  const docs = transactionDocuments.filter(d => d.transaction_id === txId)
+  const listEl = document.getElementById(`docs-list-${txId}`)
+  
+  if(!docs.length){
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;text-align:center;padding:20px">No documents uploaded</div>'
+    return
+  }
+  
+  listEl.innerHTML = docs.map(doc => {
+    const icon = doc.file_type?.includes('pdf') ? '📄' : '📷'
+    const size = doc.file_size ? `${(doc.file_size / 1024).toFixed(1)}KB` : ''
+    const date = new Date(doc.uploaded_at).toLocaleDateString('en-GB', {day:'2-digit', month:'short'})
+    return `
+      <div class="doc-item">
+        <div class="doc-icon">${icon}</div>
+        <div class="doc-info">
+          <div class="doc-name">${doc.file_name}</div>
+          <div class="doc-meta">${size} · ${date}</div>
+        </div>
+        <button class="btn-doc-view" onclick="event.stopPropagation();viewDocument('${doc.file_path}')">View</button>
+        <button class="btn-doc-delete" onclick="event.stopPropagation();deleteDocument(${doc.id}, ${txId})">×</button>
+      </div>
+    `
+  }).join('')
+}
+
+async function handleDocUpload(txId, file){
+  if(!file) return
+  
+  const progressEl = document.getElementById(`upload-progress-${txId}`)
+  progressEl.innerHTML = '<div class="upload-progress">📤 Uploading...</div>'
+  
+  try {
+    // Create unique filename
+    const timestamp = Date.now()
+    const ext = file.name.split('.').pop()
+    const fileName = `tx-${txId}-${timestamp}.${ext}`
+    const filePath = `${accountId}/${fileName}`
+    
+    // Upload to Supabase Storage
+    const {data: uploadData, error: uploadError} = await sb.storage
+      .from('transaction-documents')
+      .upload(filePath, file)
+    
+    if(uploadError) throw uploadError
+    
+    // Save to database
+    const {data: docData, error: docError} = await sb
+      .from('transaction_documents')
+      .insert({
+        transaction_id: txId,
+        file_name: file.name,
+        file_path: filePath,
+        file_type: file.type,
+        file_size: file.size
+      })
+      .select()
+      .single()
+    
+    if(docError) throw docError
+    
+    // Add to local state
+    transactionDocuments.push(docData)
+    
+    // Re-render
+    await renderTxDocuments(txId)
+    progressEl.innerHTML = ''
+    toast('Document uploaded')
+    
+  } catch(err){
+    console.error('Upload error:', err)
+    progressEl.innerHTML = ''
+    toast('Upload failed: ' + err.message, true)
+  }
+}
+
+function viewDocument(filePath){
+  const {data} = sb.storage.from('transaction-documents').getPublicUrl(filePath)
+  window.open(data.publicUrl, '_blank')
+}
+
+async function deleteDocument(docId, txId){
+  if(!confirm('Delete this document?')) return
+  
+  try {
+    const doc = transactionDocuments.find(d => d.id === docId)
+    if(!doc) return
+    
+    // Delete from storage
+    await sb.storage.from('transaction-documents').remove([doc.file_path])
+    
+    // Delete from database
+    await sb.from('transaction_documents').delete().eq('id', docId)
+    
+    // Remove from local state
+    transactionDocuments = transactionDocuments.filter(d => d.id !== docId)
+    
+    // Re-render
+    await renderTxDocuments(txId)
+    toast('Document deleted')
+    
+  } catch(err){
+    console.error('Delete error:', err)
+    toast('Delete failed: ' + err.message, true)
+  }
 }
 
 // ══════════════════════════════════════════════
