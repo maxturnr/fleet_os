@@ -39,15 +39,17 @@ Or just run the file: `files/ADD_SPLIT_COSTS.sql`
 ### When Logging a New Cost:
 
 1. **Click "Log a Cost"** button
-2. **Enter the total amount** from your bank statement
-3. **In "Assign to Stock" dropdown**, select **"🔀 Split across multiple cars"**
+2. **Fill in the details** (date, total amount, supplier, type, etc.)
+3. **At the bottom**, click **"🔀 Split Cost"** button
 4. **Split section appears** below
-5. **Click "+ Add Car"** for each car
+5. **Click "+ Add Line"** for each car
 6. **Select the car** from dropdown
 7. **Enter the amount** for that car
-8. **Repeat** for all cars
+8. **Repeat** for all cars (add as many as needed)
 9. **Total must match** the transaction amount (turns green when correct)
 10. **Click "Save"**
+
+**To cancel split:** Click **"✕ Cancel Split"** button
 
 ### When Editing an Existing Transaction:
 
