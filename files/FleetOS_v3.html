@@ -580,13 +580,14 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
         <div class="form-group"><label class="form-label">Amount (£)</label><input class="form-control" type="number" id="tx-amount" placeholder="0.00" step="0.01" min="0"></div>
         <div class="form-group span2"><label class="form-label">Supplier / Payee</label><input class="form-control" type="text" id="tx-supplier" placeholder="e.g. Mike's Bodyshop"></div>
         <div class="form-group"><label class="form-label">Cost Type</label>
-          <select class="form-control" id="tx-type">
-            <option>Fuel</option><option>Parts</option><option>Mechanics</option><option>Tyres</option><option>MOT</option><option>Warranty</option><option>Advertising</option><option>Cleaning</option><option>HPI</option><option>Travel</option><option>Overhead-Other</option>
+          <select class="form-control" id="tx-type" onchange="toggleVehiclePurchaseFields()">
+            <option>Vehicle Purchase</option><option>Fuel</option><option>Parts</option><option>Mechanics</option><option>Tyres</option><option>MOT</option><option>Warranty</option><option>Advertising</option><option>Cleaning</option><option>HPI</option><option>Travel</option><option>Overhead-Other</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">Assign to Stock (blank = overhead)</label>
           <select class="form-control" id="tx-stock-id"><option value="">— Overhead —</option></select>
         </div>
+        <div class="form-group" id="auction-fee-field" style="display:none;"><label class="form-label">Auction Fee (£)</label><input class="form-control" type="number" id="tx-auction-fee" placeholder="0.00" step="0.01" min="0"></div>
         <div class="form-group"><label class="form-label">VAT?</label>
           <select class="form-control" id="tx-vat"><option value="Yes">Yes</option><option value="No">No</option></select>
         </div>
@@ -594,6 +595,10 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
           <select class="form-control" id="tx-method"><option>Bank Transfer</option><option>Card</option><option>30-Day Account</option></select>
         </div>
         <div class="form-group span2"><label class="form-label">Notes</label><input class="form-control" type="text" id="tx-notes" placeholder="Optional"></div>
+      </div>
+      <div id="vehicle-purchase-info" style="display:none;margin-top:12px;padding:12px;background:var(--surface3);border-radius:var(--radius);border:1px solid var(--gold);">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);margin-bottom:4px;">💡 Vehicle Purchase</div>
+        <div style="font-family:'Instrument Sans',sans-serif;font-size:12px;color:var(--muted2);">The amount will be set as the purchase price for the selected vehicle. Add auction fee if applicable - total bank transaction = vehicle price + auction fee.</div>
       </div>
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2);">Need to split this cost across multiple cars?</div>
@@ -1112,7 +1117,7 @@ function openModal(name){
   }
   if(name==='add-tx'){
     document.getElementById('tx-date').value=today()
-    ;['tx-amount','tx-supplier','tx-notes'].forEach(id=>document.getElementById(id).value='')
+    ;['tx-amount','tx-supplier','tx-notes','tx-auction-fee'].forEach(id=>document.getElementById(id).value='')
     const sel=document.getElementById('tx-stock-id')
     sel.innerHTML='<option value="">— Overhead —</option>'
     const allStock=[...ownedCars.map(c=>({...c,_type:'owned'})),...sorCars.map(c=>({...c,_type:'sor'}))]
@@ -1126,6 +1131,11 @@ function openModal(name){
     addTxSplits = []
     document.getElementById('add-split-section').style.display = 'none'
     document.getElementById('toggle-split-btn').textContent = '🔀 Split Cost'
+    // Reset vehicle purchase fields
+    document.getElementById('auction-fee-field').style.display = 'none'
+    document.getElementById('vehicle-purchase-info').style.display = 'none'
+    document.getElementById('tx-type').value = 'Vehicle Purchase'
+    toggleVehiclePurchaseFields()
   }
   if(name==='edit-balance'){
     document.getElementById('bs-acc1').value=balanceSheet.acc1||0
@@ -1201,6 +1211,13 @@ async function saveSOR(){
 // SAVE — TRANSACTION
 // ══════════════════════════════════════════════
 let addTxSplits = []
+
+function toggleVehiclePurchaseFields(){
+  const type = document.getElementById('tx-type').value
+  const isVehiclePurchase = type === 'Vehicle Purchase'
+  document.getElementById('auction-fee-field').style.display = isVehiclePurchase ? 'block' : 'none'
+  document.getElementById('vehicle-purchase-info').style.display = isVehiclePurchase ? 'block' : 'none'
+}
 
 async function saveTx(){
   const btn=document.getElementById('save-tx-btn')
@@ -1281,12 +1298,22 @@ async function saveTx(){
   // Normal single-car assignment
   const allStock=[...ownedCars,...sorCars]
   const linkedCar=allStock.find(c=>String(c.id)===String(stockId))
+  const txType = document.getElementById('tx-type').value
+  const isVehiclePurchase = txType === 'Vehicle Purchase'
+  const auctionFee = parseFloat(document.getElementById('tx-auction-fee').value) || 0
+
+  // Validate vehicle purchase
+  if(isVehiclePurchase && !stockId){
+    toast('Please select a vehicle for Vehicle Purchase', true)
+    btn.disabled=false; btn.textContent='Save'
+    return
+  }
 
   const row={
     account_id:accountId,
     date:dateVal,
     supplier:document.getElementById('tx-supplier').value||'Unknown',
-    type:document.getElementById('tx-type').value,
+    type:txType,
     stock_id:stockId?Number(stockId):null,
     car_reg:linkedCar?linkedCar.reg:null,
     amount:txAmount,
@@ -1300,9 +1327,46 @@ async function saveTx(){
     assigned:stockId?true:false,
   }
   const {error}=await sb.from('transactions').insert(row)
+  if(error){toast('Error: '+error.message,true);btn.disabled=false; btn.textContent='Save';return}
+  
+  // Handle vehicle purchase - update car's paid amount
+  if(isVehiclePurchase && stockId && linkedCar){
+    const vehiclePrice = txAmount - auctionFee
+    const carUpdate = {
+      paid: vehiclePrice,
+      purchase_date: dateVal
+    }
+    const {error: carError} = await sb.from('cars').update(carUpdate).eq('id', stockId)
+    if(carError){
+      console.error('Error updating car purchase price:', carError)
+      toast('Transaction saved but failed to update car price', true)
+    }
+    
+    // If there's an auction fee, create a separate transaction for it
+    if(auctionFee > 0){
+      const feeRow = {
+        account_id:accountId,
+        date:dateVal,
+        supplier:document.getElementById('tx-supplier').value||'Unknown',
+        type:'Auction Fee',
+        stock_id:Number(stockId),
+        car_reg:linkedCar.reg,
+        amount:auctionFee,
+        vat:document.getElementById('tx-vat').value,
+        method,
+        thirty_day:isThirty?'Yes':'No',
+        due_date:dueDate,
+        status:isThirty?'Unpaid':'Paid',
+        notes:'Auction fee for ' + linkedCar.reg,
+        source:'manual',
+        assigned:true,
+      }
+      await sb.from('transactions').insert(feeRow)
+    }
+  }
+  
   btn.disabled=false; btn.textContent='Save'
-  if(error){toast('Error: '+error.message,true);return}
-  closeModal('add-tx'); await loadAll(); toast('Transaction saved')
+  closeModal('add-tx'); await loadAll(); toast(isVehiclePurchase ? 'Vehicle purchase saved' : 'Transaction saved')
 }
 
 // ══════════════════════════════════════════════
