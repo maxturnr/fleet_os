@@ -566,6 +566,61 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
   </div>
 </div>
 
+<!-- MODAL: Edit Transaction -->
+<div class="modal-overlay" id="modal-edit-tx">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Transaction</div>
+      <button class="modal-close" onclick="closeModal('edit-tx')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Date</label><input class="form-control" type="date" id="edit-tx-date"></div>
+        <div class="form-group"><label class="form-label">Supplier</label><input class="form-control" type="text" id="edit-tx-supplier" placeholder="Supplier name"></div>
+        <div class="form-group"><label class="form-label">Type</label>
+          <select class="form-control" id="edit-tx-type">
+            <option>Parts</option><option>Repairs</option><option>Transport</option><option>Valeting</option>
+            <option>Advertising</option><option>Admin</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Amount (£)</label><input class="form-control" type="number" id="edit-tx-amount" step="0.01"></div>
+        <div class="form-group"><label class="form-label">VAT</label>
+          <select class="form-control" id="edit-tx-vat">
+            <option value="0%">0% (No VAT)</option>
+            <option value="20%">20% (Standard)</option>
+            <option value="5%">5% (Reduced)</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">30-Day Terms?</label>
+          <select class="form-control" id="edit-tx-thirty">
+            <option>No</option><option>Yes</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Due Date</label><input class="form-control" type="date" id="edit-tx-due"></div>
+        <div class="form-group"><label class="form-label">Payment Status</label>
+          <select class="form-control" id="edit-tx-status">
+            <option>Paid</option><option>Unpaid</option><option>Overdue</option>
+          </select>
+        </div>
+        <div class="form-group span2">
+          <label class="form-label">Assigned To</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select class="form-control" id="edit-tx-stock" style="flex:1">
+              <option value="">Overhead (no car)</option>
+            </select>
+            <button class="btn-ghost" onclick="openAssignFromEdit()" style="white-space:nowrap">Change →</button>
+          </div>
+        </div>
+        <div class="form-group span2"><label class="form-label">Notes</label><input class="form-control" type="text" id="edit-tx-notes" placeholder="Optional"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('edit-tx')">Cancel</button>
+      <button class="btn-primary" onclick="saveEditTx()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Balance Sheet -->
 <div class="modal-overlay" id="modal-edit-balance">
   <div class="modal">
@@ -1071,6 +1126,69 @@ function updateUnassignedBadge(){
 }
 
 // ══════════════════════════════════════════════
+// EDIT TRANSACTION
+// ══════════════════════════════════════════════
+let editingTxId = null
+
+function openEditTx(txId){
+  editingTxId = txId
+  const tx = transactions.find(t=>t.id===txId)
+  if(!tx) return
+  
+  document.getElementById('edit-tx-date').value = tx.date||''
+  document.getElementById('edit-tx-supplier').value = tx.supplier||''
+  document.getElementById('edit-tx-type').value = tx.type||'Other'
+  document.getElementById('edit-tx-amount').value = tx.amount||''
+  document.getElementById('edit-tx-vat').value = tx.vat||'0%'
+  document.getElementById('edit-tx-thirty').value = tx.thirty_day||'No'
+  document.getElementById('edit-tx-due').value = tx.due_date||''
+  document.getElementById('edit-tx-status').value = tx.status||'Paid'
+  document.getElementById('edit-tx-notes').value = tx.notes||''
+  
+  // Populate car dropdown
+  const allStock = [...ownedCars, ...sorCars]
+  const stockSelect = document.getElementById('edit-tx-stock')
+  stockSelect.innerHTML = '<option value="">Overhead (no car)</option>' + 
+    allStock.map(c=>`<option value="${c.id}" ${c.id===tx.stock_id?'selected':''}>${c.stock_number} - ${c.reg}</option>`).join('')
+  
+  document.getElementById('modal-edit-tx').classList.add('open')
+}
+
+async function saveEditTx(){
+  if(!editingTxId) return
+  
+  const stockId = document.getElementById('edit-tx-stock').value
+  const allStock = [...ownedCars, ...sorCars]
+  const car = stockId ? allStock.find(c=>c.id==stockId) : null
+  
+  await sb.from('transactions').update({
+    date: document.getElementById('edit-tx-date').value,
+    supplier: document.getElementById('edit-tx-supplier').value,
+    type: document.getElementById('edit-tx-type').value,
+    amount: document.getElementById('edit-tx-amount').value,
+    vat: document.getElementById('edit-tx-vat').value,
+    thirty_day: document.getElementById('edit-tx-thirty').value,
+    due_date: document.getElementById('edit-tx-due').value||null,
+    status: document.getElementById('edit-tx-status').value,
+    notes: document.getElementById('edit-tx-notes').value,
+    stock_id: stockId||null,
+    car_reg: car?.reg||null,
+    assigned: true
+  }).eq('id', editingTxId)
+  
+  closeModal('edit-tx')
+  await loadAll()
+  toast('Transaction updated')
+  editingTxId = null
+}
+
+function openAssignFromEdit(){
+  if(!editingTxId) return
+  closeModal('edit-tx')
+  openAssignModal(editingTxId)
+}
+
+// ══════════════════════════════════════════════
 // DELETE
 // ══════════════════════════════════════════════
 async function deleteCar(id){
@@ -1316,7 +1434,7 @@ function renderTransactions(){
   tbody.innerHTML=filtered.map(t=>{
     const linked=allStock.find(c=>c.id===t.stock_id)
     const isUnassignedQB=!t.assigned&&t.source==='quickbooks'
-    return `<tr style="${isUnassignedQB?'background:rgba(231,76,60,0.04)':''}">
+    return `<tr style="${isUnassignedQB?'background:rgba(231,76,60,0.04)':''}cursor:pointer" onclick="openEditTx(${t.id})" title="Click to edit">
       <td class="muted-text">${fmtDate(t.date)}</td>
       <td>${t.supplier||''}</td>
       <td><span class="badge badge-muted">${t.type}</span></td>
@@ -1324,7 +1442,7 @@ function renderTransactions(){
         ${linked?`<span class="reg-badge ${linked.type==='sor'?'sor':''}">${linked.stock_number}</span> <span class="muted-text" style="font-size:11px">${linked.reg}</span>`
         :t.stock_id?'<span class="muted-text">Unknown</span>'
         :'<span class="muted-text" style="font-size:11px">overhead</span>'}
-        ${isUnassignedQB?`<button class="link-btn" onclick="openAssignModal(${t.id})">Assign →</button>`:''}
+        ${isUnassignedQB?`<button class="link-btn" onclick="event.stopPropagation();openAssignModal(${t.id})">Assign →</button>`:''}
       </td>
       <td class="num">${fmt(t.amount)}</td>
       <td class="muted-text" style="text-align:center;font-family:'DM Mono',monospace;font-size:11px">${t.vat}</td>
@@ -1332,7 +1450,7 @@ function renderTransactions(){
       <td class="muted-text" style="font-size:11px">${t.due_date?fmtDate(t.due_date):'—'}</td>
       <td>${payBadge(t.status)}</td>
       <td><span class="badge ${t.source==='quickbooks'?'badge-blue':'badge-muted'}">${t.source==='quickbooks'?'QB':'Manual'}</span></td>
-      <td><button class="action-btn" onclick="deleteTx(${t.id})">×</button></td>
+      <td onclick="event.stopPropagation()"><button class="action-btn" onclick="deleteTx(${t.id})">×</button></td>
     </tr>`
   }).join('')
 }
