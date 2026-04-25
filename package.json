@@ -4,14 +4,11 @@
   "description": "Fleet profit and loss tracker with QuickBooks integration",
   "private": true,
   "scripts": {
-    "dev": "netlify dev",
+    "dev": "vercel dev",
     "build": "echo 'Static site - no build needed'",
-    "deploy": "netlify deploy --prod"
+    "deploy": "vercel --prod"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0"
-  },
-  "devDependencies": {
-    "netlify-cli": "^17.0.0"
   }
 }
