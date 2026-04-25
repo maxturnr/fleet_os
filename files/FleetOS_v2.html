@@ -1323,6 +1323,10 @@ function renderOwned(){
     if(dateFrom&&c.sale_date&&c.sale_date<dateFrom) return false
     if(dateTo&&c.sale_date&&c.sale_date>dateTo) return false
     return true
+  }).sort((a,b)=>{
+    const numA = parseInt((a.stock_number||'').match(/\d+$/)?.[0]||'0')
+    const numB = parseInt((b.stock_number||'').match(/\d+$/)?.[0]||'0')
+    return numA - numB
   })
   const tbody=document.getElementById('owned-tbody')
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">🚗</div><div class="empty-text">No cars match filters</div></div></td></tr>`;return}
@@ -1372,6 +1376,10 @@ function renderSOR(){
     if(dateFrom&&c.sale_date&&c.sale_date<dateFrom) return false
     if(dateTo&&c.sale_date&&c.sale_date>dateTo) return false
     return true
+  }).sort((a,b)=>{
+    const numA = parseInt((a.stock_number||'').match(/\d+$/)?.[0]||'0')
+    const numB = parseInt((b.stock_number||'').match(/\d+$/)?.[0]||'0')
+    return numA - numB
   })
   const tbody=document.getElementById('sor-tbody')
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="14"><div class="empty-state"><div class="empty-icon">🔄</div><div class="empty-text">No sale or return cars</div></div></td></tr>`;return}
