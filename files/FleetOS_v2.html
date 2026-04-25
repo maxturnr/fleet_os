@@ -755,6 +755,7 @@ function doLogin(){
   const p=document.getElementById('lp').value
   document.getElementById('login-error').textContent=''
   if(u==='admin'&&p==='fleet2024'){
+    localStorage.setItem('fleet_auth', 'true')
     document.getElementById('login-screen').style.display='none'
     document.getElementById('app').style.display='flex'
     document.getElementById('app').style.flexDirection='column'
@@ -765,10 +766,22 @@ function doLogin(){
 }
 document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()})
 function doLogout(){
+  localStorage.removeItem('fleet_auth')
   document.getElementById('app').style.display='none'
   document.getElementById('login-screen').style.display='flex'
   document.getElementById('lu').value=''; document.getElementById('lp').value=''
 }
+
+// Check if already logged in on page load
+function checkAuth(){
+  if(localStorage.getItem('fleet_auth')==='true'){
+    document.getElementById('login-screen').style.display='none'
+    document.getElementById('app').style.display='flex'
+    document.getElementById('app').style.flexDirection='column'
+    initApp()
+  }
+}
+checkAuth()
 
 // ══════════════════════════════════════════════
 // QUICKBOOKS OAUTH
