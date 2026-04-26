@@ -1146,13 +1146,18 @@ async function syncQuickBooks(){
     
     // 1. FETCH AND IMPORT BANK ACCOUNTS
     try {
+      console.log('Fetching QB accounts...')
       const accountsRes = await fetch(`${baseUrl}/query?query=SELECT * FROM Account WHERE AccountType='Bank' AND Active=true`, {
         headers: qbHeaders
       })
       
+      console.log('QB Accounts response status:',accountsRes.status)
+      
       if(accountsRes.ok){
         const accountsData = await accountsRes.json()
+        console.log('QB Accounts data:',accountsData)
         const qbAccounts = accountsData.QueryResponse?.Account || []
+        console.log(`Found ${qbAccounts.length} bank accounts in QB`)
         
         for(const acc of qbAccounts){
           const existing = await sb.from('bank_accounts')
@@ -1174,6 +1179,9 @@ async function syncQuickBooks(){
             bankAccountsCount++
           }
         }
+      } else {
+        const errorText = await accountsRes.text()
+        console.error('QB API error:',errorText)
       }
     } catch(err){
       console.error('Bank accounts error:',err)
