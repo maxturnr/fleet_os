@@ -1064,12 +1064,21 @@ async function exchangeQBCode(code){
     updateQBBadge()
     
     // Store the tokens and realm ID
-    await sb.from('settings').upsert([
+    const settingsToUpsert = [
       {account_id:accountId,key:'qb_connected',value:'true'},
       {account_id:accountId,key:'qb_realm_id',value:realmId},
       {account_id:accountId,key:'qb_access_token',value:tokens.access_token},
       {account_id:accountId,key:'qb_refresh_token',value:tokens.refresh_token}
-    ],{onConflict:'account_id,key'})
+    ]
+    
+    const {error:settingsError} = await sb.from('settings').upsert(settingsToUpsert,{onConflict:'account_id,key'})
+    
+    if(settingsError){
+      console.error('Settings save error:',settingsError)
+      throw new Error('Failed to save QB credentials: '+settingsError.message)
+    }
+    
+    console.log('QB credentials saved successfully')
     
     loading(false)
     toast('✓ QuickBooks connected! Company ID: '+realmId)
