@@ -182,6 +182,26 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
 .assign-item-detail{font-size:12px;color:var(--muted2);margin-top:2px;}
 .assign-item-stock{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;}
 
+/* SPLIT TRANSACTIONS */
+.split-row{background:var(--surface3);border-left:3px solid var(--gold);padding:8px 14px;margin-top:2px;font-size:12px;}
+.split-row-car{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);margin-right:8px;}
+.split-row-amount{font-family:'DM Mono',monospace;font-size:11px;color:var(--white);}
+.split-parent{border-left:3px solid var(--blue);}
+.split-btn{background:var(--blue);color:#fff;border:none;padding:4px 10px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;border-radius:var(--radius);margin-left:8px;}
+.split-btn:hover{background:#5dade2;}
+
+/* SEARCHABLE SELECT */
+.searchable-select{position:relative;}
+.searchable-select-input{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--white);padding:10px 12px;font-family:'Instrument Sans',sans-serif;font-size:14px;border-radius:var(--radius);outline:none;cursor:text;}
+.searchable-select-input:focus{border-color:var(--gold);}
+.searchable-select-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-top:none;max-height:200px;overflow-y:auto;z-index:10;display:none;border-radius:0 0 var(--radius) var(--radius);}
+.searchable-select-dropdown.open{display:block;}
+.searchable-select-option{padding:10px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);}
+.searchable-select-option:last-child{border-bottom:none;}
+.searchable-select-option:hover{background:var(--surface2);}
+.searchable-select-option-reg{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);}
+.searchable-select-option-detail{font-size:11px;color:var(--muted2);margin-top:2px;}
+
 /* UNASSIGNED ALERT */
 .unassigned-bar{background:var(--red-dim);border:1px solid rgba(231,76,60,0.3);padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;border-radius:var(--radius);}
 .unassigned-bar-text{font-family:'DM Mono',monospace;font-size:11px;color:var(--red);}
@@ -257,6 +277,7 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
       <button class="nav-btn" onclick="showTab('transactions',this)" id="tx-nav-btn">Transactions</button>
       <button class="nav-btn" onclick="showTab('pnl',this)">Overall P&L</button>
       <button class="nav-btn" onclick="showTab('balance',this)">Balance Sheet</button>
+      <button class="nav-btn" onclick="showTab('bank-accounts',this)">Bank Accounts</button>
     </nav>
     <div class="topbar-right">
       <div class="vat-badge" id="vat-badge" onclick="toggleVAT()">VAT: OFF</div>
@@ -454,6 +475,25 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
       <div class="pnl-grid" id="bs-content"></div>
     </div>
 
+    <!-- BANK ACCOUNTS -->
+    <div class="tab-panel" id="tab-bank-accounts">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Bank <span>Accounts</span></div>
+          <div class="page-sub">Manage your bank accounts for transaction tracking</div>
+        </div>
+        <button class="btn-primary" onclick="openModal('add-bank-account')">+ Add Bank Account</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Account Name</th><th>Account Type</th><th>Account Number</th><th>Sort Code</th><th>Default</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="bank-accounts-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -531,8 +571,18 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
             <option>Fuel</option><option>Parts</option><option>Mechanics</option><option>Tyres</option><option>MOT</option><option>Warranty</option><option>Advertising</option><option>Cleaning</option><option>HPI</option><option>Travel</option><option>Overhead-Other</option>
           </select>
         </div>
-        <div class="form-group"><label class="form-label">Assign to Stock (blank = overhead)</label>
-          <select class="form-control" id="tx-stock-id"><option value="">— Overhead —</option></select>
+        <div class="form-group"><label class="form-label">Bank Account</label>
+          <select class="form-control" id="tx-bank-account">
+            <option value="">Select account...</option>
+          </select>
+        </div>
+        <div class="form-group span2">
+          <label class="form-label">Assign to Car (or leave blank for overhead)</label>
+          <div class="searchable-select">
+            <input class="searchable-select-input" type="text" id="tx-car-search" placeholder="Start typing reg or stock number..." autocomplete="off" onfocus="openCarDropdown('tx')" oninput="filterCarDropdown('tx')">
+            <div class="searchable-select-dropdown" id="tx-car-dropdown"></div>
+            <input type="hidden" id="tx-stock-id">
+          </div>
         </div>
         <div class="form-group"><label class="form-label">VAT?</label>
           <select class="form-control" id="tx-vat"><option value="Yes">Yes</option><option value="No">No</option></select>
@@ -641,6 +691,58 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
   </div>
 </div>
 
+<!-- MODAL: Add/Edit Bank Account -->
+<div class="modal-overlay" id="modal-add-bank-account">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="bank-account-modal-title">Add Bank Account</div><button class="modal-close" onclick="closeModal('add-bank-account')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group span2"><label class="form-label">Account Name</label><input class="form-control" type="text" id="bank-account-name" placeholder="e.g. Business Current Account"></div>
+        <div class="form-group"><label class="form-label">Account Type</label>
+          <select class="form-control" id="bank-account-type">
+            <option>Current</option><option>Savings</option><option>Credit Card</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Default Account?</label>
+          <select class="form-control" id="bank-account-default">
+            <option value="false">No</option><option value="true">Yes</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Account Number (optional)</label><input class="form-control" type="text" id="bank-account-number" placeholder="12345678"></div>
+        <div class="form-group"><label class="form-label">Sort Code (optional)</label><input class="form-control" type="text" id="bank-account-sort" placeholder="12-34-56"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('add-bank-account')">Cancel</button><button class="btn-primary" id="save-bank-account-btn" onclick="saveBankAccount()">Save Account</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Split Transaction -->
+<div class="modal-overlay" id="modal-split-tx">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Split Transaction</div>
+        <div style="font-size:12px;color:var(--muted2);margin-top:4px;font-family:'DM Mono',monospace" id="split-tx-detail"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('split-tx')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted2);margin-bottom:14px">Split this transaction across multiple cars. Total must equal transaction amount.</p>
+      <div id="split-items-container"></div>
+      <button class="btn-ghost" onclick="addSplitItem()" style="width:100%;margin-top:12px">+ Add Another Car</button>
+      <div style="margin-top:16px;padding:12px;background:var(--surface3);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2)">TOTAL ALLOCATED:</span>
+        <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--gold)" id="split-total">£0.00</span>
+      </div>
+      <div id="split-error" style="color:var(--red);font-size:11px;margin-top:8px;font-family:'DM Mono',monospace;min-height:16px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('split-tx')">Cancel</button>
+      <button class="btn-primary" onclick="saveSplit()">Save Split</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -663,11 +765,14 @@ const QB_REDIRECT = window.location.origin + window.location.pathname
 let ownedCars = []   // type = 'owned'
 let sorCars = []     // type = 'sor'
 let transactions = []
+let transactionSplits = []
+let bankAccounts = []
 let balanceSheet = {acc1:0,acc2:0,parts30:0,mech30:0,debtors:0,other_liab:0}
 let vatRegistered = false
 let qbConnected = false
 let currentTab = 'dashboard'
 let assigningTxId = null
+let splittingTxId = null
 let currentUser = null  // {id, email, full_name, role, account_id, dealer_name}
 let accountId = null
 
@@ -690,7 +795,17 @@ function toast(msg,isError=false){
 }
 
 function getDirectCosts(stockId){
-  return transactions.filter(t=>t.stock_id===stockId).reduce((s,t)=>s+Number(t.amount),0)
+  let total=0
+  
+  transactions.filter(t=>t.stock_id===stockId).forEach(t=>{
+    total+=Number(t.amount)
+  })
+  
+  transactionSplits.filter(s=>s.car_id===stockId).forEach(s=>{
+    total+=Number(s.amount)
+  })
+  
+  return total
 }
 
 function sorNetFee(car){
@@ -935,16 +1050,20 @@ async function loadAll(){
   }
   loading(true,'Syncing...')
   try {
-    const [ownedRes,sorRes,txRes,bsRes,settingsRes] = await Promise.all([
+    const [ownedRes,sorRes,txRes,splitsRes,bankRes,bsRes,settingsRes] = await Promise.all([
       sb.from('cars').select('*').eq('type','owned').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('cars').select('*').eq('type','sor').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('transactions').select('*').eq('account_id',accountId).order('date',{ascending:false}),
+      sb.from('transaction_splits').select('*'),
+      sb.from('bank_accounts').select('*').eq('account_id',accountId).eq('active',true).order('is_default',{ascending:false}),
       sb.from('balance_sheet').select('*').eq('account_id',accountId).limit(1).single(),
       sb.from('settings').select('*').eq('account_id',accountId),
     ])
     if(ownedRes.data) ownedCars=ownedRes.data
     if(sorRes.data) sorCars=sorRes.data
     if(txRes.data) transactions=txRes.data
+    if(splitsRes.data) transactionSplits=splitsRes.data
+    if(bankRes.data) bankAccounts=bankRes.data
     if(bsRes.data) balanceSheet=bsRes.data
     if(settingsRes.data){
       const v=settingsRes.data.find(s=>s.key==='vat_registered')
@@ -989,6 +1108,7 @@ function renderCurrentTab(){
   else if(currentTab==='transactions') renderTransactions()
   else if(currentTab==='pnl') renderPnl()
   else if(currentTab==='balance') renderBalance()
+  else if(currentTab==='bank-accounts') renderBankAccounts()
 }
 
 // ══════════════════════════════════════════════
@@ -1025,16 +1145,11 @@ function openModal(name){
   }
   if(name==='add-tx'){
     document.getElementById('tx-date').value=today()
-    ;['tx-amount','tx-supplier','tx-notes'].forEach(id=>document.getElementById(id).value='')
-    const sel=document.getElementById('tx-stock-id')
-    sel.innerHTML='<option value="">— Overhead —</option>'
-    const allStock=[...ownedCars.map(c=>({...c,_type:'owned'})),...sorCars.map(c=>({...c,_type:'sor'}))]
-    allStock.forEach(c=>{
-      const o=document.createElement('option')
-      o.value=c.id
-      o.textContent=`${c.stock_number} · ${c.reg} — ${c.make} ${c.model}`
-      sel.appendChild(o)
-    })
+    ;['tx-amount','tx-supplier','tx-notes','tx-car-search'].forEach(id=>document.getElementById(id).value='')
+    document.getElementById('tx-stock-id').value=''
+    const bankSel=document.getElementById('tx-bank-account')
+    bankSel.innerHTML='<option value="">Select account...</option>'+
+      bankAccounts.map(b=>`<option value="${b.id}"${b.is_default?' selected':''}>${b.account_name}</option>`).join('')
   }
   if(name==='edit-balance'){
     document.getElementById('bs-acc1').value=balanceSheet.acc1||0
@@ -1044,9 +1159,225 @@ function openModal(name){
     document.getElementById('bs-debtors').value=balanceSheet.debtors||0
     document.getElementById('bs-other-liab').value=balanceSheet.other_liab||0
   }
+  if(name==='add-bank-account'){
+    document.getElementById('bank-account-modal-title').textContent='Add Bank Account'
+    ;['bank-account-name','bank-account-number','bank-account-sort'].forEach(id=>document.getElementById(id).value='')
+    document.getElementById('bank-account-type').value='Current'
+    document.getElementById('bank-account-default').value='false'
+    editingBankAccountId=null
+  }
   document.getElementById('modal-'+name).classList.add('open')
 }
-function closeModal(name){document.getElementById('modal-'+name).classList.remove('open')}
+function closeModal(name){
+  document.getElementById('modal-'+name).classList.remove('open')
+  if(name==='split-tx') splittingTxId=null
+}
+
+// ══════════════════════════════════════════════
+// SEARCHABLE CAR DROPDOWN
+// ══════════════════════════════════════════════
+function openCarDropdown(prefix){
+  filterCarDropdown(prefix)
+  document.getElementById(prefix+'-car-dropdown').classList.add('open')
+}
+
+function filterCarDropdown(prefix){
+  const input=document.getElementById(prefix+'-car-search')
+  const dropdown=document.getElementById(prefix+'-car-dropdown')
+  const query=input.value.toLowerCase()
+  
+  const allStock=[
+    ...ownedCars.map(c=>({...c,_type:'owned'})),
+    ...sorCars.map(c=>({...c,_type:'sor'}))
+  ]
+  
+  const filtered=allStock.filter(c=>
+    !query||
+    c.reg.toLowerCase().includes(query)||
+    (c.stock_number||'').toLowerCase().includes(query)||
+    (c.make||'').toLowerCase().includes(query)||
+    (c.model||'').toLowerCase().includes(query)
+  )
+  
+  dropdown.innerHTML=filtered.length?filtered.map(c=>`
+    <div class="searchable-select-option" onclick="selectCar('${prefix}',${c.id},'${c.reg}','${c.stock_number}','${c.make}','${c.model}')">
+      <div class="searchable-select-option-reg">${c.stock_number} · ${c.reg}</div>
+      <div class="searchable-select-option-detail">${c.make} ${c.model}</div>
+    </div>
+  `).join(''):'<div style="padding:12px;color:var(--muted2);font-size:12px;text-align:center">No cars found</div>'
+}
+
+function selectCar(prefix,id,reg,stock,make,model){
+  document.getElementById(prefix+'-stock-id').value=id
+  document.getElementById(prefix+'-car-search').value=`${stock} · ${reg}`
+  document.getElementById(prefix+'-car-dropdown').classList.remove('open')
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.searchable-select')){
+    document.querySelectorAll('.searchable-select-dropdown').forEach(d=>d.classList.remove('open'))
+  }
+})
+
+// ══════════════════════════════════════════════
+// TRANSACTION SPLITTING
+// ══════════════════════════════════════════════
+let splitItems=[]
+
+function openSplitModal(txId){
+  splittingTxId=txId
+  const tx=transactions.find(t=>t.id===txId)
+  if(!tx) return
+  
+  document.getElementById('split-tx-detail').textContent=
+    `${fmtDate(tx.date)} · ${tx.supplier} · ${fmt(tx.amount)}`
+  
+  const existing=transactionSplits.filter(s=>s.transaction_id===txId)
+  if(existing.length>0){
+    splitItems=existing.map(s=>({car_id:s.car_id,amount:s.amount}))
+  } else {
+    splitItems=[{car_id:null,amount:0}]
+  }
+  
+  renderSplitItems()
+  document.getElementById('modal-split-tx').classList.add('open')
+}
+
+function renderSplitItems(){
+  const container=document.getElementById('split-items-container')
+  const allStock=[...ownedCars,...sorCars]
+  
+  container.innerHTML=splitItems.map((item,idx)=>{
+    const car=allStock.find(c=>c.id===item.car_id)
+    return `
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-start">
+        <div style="flex:1">
+          <label class="form-label">Car ${idx+1}</label>
+          <div class="searchable-select">
+            <input class="searchable-select-input" type="text" id="split-car-${idx}" 
+              placeholder="Start typing reg..." autocomplete="off" 
+              value="${car?car.stock_number+' · '+car.reg:''}"
+              onfocus="openSplitCarDropdown(${idx})" 
+              oninput="filterSplitCarDropdown(${idx})">
+            <div class="searchable-select-dropdown" id="split-car-dropdown-${idx}"></div>
+          </div>
+        </div>
+        <div style="width:140px">
+          <label class="form-label">Amount (£)</label>
+          <input class="form-control" type="number" step="0.01" value="${item.amount||''}" 
+            oninput="updateSplitAmount(${idx},this.value)" placeholder="0.00">
+        </div>
+        ${splitItems.length>1?`<button class="action-btn" onclick="removeSplitItem(${idx})" style="margin-top:28px">×</button>`:'<div style="width:28px"></div>'}
+      </div>
+    `
+  }).join('')
+  
+  updateSplitTotal()
+}
+
+function openSplitCarDropdown(idx){
+  filterSplitCarDropdown(idx)
+  document.getElementById(`split-car-dropdown-${idx}`).classList.add('open')
+}
+
+function filterSplitCarDropdown(idx){
+  const input=document.getElementById(`split-car-${idx}`)
+  const dropdown=document.getElementById(`split-car-dropdown-${idx}`)
+  const query=input.value.toLowerCase()
+  
+  const allStock=[...ownedCars,...sorCars]
+  const filtered=allStock.filter(c=>
+    !query||
+    c.reg.toLowerCase().includes(query)||
+    (c.stock_number||'').toLowerCase().includes(query)||
+    (c.make||'').toLowerCase().includes(query)||
+    (c.model||'').toLowerCase().includes(query)
+  )
+  
+  dropdown.innerHTML=filtered.map(c=>`
+    <div class="searchable-select-option" onclick="selectSplitCar(${idx},${c.id},'${c.reg}','${c.stock_number}','${c.make}','${c.model}')">
+      <div class="searchable-select-option-reg">${c.stock_number} · ${c.reg}</div>
+      <div class="searchable-select-option-detail">${c.make} ${c.model}</div>
+    </div>
+  `).join('')
+}
+
+function selectSplitCar(idx,id,reg,stock,make,model){
+  splitItems[idx].car_id=id
+  document.getElementById(`split-car-${idx}`).value=`${stock} · ${reg}`
+  document.getElementById(`split-car-dropdown-${idx}`).classList.remove('open')
+}
+
+function updateSplitAmount(idx,value){
+  splitItems[idx].amount=parseFloat(value)||0
+  updateSplitTotal()
+}
+
+function updateSplitTotal(){
+  const total=splitItems.reduce((sum,item)=>sum+(parseFloat(item.amount)||0),0)
+  document.getElementById('split-total').textContent=fmt(total)
+  
+  const tx=transactions.find(t=>t.id===splittingTxId)
+  const txAmount=tx?parseFloat(tx.amount):0
+  const diff=Math.abs(total-txAmount)
+  
+  if(diff>0.01){
+    document.getElementById('split-error').textContent=
+      `Total must equal ${fmt(txAmount)} (difference: ${fmt(total-txAmount)})`
+  } else {
+    document.getElementById('split-error').textContent=''
+  }
+}
+
+function addSplitItem(){
+  splitItems.push({car_id:null,amount:0})
+  renderSplitItems()
+}
+
+function removeSplitItem(idx){
+  splitItems.splice(idx,1)
+  renderSplitItems()
+}
+
+async function saveSplit(){
+  if(!splittingTxId) return
+  
+  const tx=transactions.find(t=>t.id===splittingTxId)
+  const txAmount=parseFloat(tx.amount)
+  const total=splitItems.reduce((sum,item)=>sum+(parseFloat(item.amount)||0),0)
+  
+  if(Math.abs(total-txAmount)>0.01){
+    toast('Total split amounts must equal transaction amount',true)
+    return
+  }
+  
+  if(splitItems.some(item=>!item.car_id)){
+    toast('Please select a car for each split',true)
+    return
+  }
+  
+  loading(true,'Saving split...')
+  
+  try {
+    await sb.from('transaction_splits').delete().eq('transaction_id',splittingTxId)
+    
+    const splits=splitItems.map(item=>({
+      transaction_id:splittingTxId,
+      car_id:item.car_id,
+      amount:item.amount
+    }))
+    
+    await sb.from('transaction_splits').insert(splits)
+    await sb.from('transactions').update({is_split:true}).eq('id',splittingTxId)
+    
+    closeModal('split-tx')
+    await loadAll()
+    toast('Transaction split saved')
+  } catch(e){
+    loading(false)
+    toast('Error saving split: '+e.message,true)
+  }
+}
 
 // ══════════════════════════════════════════════
 // SAVE — OWNED CAR
@@ -1123,6 +1454,8 @@ async function saveTx(){
   const allStock=[...ownedCars,...sorCars]
   const linkedCar=allStock.find(c=>String(c.id)===String(stockId))
 
+  const bankAccountId=document.getElementById('tx-bank-account').value
+  
   const row={
     account_id:accountId,
     date:dateVal,
@@ -1133,6 +1466,7 @@ async function saveTx(){
     amount:parseFloat(document.getElementById('tx-amount').value)||0,
     vat:document.getElementById('tx-vat').value,
     method,
+    bank_account_id:bankAccountId?Number(bankAccountId):null,
     thirty_day:isThirty?'Yes':'No',
     due_date:dueDate,
     status:isThirty?'Unpaid':'Paid',
@@ -1544,18 +1878,24 @@ function renderTransactions(){
   const allStock=[...ownedCars,...sorCars]
   const tbody=document.getElementById('tx-tbody')
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No transactions match</div></div></td></tr>`;return}
+  
   tbody.innerHTML=filtered.map(t=>{
     const linked=allStock.find(c=>c.id===t.stock_id)
     const isUnassignedQB=!t.assigned&&t.source==='quickbooks'
-    return `<tr style="${isUnassignedQB?'background:rgba(231,76,60,0.04)':''}cursor:pointer" onclick="openEditTx(${t.id})" title="Click to edit">
+    const splits=transactionSplits.filter(s=>s.transaction_id===t.id)
+    const hasSplits=splits.length>0
+    
+    let mainRow=`<tr style="${isUnassignedQB?'background:rgba(231,76,60,0.04)':''}${hasSplits?'border-left:3px solid var(--blue)':''}cursor:pointer" onclick="openEditTx(${t.id})" title="Click to edit">
       <td class="muted-text">${fmtDate(t.date)}</td>
       <td>${t.supplier||''}</td>
       <td><span class="badge badge-muted">${t.type}</span></td>
       <td>
-        ${linked?`<span class="reg-badge ${linked.type==='sor'?'sor':''}">${linked.stock_number}</span> <span class="muted-text" style="font-size:11px">${linked.reg}</span>`
+        ${hasSplits?`<span class="badge badge-blue">SPLIT</span>`
+        :linked?`<span class="reg-badge ${linked.type==='sor'?'sor':''}">${linked.stock_number}</span> <span class="muted-text" style="font-size:11px">${linked.reg}</span>`
         :t.stock_id?'<span class="muted-text">Unknown</span>'
         :'<span class="muted-text" style="font-size:11px">overhead</span>'}
         ${isUnassignedQB?`<button class="link-btn" onclick="event.stopPropagation();openAssignModal(${t.id})">Assign →</button>`:''}
+        ${!hasSplits&&!isUnassignedQB?`<button class="split-btn" onclick="event.stopPropagation();openSplitModal(${t.id})">Split</button>`:''}
       </td>
       <td class="num">${fmt(t.amount)}</td>
       <td class="muted-text" style="text-align:center;font-family:'DM Mono',monospace;font-size:11px">${t.vat}</td>
@@ -1565,6 +1905,22 @@ function renderTransactions(){
       <td><span class="badge ${t.source==='quickbooks'?'badge-blue':'badge-muted'}">${t.source==='quickbooks'?'QB':'Manual'}</span></td>
       <td onclick="event.stopPropagation()"><button class="action-btn" onclick="deleteTx(${t.id})">×</button></td>
     </tr>`
+    
+    if(hasSplits){
+      const splitRows=splits.map(s=>{
+        const car=allStock.find(c=>c.id===s.car_id)
+        return `<tr class="split-row">
+          <td colspan="4" style="padding-left:40px">
+            <span class="split-row-car">${car?car.stock_number+' · '+car.reg:'Unknown car'}</span>
+            <span class="split-row-amount">${fmt(s.amount)}</span>
+          </td>
+          <td colspan="7"></td>
+        </tr>`
+      }).join('')
+      return mainRow+splitRows
+    }
+    
+    return mainRow
   }).join('')
 }
 function setTxPeriod(p){
@@ -1755,6 +2111,107 @@ function renderBalance(){
         <div class="pnl-row indent"><span class="pnl-row-label">SOR cars</span><span style="font-size:11px;color:var(--purple);font-family:'DM Mono',monospace">Never appear here</span></div>
       </div>
     </div>`
+}
+
+// ══════════════════════════════════════════════
+// BANK ACCOUNTS
+// ══════════════════════════════════════════════
+let editingBankAccountId=null
+
+function renderBankAccounts(){
+  const tbody=document.getElementById('bank-accounts-tbody')
+  if(!bankAccounts.length){
+    tbody.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🏦</div><div class="empty-text">No bank accounts yet</div></div></td></tr>`
+    return
+  }
+  
+  tbody.innerHTML=bankAccounts.map(b=>`<tr>
+    <td style="font-weight:500">${b.account_name}</td>
+    <td><span class="badge badge-muted">${b.account_type}</span></td>
+    <td class="muted-text" style="font-family:'DM Mono',monospace;font-size:12px">${b.account_number||'—'}</td>
+    <td class="muted-text" style="font-family:'DM Mono',monospace;font-size:12px">${b.sort_code||'—'}</td>
+    <td>${b.is_default?'<span class="badge badge-gold">Default</span>':'<span class="muted-text">—</span>'}</td>
+    <td>${b.active?'<span class="badge badge-green">Active</span>':'<span class="badge badge-muted">Inactive</span>'}</td>
+    <td>
+      <button class="link-btn" onclick="editBankAccount(${b.id})">Edit</button>
+      ${!b.is_default?`<button class="action-btn" onclick="deleteBankAccount(${b.id})">×</button>`:''}
+    </td>
+  </tr>`).join('')
+}
+
+function editBankAccount(id){
+  const account=bankAccounts.find(b=>b.id===id)
+  if(!account) return
+  
+  editingBankAccountId=id
+  document.getElementById('bank-account-modal-title').textContent='Edit Bank Account'
+  document.getElementById('bank-account-name').value=account.account_name||''
+  document.getElementById('bank-account-type').value=account.account_type||'Current'
+  document.getElementById('bank-account-number').value=account.account_number||''
+  document.getElementById('bank-account-sort').value=account.sort_code||''
+  document.getElementById('bank-account-default').value=String(account.is_default||false)
+  
+  document.getElementById('modal-add-bank-account').classList.add('open')
+}
+
+async function saveBankAccount(){
+  const btn=document.getElementById('save-bank-account-btn')
+  btn.disabled=true
+  btn.textContent='Saving...'
+  
+  const name=document.getElementById('bank-account-name').value.trim()
+  if(!name){
+    toast('Please enter an account name',true)
+    btn.disabled=false
+    btn.textContent='Save Account'
+    return
+  }
+  
+  const isDefault=document.getElementById('bank-account-default').value==='true'
+  
+  const data={
+    account_name:name,
+    account_type:document.getElementById('bank-account-type').value,
+    account_number:document.getElementById('bank-account-number').value.trim()||null,
+    sort_code:document.getElementById('bank-account-sort').value.trim()||null,
+    is_default:isDefault,
+    active:true
+  }
+  
+  try {
+    if(isDefault){
+      await sb.from('bank_accounts').update({is_default:false}).eq('account_id',accountId)
+    }
+    
+    if(editingBankAccountId){
+      await sb.from('bank_accounts').update(data).eq('id',editingBankAccountId)
+      toast('Bank account updated')
+    } else {
+      data.account_id=accountId
+      await sb.from('bank_accounts').insert(data)
+      toast('Bank account added')
+    }
+    
+    closeModal('add-bank-account')
+    await loadAll()
+  } catch(e){
+    toast('Error saving: '+e.message,true)
+  }
+  
+  btn.disabled=false
+  btn.textContent='Save Account'
+}
+
+async function deleteBankAccount(id){
+  if(!confirm('Delete this bank account?')) return
+  
+  try {
+    await sb.from('bank_accounts').delete().eq('id',id)
+    await loadAll()
+    toast('Bank account deleted')
+  } catch(e){
+    toast('Error deleting: '+e.message,true)
+  }
 }
 </script>
 </body>
