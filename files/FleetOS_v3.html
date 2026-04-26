@@ -282,7 +282,7 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
     <div class="topbar-right">
       <div class="vat-badge" id="vat-badge" onclick="toggleVAT()">VAT: OFF</div>
       <div class="qb-btn" id="qb-btn" onclick="connectQB()">QB: OFF</div>
-      <button class="btn-ghost" id="qb-sync-btn" onclick="syncQuickBooks()" style="display:none;margin-right:10px">↻ Sync QB Data</button>
+      <button class="btn-ghost" id="qb-sync-btn" onclick="syncQuickBooks()" style="margin-right:10px">↻ Sync QB Data</button>
       <button class="logout-btn" onclick="doLogout()">Log Out</button>
     </div>
   </div>
@@ -758,7 +758,10 @@ const sb = createClient(
 
 // QuickBooks Client ID (secret stored server-side only)
 const QB_CLIENT_ID = 'ABcPoVXTxYiF0DTS1XHFuh9NJMYamffDlLGFPIq155E5ZdPIXZ'
-const QB_REDIRECT = window.location.origin + window.location.pathname
+// Use production URL for OAuth (localhost won't work unless added to QB app settings)
+const QB_REDIRECT = window.location.hostname === 'localhost' 
+  ? 'https://fleet-os.vercel.app/' 
+  : window.location.origin + window.location.pathname
 
 // ══════════════════════════════════════════════
 // STATE

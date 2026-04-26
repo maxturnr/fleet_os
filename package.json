@@ -4,7 +4,7 @@
   "description": "Fleet profit and loss tracker with QuickBooks integration",
   "private": true,
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "python3 server.py",
     "build": "echo 'Static site - no build needed'",
     "deploy": "vercel --prod"
   },
