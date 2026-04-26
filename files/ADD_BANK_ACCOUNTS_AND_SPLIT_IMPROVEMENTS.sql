@@ -39,7 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_transaction_splits_parent ON transaction_splits(t
 -- 5. DISABLE RLS ON BANK ACCOUNTS
 ALTER TABLE bank_accounts DISABLE ROW LEVEL SECURITY;
 
--- 6. INSERT DEFAULT BANK ACCOUNT FOR EXISTING ACCOUNTS
+-- 6. INSERT DEFAULT BANK ACCOUNT FOR EXISTING ACCOUNTSl
 -- This creates a default "Main Account" for each existing account
 INSERT INTO bank_accounts (account_id, account_name, account_type, is_default, active)
 SELECT DISTINCT id, 'Main Account', 'Current', true, true
