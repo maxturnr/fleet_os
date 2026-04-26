@@ -990,8 +990,17 @@ checkAuth()
 // ══════════════════════════════════════════════
 // QUICKBOOKS OAUTH
 // ══════════════════════════════════════════════
-function connectQB(){
-  if(qbConnected){toast('QuickBooks already connected');return}
+async function connectQB(){
+  if(qbConnected){
+    // Disconnect
+    if(confirm('Disconnect QuickBooks?')){
+      await sb.from('settings').delete().in('key',['qb_connected','qb_realm_id','qb_access_token','qb_refresh_token','qb_auth_code'])
+      qbConnected=false
+      updateQBBadge()
+      toast('QuickBooks disconnected')
+    }
+    return
+  }
   const state = Math.random().toString(36).substring(2)
   sessionStorage.setItem('qb_state',state)
   const params = new URLSearchParams({
