@@ -30,5 +30,30 @@ SELECT
 -- ═══════════════════════════════════════════════════════════
 -- 1. Go to Storage in Supabase Dashboard
 -- 2. Create a new bucket called: transaction-documents
--- 3. Set it to PUBLIC (or configure RLS policies as needed)
+-- 3. IMPORTANT: Set RLS to DISABLED or run the policies below
 -- 4. Done!
+
+-- ═══════════════════════════════════════════════════════════
+-- STORAGE BUCKET RLS POLICIES (Run after creating bucket)
+-- ═══════════════════════════════════════════════════════════
+
+-- Allow all authenticated users to upload
+CREATE POLICY "Allow authenticated uploads"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'transaction-documents');
+
+-- Allow all authenticated users to view
+CREATE POLICY "Allow authenticated reads"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'transaction-documents');
+
+-- Allow all authenticated users to delete
+CREATE POLICY "Allow authenticated deletes"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'transaction-documents');
+
+-- OR SIMPLER: Just disable RLS on the bucket in the dashboard
+-- Storage > transaction-documents > Configuration > RLS = OFF
