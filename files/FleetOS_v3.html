@@ -282,6 +282,7 @@ body{background:var(--bg);color:var(--white);font-family:'Instrument Sans',sans-
     <div class="topbar-right">
       <div class="vat-badge" id="vat-badge" onclick="toggleVAT()">VAT: OFF</div>
       <div class="qb-btn" id="qb-btn" onclick="connectQB()">QB: OFF</div>
+      <button class="btn-ghost" id="qb-sync-btn" onclick="syncQuickBooks()" style="display:none;margin-right:10px">↻ Sync QB Data</button>
       <button class="logout-btn" onclick="doLogout()">Log Out</button>
     </div>
   </div>
@@ -1038,6 +1039,68 @@ function updateQBBadge(){
   const b=document.getElementById('qb-btn')
   b.textContent=qbConnected?'QB: ON':'QB: OFF'
   b.classList.toggle('connected',qbConnected)
+  
+  const syncBtn=document.getElementById('qb-sync-btn')
+  if(qbConnected){
+    syncBtn.style.display='inline-block'
+  } else {
+    syncBtn.style.display='none'
+  }
+}
+
+async function syncQuickBooks(){
+  if(!qbConnected){
+    toast('Please connect QuickBooks first',true)
+    return
+  }
+  
+  if(!confirm('This will import all bank accounts and transactions from QuickBooks. Continue?')){
+    return
+  }
+  
+  loading(true,'Syncing with QuickBooks...')
+  
+  try {
+    const {data:qbSettings} = await sb.from('settings')
+      .select('*')
+      .eq('account_id',accountId)
+      .in('key',['qb_access_token','qb_realm_id'])
+    
+    const accessToken = qbSettings?.find(s=>s.key==='qb_access_token')?.value
+    const realmId = qbSettings?.find(s=>s.key==='qb_realm_id')?.value
+    
+    if(!accessToken || !realmId){
+      loading(false)
+      toast('QuickBooks credentials not found. Please reconnect.',true)
+      return
+    }
+    
+    const res = await fetch('/.netlify/functions/qb-sync',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        access_token: accessToken,
+        realm_id: realmId,
+        account_id: accountId,
+        supabase_url: 'https://hnypmigzwfavwcwarmnk.supabase.co',
+        supabase_key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhueXBtaWd6d2Zhdndjd2FybW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMDU3MjcsImV4cCI6MjA5MjY4MTcyN30.uRC82cHVPLmDmUe-QKDyEPF8pfpnaMwSNXwfwO-qFBQ'
+      })
+    })
+    
+    const result = await res.json()
+    
+    if(result.success){
+      await loadAll()
+      toast(`✓ Synced ${result.results.bank_accounts} bank accounts and ${result.results.transactions} transactions!`)
+    } else {
+      toast('Sync failed: '+result.message,true)
+    }
+    
+    loading(false)
+  } catch(e){
+    loading(false)
+    toast('Sync error: '+e.message,true)
+  }
 }
 
 // ══════════════════════════════════════════════
