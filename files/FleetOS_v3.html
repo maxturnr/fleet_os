@@ -1020,19 +1020,60 @@ function checkQBCallback(){
 
 async function exchangeQBCode(code){
   toast('Connecting QuickBooks...')
+  loading(true,'Exchanging tokens...')
+  
   try {
-    // For now, just mark as connected - full OAuth flow requires backend
-    // In production, you'd exchange the code for tokens here
+    // Get realm ID from URL
+    const params = new URLSearchParams(window.location.search)
+    const realmId = params.get('realmId')
+    
+    if(!realmId){
+      throw new Error('No realm ID received from QuickBooks')
+    }
+    
+    // Exchange code for access token via Supabase Edge Function
+    const tokenRes = await fetch('https://hnypmigzwfavwcwarmnk.supabase.co/functions/v1/qb-token-exchange', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhueXBtaWd6d2Zhdndjd2FybW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMDU3MjcsImV4cCI6MjA5MjY4MTcyN30.uRC82cHVPLmDmUe-QKDyEPF8pfpnaMwSNXwfwO-qFBQ`
+      },
+      body: JSON.stringify({
+        code: code,
+        redirect_uri: QB_REDIRECT
+      })
+    })
+    
+    if(!tokenRes.ok){
+      const error = await tokenRes.json()
+      throw new Error(error.error || 'Token exchange failed')
+    }
+    
+    const tokens = await tokenRes.json()
+    
     qbConnected=true
     updateQBBadge()
-    toast('QuickBooks connected! (Demo mode - implement full OAuth for production)')
+    
+    // Store the tokens and realm ID
     await sb.from('settings').upsert([
       {account_id:accountId,key:'qb_connected',value:'true'},
-      {account_id:accountId,key:'qb_realm_id',value:'demo_realm'},
-      {account_id:accountId,key:'qb_access_token',value:'demo_token'}
+      {account_id:accountId,key:'qb_realm_id',value:realmId},
+      {account_id:accountId,key:'qb_access_token',value:tokens.access_token},
+      {account_id:accountId,key:'qb_refresh_token',value:tokens.refresh_token}
     ],{onConflict:'account_id,key'})
+    
+    loading(false)
+    toast('✓ QuickBooks connected! Company ID: '+realmId)
+    
+    // Prompt to sync data
+    if(confirm('QuickBooks connected! Would you like to sync your data now?')){
+      syncQuickBooks()
+    }
+    
   } catch(e){
+    loading(false)
     toast('QB connection error: '+e.message,true)
+    console.error('QB OAuth error:',e)
   }
 }
 
