@@ -1253,7 +1253,8 @@ async function loadAll(){
       const v=settingsRes.data.find(s=>s.key==='vat_registered')
       if(v){vatRegistered=v.value==='true';updateVatBadge()}
       const q=settingsRes.data.find(s=>s.key==='qb_connected')
-      if(q){qbConnected=q.value==='true';updateQBBadge()}
+      qbConnected=q&&q.value==='true'
+      updateQBBadge()
     }
     populateFilters()
     renderCurrentTab()
