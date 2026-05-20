@@ -1,0 +1,3 @@
+ALTER TABLE cars
+ADD COLUMN IF NOT EXISTS advertised_date DATE,
+ADD COLUMN IF NOT EXISTS deposit_date DATE;

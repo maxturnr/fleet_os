@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="BrandMark" translatesAutoresizingMaskIntoConstraints="NO" id="N1j-N4-HY8">
+                                <rect key="frame" x="136.5" y="338" width="120" height="120"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="120" id="IaT-eO-Q3P"/>
+                                    <constraint firstAttribute="height" constant="120" id="VQ9-uX-e24"/>
+                                </constraints>
+                            </imageView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="Fleet OS" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="f3X-6T-DfC">
+                                <rect key="frame" x="96.5" y="478" width="200" height="43"/>
+                                <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="36"/>
+                                <color key="textColor" red="0.84705882349999997" green="0.6784313725" blue="0.2392156863" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="Dealership control, on iPhone." textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="D2S-ZG-UZJ">
+                                <rect key="frame" x="81.5" y="531" width="230" height="17"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <color key="textColor" white="1" alpha="0.55000000000000004" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                        <color key="backgroundColor" red="0.019607843137254902" green="0.019607843137254902" blue="0.027450980392156862" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="D2S-ZG-UZJ" firstAttribute="top" secondItem="f3X-6T-DfC" secondAttribute="bottom" constant="10" id="0yP-uW-r7S"/>
+                            <constraint firstItem="f3X-6T-DfC" firstAttribute="top" secondItem="N1j-N4-HY8" secondAttribute="bottom" constant="20" id="E1b-BG-zme"/>
+                            <constraint firstItem="N1j-N4-HY8" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="-28" id="Gi2-zL-C5S"/>
+                            <constraint firstItem="D2S-ZG-UZJ" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="KJb-vk-0A5"/>
+                            <constraint firstItem="f3X-6T-DfC" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="V0S-jl-G66"/>
+                            <constraint firstItem="N1j-N4-HY8" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="sI6-Xu-ONz"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="45" y="373"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="BrandMark" width="1024" height="1024"/>
+    </resources>
+</document>

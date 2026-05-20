@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bank Movements - Fleet OS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-4 mb-2">
+          <button onclick="window.location.href='FleetOS_v3.html'" class="text-gray-600 hover:text-gray-900 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to FleetOS
+          </button>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900">Bank Movements</h1>
+        <p class="text-gray-600 mt-2">Transfer money between accounts</p>
+      </div>
+    </div>
+
+    <!-- Add Movement Button -->
+    <div class="mb-6">
+      <button onclick="openAddModal()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium">
+        + Add Transfer
+      </button>
+    </div>
+
+    <!-- Account Balances -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div id="accountBalances" class="col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <div class="text-sm text-gray-600">Loading accounts...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white p-6 rounded-lg shadow mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">From Account</label>
+          <select id="filterFromAccount" onchange="loadMovements()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="">All Accounts</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+          <select id="filterDate" onchange="loadMovements()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month" selected>This Month</option>
+            <option value="year">This Year</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+          <input type="text" id="searchInput" onkeyup="loadMovements()" placeholder="Search reason or reference..." class="w-full border border-gray-300 rounded-lg px-3 py-2">
+        </div>
+      </div>
+    </div>
+
+    <!-- Movements Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">From Account</th>
+            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">→</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">To Account</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="movementsTableBody" class="bg-white divide-y divide-gray-200">
+          <tr>
+            <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+              Loading movements...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add Transfer Modal -->
+  <div id="movementModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full">
+      <div class="p-6 border-b">
+        <h2 class="text-2xl font-bold">Transfer Money</h2>
+      </div>
+      
+      <form id="movementForm" class="p-6 space-y-4">
+        <!-- From Account -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">From Account *</label>
+          <select id="fromAccount" required class="w-full border border-gray-300 rounded-lg px-3 py-2" onchange="updateAvailableBalance()">
+            <option value="">Select account...</option>
+          </select>
+          <div id="fromBalance" class="text-sm text-gray-600 mt-1"></div>
+        </div>
+
+        <!-- To Account -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">To Account *</label>
+          <select id="toAccount" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="">Select account...</option>
+          </select>
+          <div id="toBalance" class="text-sm text-gray-600 mt-1"></div>
+        </div>
+
+        <!-- Amount -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Amount *</label>
+          <input type="number" id="amount" step="0.01" min="0.01" required class="w-full border border-gray-300 rounded-lg px-3 py-2" placeholder="0.00">
+        </div>
+
+        <!-- Date -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+          <input type="date" id="movementDate" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
+        </div>
+
+        <!-- Reason -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Transfer *</label>
+          <select id="reasonSelect" class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-2" onchange="handleReasonChange()">
+            <option value="">Select reason...</option>
+            <option value="Working capital">Working capital</option>
+            <option value="Stock purchase">Stock purchase</option>
+            <option value="Expense payment">Expense payment</option>
+            <option value="VAT payment">VAT payment</option>
+            <option value="Tax payment">Tax payment</option>
+            <option value="Loan repayment">Loan repayment</option>
+            <option value="Owner withdrawal">Owner withdrawal</option>
+            <option value="Owner investment">Owner investment</option>
+            <option value="custom">Other (specify)...</option>
+          </select>
+          <input type="text" id="reasonCustom" placeholder="Enter custom reason..." class="hidden w-full border border-gray-300 rounded-lg px-3 py-2">
+        </div>
+
+        <!-- Reference -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Reference Number</label>
+          <input type="text" id="reference" placeholder="e.g. Bank transfer reference" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+          <textarea id="notes" rows="3" placeholder="Additional notes..." class="w-full border border-gray-300 rounded-lg px-3 py-2"></textarea>
+        </div>
+
+        <!-- Warning -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-yellow-600 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+              <p class="font-medium text-yellow-800">Account Balances Will Update</p>
+              <p class="text-sm text-yellow-700 mt-1">This transfer will automatically deduct from the source account and add to the destination account.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3 pt-4 border-t">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            Cancel
+          </button>
+          <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Transfer Money
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg z-50"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://hnypmigzwfavwcwarmnk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhueXBtaWd6d2Zhdndjd2FybW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ3MjI5OTUsImV4cCI6MjA1MDI5ODk5NX0.OXkf7jVwmhqYE8LkNVQCz_Hv-Ld4rGjN7Z6Vu-nxCJg';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const accountId = new URLSearchParams(window.location.search).get('accountId') || 1;
+    let accounts = [];
+
+    // Initialize
+    async function init() {
+      await loadAccounts();
+      await loadMovements();
+      setDefaultDate();
+    }
+
+    // Load accounts
+    async function loadAccounts() {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('account_id', accountId)
+        .order('name');
+
+      if (!error && data) {
+        accounts = data;
+        
+        // Populate dropdowns
+        const selects = ['fromAccount', 'toAccount', 'filterFromAccount'];
+        selects.forEach(selectId => {
+          const select = document.getElementById(selectId);
+          select.innerHTML = selectId === 'filterFromAccount' ? '<option value="">All Accounts</option>' : '<option value="">Select account...</option>';
+          
+          data.forEach(acc => {
+            select.innerHTML += `<option value="${acc.id}">${acc.name} (£${acc.balance?.toFixed(2) || '0.00'})</option>`;
+          });
+        });
+
+        // Display balances
+        displayAccountBalances(data);
+      }
+    }
+
+    // Display account balances
+    function displayAccountBalances(accounts) {
+      const container = document.getElementById('accountBalances');
+      container.innerHTML = accounts.map(acc => `
+        <div class="bg-white p-6 rounded-lg shadow">
+          <div class="text-sm text-gray-600">${acc.name}</div>
+          <div class="text-2xl font-bold ${acc.balance >= 0 ? 'text-green-600' : 'text-red-600'}">
+            £${acc.balance?.toFixed(2) || '0.00'}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Load movements
+    async function loadMovements() {
+      const fromFilter = document.getElementById('filterFromAccount').value;
+      const dateRange = document.getElementById('filterDate').value;
+      const search = document.getElementById('searchInput').value.toLowerCase();
+
+      let query = supabase
+        .from('bank_movements')
+        .select(`
+          *,
+          from_account:accounts!bank_movements_from_account_id_fkey(name),
+          to_account:accounts!bank_movements_to_account_id_fkey(name)
+        `)
+        .eq('account_id', accountId);
+
+      if (fromFilter) {
+        query = query.or(`from_account_id.eq.${fromFilter},to_account_id.eq.${fromFilter}`);
+      }
+
+      // Date filtering
+      if (dateRange !== 'all') {
+        const today = new Date();
+        let startDate;
+        
+        if (dateRange === 'today') startDate = today.toISOString().split('T')[0];
+        else if (dateRange === 'week') {
+          startDate = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];
+        } else if (dateRange === 'month') {
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+        } else if (dateRange === 'year') {
+          startDate = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+        }
+        
+        query = query.gte('date', startDate);
+      }
+
+      query = query.order('date', { ascending: false });
+
+      const { data, error } = await query;
+
+      if (error) {
+        showToast('Error loading movements', 'error');
+        return;
+      }
+
+      // Filter by search
+      let filtered = data;
+      if (search) {
+        filtered = data.filter(m => 
+          m.reason?.toLowerCase().includes(search) ||
+          m.reference?.toLowerCase().includes(search) ||
+          m.notes?.toLowerCase().includes(search)
+        );
+      }
+
+      displayMovements(filtered);
+    }
+
+    // Display movements
+    function displayMovements(movements) {
+      const tbody = document.getElementById('movementsTableBody');
+      
+      if (movements.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-gray-500">No movements found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = movements.map(m => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4 whitespace-nowrap text-sm">${new Date(m.date).toLocaleDateString()}</td>
+          <td class="px-6 py-4 text-sm font-medium">${m.from_account?.name || 'N/A'}</td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-sm font-medium">${m.to_account?.name || 'N/A'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">£${m.amount.toFixed(2)}</td>
+          <td class="px-6 py-4 text-sm">${m.reason}</td>
+          <td class="px-6 py-4 text-sm text-gray-500">${m.reference || '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <button onclick="deleteMovement(${m.id})" class="text-red-600 hover:text-red-800">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Modal functions
+    function openAddModal() {
+      document.getElementById('movementModal').classList.remove('hidden');
+      document.getElementById('movementForm').reset();
+      setDefaultDate();
+      document.getElementById('reasonCustom').classList.add('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('movementModal').classList.add('hidden');
+    }
+
+    function setDefaultDate() {
+      document.getElementById('movementDate').valueAsDate = new Date();
+    }
+
+    function handleReasonChange() {
+      const select = document.getElementById('reasonSelect');
+      const customInput = document.getElementById('reasonCustom');
+      
+      if (select.value === 'custom') {
+        customInput.classList.remove('hidden');
+        customInput.required = true;
+      } else {
+        customInput.classList.add('hidden');
+        customInput.required = false;
+      }
+    }
+
+    function updateAvailableBalance() {
+      const fromId = document.getElementById('fromAccount').value;
+      const toId = document.getElementById('toAccount').value;
+      
+      if (fromId) {
+        const account = accounts.find(a => a.id == fromId);
+        document.getElementById('fromBalance').textContent = `Available: £${account?.balance?.toFixed(2) || '0.00'}`;
+      }
+      
+      if (toId) {
+        const account = accounts.find(a => a.id == toId);
+        document.getElementById('toBalance').textContent = `Current balance: £${account?.balance?.toFixed(2) || '0.00'}`;
+      }
+    }
+
+    // Save movement
+    document.getElementById('movementForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const fromId = document.getElementById('fromAccount').value;
+      const toId = document.getElementById('toAccount').value;
+      
+      // Validation
+      if (fromId === toId) {
+        showToast('Cannot transfer to the same account', 'error');
+        return;
+      }
+      
+      const amount = parseFloat(document.getElementById('amount').value);
+      const fromAccount = accounts.find(a => a.id == fromId);
+      
+      if (fromAccount && amount > fromAccount.balance) {
+        if (!confirm(`This transfer exceeds the available balance (£${fromAccount.balance.toFixed(2)}). Continue anyway?`)) {
+          return;
+        }
+      }
+      
+      const reasonSelect = document.getElementById('reasonSelect').value;
+      const reason = reasonSelect === 'custom' 
+        ? document.getElementById('reasonCustom').value 
+        : reasonSelect;
+      
+      const movementData = {
+        account_id: accountId,
+        from_account_id: fromId,
+        to_account_id: toId,
+        amount: amount,
+        date: document.getElementById('movementDate').value,
+        reason: reason,
+        reference: document.getElementById('reference').value,
+        notes: document.getElementById('notes').value
+      };
+      
+      const { error } = await supabase.from('bank_movements').insert([movementData]);
+      
+      if (error) {
+        showToast('Error saving transfer: ' + error.message, 'error');
+      } else {
+        showToast('Transfer completed successfully', 'success');
+        closeModal();
+        await loadAccounts(); // Refresh balances
+        await loadMovements();
+      }
+    });
+
+    // Delete movement
+    async function deleteMovement(id) {
+      if (!confirm('Are you sure you want to delete this transfer? This will reverse the balance changes.')) return;
+      
+      // Get movement details first
+      const { data: movement } = await supabase
+        .from('bank_movements')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (!movement) {
+        showToast('Movement not found', 'error');
+        return;
+      }
+      
+      // Reverse the balance changes
+      await supabase.rpc('reverse_bank_movement', { movement_id: id });
+      
+      // Delete the movement
+      const { error } = await supabase.from('bank_movements').delete().eq('id', id);
+      
+      if (error) {
+        showToast('Error deleting transfer', 'error');
+      } else {
+        showToast('Transfer deleted and balances reversed', 'success');
+        await loadAccounts();
+        await loadMovements();
+      }
+    }
+
+    // Show toast
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      
+      if (type === 'error') toast.classList.add('bg-red-600');
+      else if (type === 'success') toast.classList.add('bg-green-600');
+      else toast.classList.add('bg-gray-900');
+      
+      setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('bg-red-600', 'bg-green-600', 'bg-gray-900');
+      }, 3000);
+    }
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

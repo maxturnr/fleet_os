@@ -1,0 +1,2 @@
+ALTER TABLE cars
+ADD COLUMN IF NOT EXISTS handover_date DATE;

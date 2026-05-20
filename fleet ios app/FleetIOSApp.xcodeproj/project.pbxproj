@@ -1,0 +1,277 @@
+// !$*UTF8*$!
+{
+	objectVersion = 56;
+	classes = {
+	};
+	archiveVersion = 1;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4A0000010000000000000001 /* FleetIOSAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0001010000000000000001 /* FleetIOSAppApp.swift */; };
+		4A0000010000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0001010000000000000002 /* ContentView.swift */; };
+		4A0000010000000000000003 /* FleetWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0001010000000000000003 /* FleetWebView.swift */; };
+		4A0000010000000000000004 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0001010000000000000004 /* AppConfig.swift */; };
+		4A0000010000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A0001010000000000000005 /* Assets.xcassets */; };
+		4A0000010000000000000006 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4A0001010000000000000006 /* Info.plist */; };
+		4A0000010000000000000007 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4A0001010000000000000008 /* LaunchScreen.storyboard */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		4A0001010000000000000001 /* FleetIOSAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FleetIOSAppApp.swift; sourceTree = "<group>"; };
+		4A0001010000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		4A0001010000000000000003 /* FleetWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FleetWebView.swift; sourceTree = "<group>"; };
+		4A0001010000000000000004 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		4A0001010000000000000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4A0001010000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4A0001010000000000000007 /* FleetIOSApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FleetIOSApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4A0001010000000000000008 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4A0002010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4A0003010000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				4A0003010000000000000002 /* FleetIOSApp */,
+				4A0003010000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4A0003010000000000000002 /* FleetIOSApp */ = {
+			isa = PBXGroup;
+			path = FleetIOSApp;
+			sourceTree = "<group>";
+			children = (
+				4A0001010000000000000004 /* AppConfig.swift */,
+				4A0001010000000000000001 /* FleetIOSAppApp.swift */,
+				4A0001010000000000000002 /* ContentView.swift */,
+				4A0001010000000000000003 /* FleetWebView.swift */,
+				4A0001010000000000000005 /* Assets.xcassets */,
+				4A0001010000000000000008 /* LaunchScreen.storyboard */,
+				4A0001010000000000000006 /* Info.plist */,
+			);
+		};
+		4A0003010000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4A0001010000000000000007 /* FleetIOSApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4A0004010000000000000001 /* FleetIOSApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4A0007010000000000000002 /* Build configuration list for PBXNativeTarget "FleetIOSApp" */;
+			buildPhases = (
+				4A0002010000000000000002 /* Sources */,
+				4A0002010000000000000001 /* Frameworks */,
+				4A0002010000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FleetIOSApp;
+			productName = FleetIOSApp;
+			productReference = 4A0001010000000000000007 /* FleetIOSApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4A0005010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					4A0004010000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 4A0007010000000000000001 /* Build configuration list for PBXProject "FleetIOSApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4A0003010000000000000001;
+			productRefGroup = 4A0003010000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4A0004010000000000000001 /* FleetIOSApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4A0002010000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A0000010000000000000005 /* Assets.xcassets in Resources */,
+				4A0000010000000000000007 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4A0002010000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A0000010000000000000004 /* AppConfig.swift in Sources */,
+				4A0000010000000000000002 /* ContentView.swift in Sources */,
+				4A0000010000000000000001 /* FleetIOSAppApp.swift in Sources */,
+				4A0000010000000000000003 /* FleetWebView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		4A0006010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+			};
+			name = Debug;
+		};
+		4A0006010000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		4A0006010000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FleetIOSApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.thg.fleetiosapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		4A0006010000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FleetIOSApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.thg.fleetiosapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4A0007010000000000000001 /* Build configuration list for PBXProject "FleetIOSApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4A0006010000000000000001 /* Debug */,
+				4A0006010000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4A0007010000000000000002 /* Build configuration list for PBXNativeTarget "FleetIOSApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4A0006010000000000000003 /* Debug */,
+				4A0006010000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 4A0005010000000000000001 /* Project object */;
+}

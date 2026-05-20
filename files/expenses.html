@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expenses Management - Fleet OS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-4 mb-2">
+          <button onclick="window.location.href='FleetOS_v3.html'" class="text-gray-600 hover:text-gray-900 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to FleetOS
+          </button>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900">Expenses Management</h1>
+        <p class="text-gray-600 mt-2">Track vehicle and overhead expenses</p>
+      </div>
+    </div>
+
+    <!-- Add Expense Button -->
+    <div class="mb-6">
+      <button onclick="openAddModal()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 font-medium">
+        + Add Expense
+      </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm text-gray-600">Total Expenses (Month)</div>
+        <div id="totalExpenses" class="text-2xl font-bold text-red-600">£0.00</div>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm text-gray-600">Vehicle Expenses</div>
+        <div id="vehicleExpenses" class="text-2xl font-bold text-orange-600">£0.00</div>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm text-gray-600">Overhead</div>
+        <div id="overheadExpenses" class="text-2xl font-bold text-purple-600">£0.00</div>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <div class="text-sm text-gray-600">VAT Paid</div>
+        <div id="totalVat" class="text-2xl font-bold text-blue-600">£0.00</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white p-6 rounded-lg shadow mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+          <select id="filterType" onchange="loadExpenses()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="">All Types</option>
+            <option value="purchase">Purchase</option>
+            <option value="parts">Parts</option>
+            <option value="mechanics">Mechanics</option>
+            <option value="bodywork">Bodywork</option>
+            <option value="valeting">Valeting</option>
+            <option value="mot">MOT</option>
+            <option value="tax">Tax</option>
+            <option value="fuel">Fuel</option>
+            <option value="advertising">Advertising</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Assignment</label>
+          <select id="filterAssignment" onchange="loadExpenses()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="">All</option>
+            <option value="vehicle">Vehicle Expenses</option>
+            <option value="overhead">Overhead</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+          <select id="filterDate" onchange="loadExpenses()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="all">All Time</option>
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month" selected>This Month</option>
+            <option value="year">This Year</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+          <input type="text" id="searchInput" onkeyup="loadExpenses()" placeholder="Search..." class="w-full border border-gray-300 rounded-lg px-3 py-2">
+        </div>
+      </div>
+    </div>
+
+    <!-- Expenses Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Supplier</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">VAT</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="expensesTableBody" class="bg-white divide-y divide-gray-200">
+          <tr>
+            <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+              Loading expenses...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add/Edit Expense Modal -->
+  <div id="expenseModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b">
+        <h2 id="modalTitle" class="text-2xl font-bold">Add Expense</h2>
+      </div>
+      
+      <form id="expenseForm" class="p-6 space-y-4">
+        <input type="hidden" id="expenseId">
+        
+        <!-- Type -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Expense Type *</label>
+          <select id="expenseType" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="">Select type...</option>
+            <option value="purchase">Vehicle Purchase</option>
+            <option value="parts">Parts</option>
+            <option value="mechanics">Mechanics</option>
+            <option value="bodywork">Bodywork</option>
+            <option value="valeting">Valeting</option>
+            <option value="mot">MOT</option>
+            <option value="tax">Road Tax</option>
+            <option value="transport">Transport/Delivery</option>
+            <option value="fuel">Fuel</option>
+            <option value="advertising">Advertising</option>
+            <option value="rent">Rent</option>
+            <option value="utilities">Utilities</option>
+            <option value="insurance">Insurance</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <!-- Supplier -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Supplier *</label>
+          <input type="text" id="expenseSupplier" required placeholder="Supplier name" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+        </div>
+
+        <!-- Vehicle or Overhead -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Assignment *</label>
+          <select id="expenseVehicle" required class="w-full border border-gray-300 rounded-lg px-3 py-2" onchange="handleAssignmentChange()">
+            <option value="">Select...</option>
+            <option value="overhead">Overhead (No specific vehicle)</option>
+          </select>
+        </div>
+
+        <!-- Amount and VAT -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Amount (Inc VAT) *</label>
+            <input type="number" id="expenseAmount" step="0.01" required class="w-full border border-gray-300 rounded-lg px-3 py-2" onchange="calculateVAT()">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">VAT Status *</label>
+            <select id="expenseVatStatus" required class="w-full border border-gray-300 rounded-lg px-3 py-2" onchange="calculateVAT()">
+              <option value="standard">Standard (20%)</option>
+              <option value="reduced">Reduced (5%)</option>
+              <option value="zero">Zero (0%)</option>
+              <option value="exempt">Exempt</option>
+              <option value="non-vat">Non-VAT</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Calculated VAT -->
+        <div class="bg-gray-50 p-4 rounded-lg grid grid-cols-2 gap-4">
+          <div>
+            <div class="text-sm text-gray-600">Net Amount</div>
+            <div id="netAmount" class="text-lg font-bold">£0.00</div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-600">VAT Amount</div>
+            <div id="vatAmount" class="text-lg font-bold">£0.00</div>
+          </div>
+        </div>
+
+        <!-- Date -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+          <input type="date" id="expenseDate" required class="w-full border border-gray-300 rounded-lg px-3 py-2">
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+          <textarea id="expenseNotes" rows="3" placeholder="Additional notes..." class="w-full border border-gray-300 rounded-lg px-3 py-2"></textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end gap-3 pt-4 border-t">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            Cancel
+          </button>
+          <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+            Save Expense
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg z-50"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://hnypmigzwfavwcwarmnk.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhueXBtaWd6d2Zhdndjd2FybW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ3MjI5OTUsImV4cCI6MjA1MDI5ODk5NX0.OXkf7jVwmhqYE8LkNVQCz_Hv-Ld4rGjN7Z6Vu-nxCJg';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const accountId = new URLSearchParams(window.location.search).get('accountId') || 1;
+    let vehicles = [];
+
+    // Initialize
+    async function init() {
+      await loadVehicles();
+      await loadExpenses();
+      setDefaultDate();
+    }
+
+    // Load vehicles
+    async function loadVehicles() {
+      const { data, error } = await supabase
+        .from('cars')
+        .select('*')
+        .eq('account_id', accountId)
+        .order('stock_number', { ascending: false });
+
+      if (!error && data) {
+        vehicles = data;
+        
+        const select = document.getElementById('expenseVehicle');
+        data.forEach(v => {
+          select.innerHTML += `<option value="${v.id}">${v.stock_number || 'N/A'} - ${v.make} ${v.model} ${v.reg || ''}</option>`;
+        });
+      }
+    }
+
+    // Load expenses
+    async function loadExpenses() {
+      const type = document.getElementById('filterType').value;
+      const assignment = document.getElementById('filterAssignment').value;
+      const dateRange = document.getElementById('filterDate').value;
+      const search = document.getElementById('searchInput').value.toLowerCase();
+
+      let query = supabase
+        .from('expenses')
+        .select('*, cars(stock_number, make, model, reg)')
+        .eq('account_id', accountId);
+
+      if (type) query = query.eq('type', type);
+      if (assignment === 'overhead') query = query.eq('is_overhead', true);
+      else if (assignment === 'vehicle') query = query.eq('is_overhead', false);
+
+      // Date filtering
+      if (dateRange !== 'all') {
+        const today = new Date();
+        let startDate;
+        
+        if (dateRange === 'today') startDate = today.toISOString().split('T')[0];
+        else if (dateRange === 'week') {
+          startDate = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];
+        } else if (dateRange === 'month') {
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+        } else if (dateRange === 'year') {
+          startDate = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+        }
+        
+        query = query.gte('date', startDate);
+      }
+
+      query = query.order('date', { ascending: false });
+
+      const { data, error } = await query;
+
+      if (error) {
+        showToast('Error loading expenses', 'error');
+        return;
+      }
+
+      // Filter by search
+      let filtered = data;
+      if (search) {
+        filtered = data.filter(e => 
+          e.supplier?.toLowerCase().includes(search) ||
+          e.notes?.toLowerCase().includes(search) ||
+          e.type?.toLowerCase().includes(search)
+        );
+      }
+
+      displayExpenses(filtered);
+      updateStats(data);
+    }
+
+    // Display expenses
+    function displayExpenses(expenses) {
+      const tbody = document.getElementById('expensesTableBody');
+      
+      if (expenses.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center text-gray-500">No expenses found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = expenses.map(e => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4 whitespace-nowrap text-sm">${new Date(e.date).toLocaleDateString()}</td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 py-1 text-xs rounded-full ${getTypeColor(e.type)}">
+              ${formatType(e.type)}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-sm">${e.supplier || '-'}</td>
+          <td class="px-6 py-4 text-sm">
+            ${e.is_overhead ? '<span class="text-gray-500">Overhead</span>' : 
+              (e.cars ? `${e.cars.stock_number || 'N/A'} - ${e.cars.make} ${e.cars.model}` : 'N/A')}
+          </td>
+          <td class="px-6 py-4 text-sm">${e.notes || '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600">£${e.amount.toFixed(2)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">£${(e.vat_amount || 0).toFixed(2)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <button onclick="editExpense(${e.id})" class="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
+            <button onclick="deleteExpense(${e.id})" class="text-red-600 hover:text-red-800">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Update stats
+    function updateStats(expenses) {
+      const total = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      const vehicle = expenses.filter(e => !e.is_overhead).reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      const overhead = expenses.filter(e => e.is_overhead).reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      const vat = expenses.reduce((sum, e) => sum + parseFloat(e.vat_amount || 0), 0);
+
+      document.getElementById('totalExpenses').textContent = `£${total.toFixed(2)}`;
+      document.getElementById('vehicleExpenses').textContent = `£${vehicle.toFixed(2)}`;
+      document.getElementById('overheadExpenses').textContent = `£${overhead.toFixed(2)}`;
+      document.getElementById('totalVat').textContent = `£${vat.toFixed(2)}`;
+    }
+
+    // Helper functions
+    function getTypeColor(type) {
+      const colors = {
+        'purchase': 'bg-purple-100 text-purple-800',
+        'parts': 'bg-blue-100 text-blue-800',
+        'mechanics': 'bg-orange-100 text-orange-800',
+        'bodywork': 'bg-pink-100 text-pink-800',
+        'fuel': 'bg-green-100 text-green-800',
+        'mot': 'bg-yellow-100 text-yellow-800',
+        'tax': 'bg-red-100 text-red-800'
+      };
+      return colors[type] || 'bg-gray-100 text-gray-800';
+    }
+
+    function formatType(type) {
+      return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    // Modal functions
+    function openAddModal() {
+      document.getElementById('expenseModal').classList.remove('hidden');
+      document.getElementById('modalTitle').textContent = 'Add Expense';
+      document.getElementById('expenseForm').reset();
+      document.getElementById('expenseId').value = '';
+      setDefaultDate();
+      calculateVAT();
+    }
+
+    function closeModal() {
+      document.getElementById('expenseModal').classList.add('hidden');
+    }
+
+    function setDefaultDate() {
+      document.getElementById('expenseDate').valueAsDate = new Date();
+    }
+
+    function handleAssignmentChange() {
+      // Could add logic here if needed
+    }
+
+    // Edit expense
+    async function editExpense(id) {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        showToast('Error loading expense', 'error');
+        return;
+      }
+      
+      document.getElementById('expenseModal').classList.remove('hidden');
+      document.getElementById('modalTitle').textContent = 'Edit Expense';
+      document.getElementById('expenseId').value = data.id;
+      document.getElementById('expenseType').value = data.type;
+      document.getElementById('expenseSupplier').value = data.supplier;
+      document.getElementById('expenseVehicle').value = data.is_overhead ? 'overhead' : (data.stock_id || '');
+      document.getElementById('expenseAmount').value = data.amount;
+      document.getElementById('expenseVatStatus').value = data.vat_status || 'standard';
+      document.getElementById('expenseDate').value = data.date;
+      document.getElementById('expenseNotes').value = data.notes || '';
+      calculateVAT();
+    }
+
+    // Calculate VAT
+    function calculateVAT() {
+      const amount = parseFloat(document.getElementById('expenseAmount').value) || 0;
+      const vatStatus = document.getElementById('expenseVatStatus').value;
+      
+      let netAmount = amount;
+      let vatAmount = 0;
+      
+      if (vatStatus === 'standard') {
+        netAmount = amount / 1.20;
+        vatAmount = amount - netAmount;
+      } else if (vatStatus === 'reduced') {
+        netAmount = amount / 1.05;
+        vatAmount = amount - netAmount;
+      }
+      
+      document.getElementById('netAmount').textContent = `£${netAmount.toFixed(2)}`;
+      document.getElementById('vatAmount').textContent = `£${vatAmount.toFixed(2)}`;
+    }
+
+    // Save expense
+    document.getElementById('expenseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const vehicleValue = document.getElementById('expenseVehicle').value;
+      
+      const expenseData = {
+        account_id: accountId,
+        type: document.getElementById('expenseType').value,
+        supplier: document.getElementById('expenseSupplier').value,
+        amount: parseFloat(document.getElementById('expenseAmount').value),
+        net_amount: parseFloat(document.getElementById('netAmount').textContent.replace('£', '')),
+        vat_amount: parseFloat(document.getElementById('vatAmount').textContent.replace('£', '')),
+        vat_status: document.getElementById('expenseVatStatus').value,
+        stock_id: vehicleValue === 'overhead' ? null : vehicleValue,
+        is_overhead: vehicleValue === 'overhead',
+        date: document.getElementById('expenseDate').value,
+        notes: document.getElementById('expenseNotes').value
+      };
+      
+      const expenseId = document.getElementById('expenseId').value;
+      
+      let result;
+      if (expenseId) {
+        result = await supabase.from('expenses').update(expenseData).eq('id', expenseId);
+      } else {
+        result = await supabase.from('expenses').insert([expenseData]);
+      }
+      
+      if (result.error) {
+        showToast('Error saving expense: ' + result.error.message, 'error');
+      } else {
+        showToast('Expense saved successfully', 'success');
+        closeModal();
+        loadExpenses();
+      }
+    });
+
+    // Delete expense
+    async function deleteExpense(id) {
+      if (!confirm('Are you sure you want to delete this expense?')) return;
+      
+      const { error } = await supabase.from('expenses').delete().eq('id', id);
+      
+      if (error) {
+        showToast('Error deleting expense', 'error');
+      } else {
+        showToast('Expense deleted', 'success');
+        loadExpenses();
+      }
+    }
+
+    // Show toast
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      
+      if (type === 'error') toast.classList.add('bg-red-600');
+      else if (type === 'success') toast.classList.add('bg-green-600');
+      else toast.classList.add('bg-gray-900');
+      
+      setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('bg-red-600', 'bg-green-600', 'bg-gray-900');
+      }, 3000);
+    }
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>
