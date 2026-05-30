@@ -273,6 +273,14 @@ serve(async (req) => {
                     )
                   );
                   if (match) {
+                    // Preserve the original pending date on the booked transaction
+                    if (p.transaction_date && p.transaction_date < match.transaction_date) {
+                      await supabaseClient
+                        .from('bank_transactions')
+                        .update({ transaction_date: p.transaction_date })
+                        .eq('id', match.id);
+                      console.log(`Preserved pending date ${p.transaction_date} on booked txn ${match.id}`);
+                    }
                     idsToDelete.push(p.id);
                   }
                 }

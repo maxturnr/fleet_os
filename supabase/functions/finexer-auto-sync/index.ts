@@ -205,10 +205,12 @@ serve(async (req) => {
             totalSyncedTransactions += allTransactions.length;
 
             // ── Dedup: remove pending when booked twin exists ────
+            // Preserve the pending row's transaction_date on the booked twin
+            // so the transaction stays on the date it was first seen.
             try {
               const { data: allDbTxns } = await supabase
                 .from('bank_transactions')
-                .select('id, status, amount, description, merchant_name')
+                .select('id, status, amount, description, merchant_name, transaction_date')
                 .eq('bank_account_id', bankAccountId)
                 .in('status', ['pending', 'booked']);
 
@@ -236,7 +238,17 @@ serve(async (req) => {
                       fuzzyMatch(b.merchant_name, p.description)
                     )
                   );
-                  if (match) idsToDelete.push(p.id);
+                  if (match) {
+                    // Keep the original pending date on the booked transaction
+                    if (p.transaction_date && p.transaction_date < match.transaction_date) {
+                      await supabase
+                        .from('bank_transactions')
+                        .update({ transaction_date: p.transaction_date })
+                        .eq('id', match.id);
+                      console.log(`Preserved pending date ${p.transaction_date} on booked txn ${match.id}`);
+                    }
+                    idsToDelete.push(p.id);
+                  }
                 }
 
                 if (idsToDelete.length > 0) {
