@@ -1659,7 +1659,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
                 <thead>
                   <tr>
                     <th>Transaction</th>
-                    <th>Vehicle</th>
+                    <th>For</th>
                     <th>User</th>
                     <th>Account</th>
                     <th>Invoice</th>
@@ -8408,7 +8408,7 @@ function getVehicleCellMetaFromCar(car){
   if(!car) return null
   return {
     title: [car.make, car.model].filter(Boolean).join(' ') || 'Unnamed vehicle',
-    subtitle: [car.stock_number || 'No stock number', car.reg || 'No reg'].join(' · ')
+    subtitle: car.reg || ''
   }
 }
 
@@ -8418,7 +8418,7 @@ function getExpenseVehicleCellMeta(expense){
   if(linkedCars.length > 1){
     return {
       title: 'Multiple vehicles',
-      subtitle: linkedCars.map(car => [car.stock_number || 'No stock number', car.reg || 'No reg'].join(' · ')).join(' / ')
+      subtitle: linkedCars.map(car => car.reg || [car.make, car.model].filter(Boolean).join(' ') || 'Unknown').join(', ')
     }
   }
 
@@ -8441,15 +8441,15 @@ function getExpenseVehicleCellMeta(expense){
 
   return {
     title: 'Overhead',
-    subtitle: 'No vehicle linked'
+    subtitle: ''
   }
 }
 
 function getIncomeVehicleCellMeta(entry){
   if(entry?.is_general){
     return {
-      title: 'General',
-      subtitle: 'No vehicle linked'
+      title: 'Overhead',
+      subtitle: ''
     }
   }
 
@@ -8462,8 +8462,8 @@ function getIncomeVehicleCellMeta(entry){
   if(linkedCarMeta) return linkedCarMeta
 
   return {
-    title: 'Unlinked vehicle',
-    subtitle: entry?.stock_id ? 'Stock link missing' : 'No vehicle linked'
+    title: 'Overhead',
+    subtitle: ''
   }
 }
 
@@ -8646,8 +8646,8 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
       amountDirection: isIn ? 'in' : 'out',
       accountName: account?.account_name || 'Unknown',
       accountMeta: 'Bank feed',
-      vehicleTitle: 'Unassigned',
-      vehicleSubtitle: txn.category || 'Uncategorized',
+      vehicleTitle: reconciliations.some(r => r.bank_transaction_id === txn.id && r.status === 'matched') ? 'Reconciled' : 'Requires Reconciliation',
+      vehicleSubtitle: '',
       personName: '-',
       hasInvoice: false,
       type: 'bank',
@@ -8749,8 +8749,8 @@ function renderUnifiedExpenseRow(row){
       ${row.subtitle ? `<div class="expenses-transaction-sub">${escapeHtml(row.subtitle)}</div>` : ''}
     </td>
     <td>
-      <div class="expenses-vehicle-title">${escapeHtml(row.vehicleTitle || 'No vehicle linked')}</div>
-      <div class="expenses-vehicle-sub">${escapeHtml(row.vehicleSubtitle || 'No vehicle linked')}</div>
+      <div class="expenses-vehicle-title">${escapeHtml(row.vehicleTitle || 'Overhead')}</div>
+      ${row.vehicleSubtitle ? `<div class="expenses-vehicle-sub">${escapeHtml(row.vehicleSubtitle)}</div>` : ''}
     </td>
     <td>
       <div class="expenses-person-name">${escapeHtml(row.personName || '-')}</div>
