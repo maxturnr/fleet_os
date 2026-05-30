@@ -457,6 +457,31 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 .transaction-drawer-action.primary{background:#14130f;border-color:#14130f;color:#fff;}
 .transaction-drawer-action:hover{background:#f7f4ef;}
 .transaction-drawer-action.primary:hover{background:#14130f;opacity:.9;}
+.bank-cat-toggle-row{display:flex;gap:8px;margin-bottom:14px;}
+.bank-cat-toggle{flex:1;height:42px;border-radius:12px;border:1.5px solid rgba(20,19,15,0.1);background:#fff;color:#5b5248;font-family:'Inter Tight',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s ease;}
+.bank-cat-toggle.active{background:#14130f;border-color:#14130f;color:#fff;}
+.bank-cat-toggle:hover:not(.active){background:#f7f4ef;}
+.bank-cat-vehicle-search{position:relative;margin-bottom:14px;}
+.bank-cat-vehicle-search input{width:100%;height:42px;border:1px solid rgba(20,19,15,0.1);border-radius:12px;background:#fff;padding:0 14px;font-family:'Inter Tight',sans-serif;font-size:14px;color:#2f2b28;outline:none;box-sizing:border-box;}
+.bank-cat-vehicle-search input:focus{border-color:#14130f;box-shadow:0 0 0 3px rgba(20,19,15,0.06);}
+.bank-cat-vehicle-results{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid rgba(20,19,15,0.1);border-top:none;border-radius:0 0 12px 12px;max-height:200px;overflow-y:auto;z-index:10;display:none;box-shadow:0 8px 24px rgba(20,19,15,0.1);}
+.bank-cat-vehicle-results.open{display:block;}
+.bank-cat-vehicle-option{padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(20,19,15,0.04);}
+.bank-cat-vehicle-option:hover{background:#f7f4ef;}
+.bank-cat-vehicle-option:last-child{border-bottom:none;}
+.bank-cat-vehicle-option-title{font-size:14px;color:#2f2b28;font-weight:500;}
+.bank-cat-vehicle-option-sub{font-size:12px;color:#7a7368;margin-top:2px;}
+.bank-cat-selected{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid rgba(20,19,15,0.1);border-radius:12px;background:#f7f4ef;margin-bottom:14px;}
+.bank-cat-selected-info{font-size:14px;color:#2f2b28;font-weight:500;}
+.bank-cat-selected-sub{font-size:12px;color:#7a7368;}
+.bank-cat-selected-clear{border:none;background:none;color:#7a7368;font-size:18px;cursor:pointer;padding:0 4px;}
+.bank-cat-field{margin-bottom:14px;}
+.bank-cat-field label{display:block;font-size:12px;color:#7a7368;margin-bottom:6px;font-weight:500;letter-spacing:0.02em;}
+.bank-cat-field select{width:100%;height:42px;border:1px solid rgba(20,19,15,0.1);border-radius:12px;background:#fff;padding:0 14px;font-family:'Inter Tight',sans-serif;font-size:14px;color:#2f2b28;outline:none;appearance:none;-webkit-appearance:none;cursor:pointer;box-sizing:border-box;}
+.bank-cat-field select:focus{border-color:#14130f;box-shadow:0 0 0 3px rgba(20,19,15,0.06);}
+.bank-cat-save{width:100%;height:44px;border-radius:12px;border:none;background:#14130f;color:#fff;font-family:'Inter Tight',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px;}
+.bank-cat-save:hover{opacity:.9;}
+.bank-cat-save:disabled{opacity:.5;cursor:not-allowed;}
 
 /* KPI */
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
@@ -8213,6 +8238,8 @@ let expenseVisibleRows = []
 let activeTransactionDrawer = null
 let activeTransactionDrawerTab = 'details'
 let activeTransactionDrawerEditing = false
+let bankCatMode = 'overhead' // 'vehicle' or 'overhead'
+let bankCatSelectedVehicleId = null
 
 function isRefundRecord(entry){
   return entry?.record_kind === 'refund' || String(entry?.type || '').toLowerCase() === 'refund'
@@ -8874,35 +8901,7 @@ function hasTransactionAttachment(source, sourceId, record){
 }
 
 function getTransactionDrawerFields(source, record){
-  if(source === 'bank'){
-    const account = bankAccounts.find(b => b.id === record?.bank_account_id)
-    const allCars = [...ownedCars, ...sorCars]
-    const vehicleOptions = [
-      ['overhead', 'Overhead'],
-      ...allCars.map(c => [String(c.id), [c.make, c.model].filter(Boolean).join(' ') + (c.reg ? ` (${c.reg})` : '')])
-    ]
-    const currentVehicle = record?.stock_id ? String(record.stock_id) : 'overhead'
-    return [
-      {key:'vehicle', label:'For', type:'select', value:currentVehicle, editable:true, options:vehicleOptions},
-      {key:'cost_type', label:'Cost type', type:'select', value:record?.cost_type || '', editable:true, options:[
-        ['','Select cost type'],
-        ['purchase','Purchase'],['parts','Parts'],['mechanics','Mechanics'],['bodywork','Bodywork'],['valeting','Valeting'],
-        ['mot','MOT'],['warranty','Warranty'],['tax','Tax'],['transport','Transport'],['fuel','Fuel'],
-        ['advertising','Advertising'],['rent','Rent'],['utilities','Utilities'],['insurance','Insurance'],['other','Other']
-      ]},
-      {key:'vat_status', label:'VAT status', type:'select', value:record?.vat_status || 'standard', editable:true, options:[
-        ['standard','Standard'],['margin','Margin'],['no-vat','No VAT']
-      ]},
-      {key:'status', label:'Status', type:'text', value:record?.status === 'pending' ? 'Pending' : 'Booked', editable:false},
-      {key:'date', label:'Date', type:'text', value:record?.transaction_date || '', editable:false},
-      {key:'account', label:'Bank Account', type:'text', value:account?.account_name || 'Unknown', editable:false},
-      {key:'amount', label:'Amount', type:'text', value:fmt(Math.abs(num(record?.amount))), editable:false},
-      {key:'merchant', label:'Merchant', type:'text', value:record?.merchant_name || '—', editable:false},
-      {key:'description', label:'Description', type:'text', value:record?.description || '—', editable:false},
-      {key:'reference', label:'Reference', type:'text', value:record?.reference || '—', editable:false},
-      {key:'running_balance', label:'Running Balance', type:'text', value:record?.running_balance != null ? fmt(record.running_balance) : '—', editable:false}
-    ]
-  }
+  if(source === 'bank') return [] // bank uses custom categorisation panel
   if(source === 'income'){
     return [
       {key:'id', label:'Transaction ID', type:'text', value:record?.id || '', editable:false},
@@ -8988,28 +8987,7 @@ async function saveTransactionDrawer(){
   if(!record) return
 
   if(source === 'bank'){
-    const vehicleVal = document.getElementById('drawer-field-vehicle')?.value || 'overhead'
-    const costType = document.getElementById('drawer-field-cost_type')?.value || null
-    const vatStatus = document.getElementById('drawer-field-vat_status')?.value || 'standard'
-    const isOverhead = vehicleVal === 'overhead'
-    const stockId = isOverhead ? null : vehicleVal
-    const updates = {
-      stock_id: stockId,
-      is_overhead: isOverhead,
-      cost_type: costType,
-      vat_status: vatStatus
-    }
-    try {
-      const {error} = await sb.from('bank_transactions').update(updates).eq('id', sourceId)
-      if(error) throw error
-      toast('Transaction categorised')
-      activeTransactionDrawerEditing = false
-      await loadAll()
-      renderTransactionDrawer()
-    } catch(error){
-      toast('Error saving: ' + error.message, true)
-    }
-    return
+    return saveBankCategorisation()
   }
 
   if(source === 'income'){
@@ -9289,20 +9267,13 @@ function renderTransactionDrawer(){
   }
 
   const attachments = getTransactionDrawerAttachments(source, sourceId, record)
-  const fields = getTransactionDrawerFields(source, record)
-  const detailRows = fields.map(field => `
-    <div class="transaction-drawer-detail-row">
-      <div class="transaction-drawer-detail-label">${escapeHtml(field.label)}</div>
-      <div class="transaction-drawer-detail-value">${renderTransactionDrawerField(field)}</div>
-    </div>
-  `).join('')
 
   const uploadInputId = `transaction-drawer-upload-${escapeHtml(String(source))}-${escapeHtml(String(sourceId))}`.replace(/[^a-zA-Z0-9_-]/g, '-')
   const attachmentsHtml = `
     <div class="transaction-drawer-attachments">
       <div class="transaction-drawer-attachments-head">
         <input class="transaction-drawer-upload-input" type="file" id="${uploadInputId}" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx" onchange="handleTransactionDrawerAttachmentUpload('${escapeHtml(String(source))}', '${escapeHtml(String(sourceId))}', this)">
-        <button class="transaction-drawer-action primary" type="button" onclick="document.getElementById('${uploadInputId}')?.click()">Upload attachment</button>
+        <button class="transaction-drawer-action primary" type="button" onclick="document.getElementById('${uploadInputId}')?.click()">Upload ${source === 'bank' ? 'invoice' : 'attachment'}</button>
       </div>
       ${attachments.length
         ? attachments.map(item => `
@@ -9315,9 +9286,114 @@ function renderTransactionDrawer(){
           <button class="transaction-drawer-link" type="button" onclick="${item.action}">View</button>
         </div>
       `).join('')
-        : `<div class="transaction-drawer-empty">No attachments for this transaction.</div>`}
+        : `<div class="transaction-drawer-empty">No ${source === 'bank' ? 'invoice' : 'attachments'} for this transaction.</div>`}
     </div>
   `
+
+  // ── Bank transaction: custom categorisation panel ──
+  if(source === 'bank'){
+    const account = bankAccounts.find(b => b.id === record?.bank_account_id)
+    const allCars = [...ownedCars, ...sorCars]
+    // Init state from record on first open
+    if(!activeTransactionDrawerEditing){
+      bankCatMode = record?.stock_id ? 'vehicle' : 'overhead'
+      bankCatSelectedVehicleId = record?.stock_id || null
+    }
+    const selectedCar = bankCatSelectedVehicleId ? allCars.find(c => String(c.id) === String(bankCatSelectedVehicleId)) : null
+
+    const vehicleSearchHtml = bankCatMode === 'vehicle' ? (
+      selectedCar
+        ? `<div class="bank-cat-selected">
+            <div>
+              <div class="bank-cat-selected-info">${escapeHtml([selectedCar.make, selectedCar.model].filter(Boolean).join(' ') || 'Unnamed')}</div>
+              <div class="bank-cat-selected-sub">${escapeHtml(selectedCar.reg || '')}</div>
+            </div>
+            <button class="bank-cat-selected-clear" type="button" onclick="bankCatSelectedVehicleId=null;activeTransactionDrawerEditing=true;renderTransactionDrawer()">×</button>
+          </div>`
+        : `<div class="bank-cat-vehicle-search">
+            <input type="text" id="bank-cat-search" placeholder="Search by reg, make or model…" autocomplete="off" oninput="filterBankCatVehicles()" onfocus="filterBankCatVehicles()">
+            <div class="bank-cat-vehicle-results" id="bank-cat-results"></div>
+          </div>`
+    ) : ''
+
+    const costTypeOptions = [
+      ['','Select cost type'],
+      ['purchase','Purchase'],['parts','Parts'],['mechanics','Mechanics'],['bodywork','Bodywork'],['valeting','Valeting'],
+      ['mot','MOT'],['warranty','Warranty'],['tax','Tax'],['transport','Transport'],['fuel','Fuel'],
+      ['advertising','Advertising'],['rent','Rent'],['utilities','Utilities'],['insurance','Insurance'],['other','Other']
+    ]
+    const currentCostType = record?.cost_type || ''
+    const currentVatStatus = record?.vat_status || 'standard'
+
+    const bankInfoRows = [
+      ['Date', formatTransactionDrawerDate(source, record)],
+      ['Amount', `${record?.direction === 'in' ? '+' : '-'}${fmt(Math.abs(num(record?.amount)))}`],
+      ['Bank Account', account?.account_name || 'Unknown'],
+      ['Reference', record?.reference || '—'],
+      ['Description', record?.description || '—']
+    ].map(([label, value]) => `
+      <div class="transaction-drawer-detail-row">
+        <div class="transaction-drawer-detail-label">${escapeHtml(label)}</div>
+        <div class="transaction-drawer-detail-value">${escapeHtml(value)}</div>
+      </div>
+    `).join('')
+
+    body.innerHTML = `
+      <div class="transaction-drawer-hero">
+        <div class="transaction-drawer-avatar">${escapeHtml((row.title || '?').charAt(0).toUpperCase())}</div>
+        <div class="transaction-drawer-name">${escapeHtml(row.title)}</div>
+        <div class="transaction-drawer-amount">${escapeHtml(`${row.amount >= 0 ? '+' : '-'}${fmt(Math.abs(row.amount))}`)}</div>
+        <div class="transaction-drawer-subtitle">${escapeHtml(row.subtitle)}</div>
+      </div>
+      <div class="transaction-drawer-status">
+        <div class="transaction-drawer-status-main">${escapeHtml(formatTransactionDrawerDate(source, record))}</div>
+        ${getTransactionDrawerStatusMarkup(source, record)}
+      </div>
+      <div class="transaction-drawer-tabs">
+        <button class="transaction-drawer-tab ${activeTransactionDrawerTab === 'details' ? 'active' : ''}" type="button" onclick="setTransactionDrawerTab('details')">Categorise</button>
+        <button class="transaction-drawer-tab ${activeTransactionDrawerTab === 'info' ? 'active' : ''}" type="button" onclick="setTransactionDrawerTab('info')">Info</button>
+        <button class="transaction-drawer-tab ${activeTransactionDrawerTab === 'attachments' ? 'active' : ''}" type="button" onclick="setTransactionDrawerTab('attachments')">Invoice <span class="transaction-drawer-tab-count">${attachments.length}</span></button>
+      </div>
+      ${activeTransactionDrawerTab === 'details' ? `
+        <div class="bank-cat-toggle-row">
+          <button class="bank-cat-toggle ${bankCatMode === 'vehicle' ? 'active' : ''}" type="button" onclick="bankCatMode='vehicle';bankCatSelectedVehicleId=null;activeTransactionDrawerEditing=true;renderTransactionDrawer()">Vehicle</button>
+          <button class="bank-cat-toggle ${bankCatMode === 'overhead' ? 'active' : ''}" type="button" onclick="bankCatMode='overhead';bankCatSelectedVehicleId=null;activeTransactionDrawerEditing=true;renderTransactionDrawer()">Overhead</button>
+        </div>
+        ${vehicleSearchHtml}
+        <div class="bank-cat-field">
+          <label>Cost type</label>
+          <select id="bank-cat-cost-type">${costTypeOptions.map(([v,l]) => `<option value="${escapeHtml(v)}" ${v === currentCostType ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}</select>
+        </div>
+        <div class="bank-cat-field">
+          <label>VAT status</label>
+          <select id="bank-cat-vat-status">
+            <option value="standard" ${currentVatStatus === 'standard' ? 'selected' : ''}>Standard</option>
+            <option value="margin" ${currentVatStatus === 'margin' ? 'selected' : ''}>Margin</option>
+            <option value="no-vat" ${currentVatStatus === 'no-vat' ? 'selected' : ''}>No VAT</option>
+          </select>
+        </div>
+        <button class="bank-cat-save" type="button" onclick="saveBankCategorisation()">Save</button>
+      ` : activeTransactionDrawerTab === 'info' ? `
+        <div class="transaction-drawer-card">${bankInfoRows}</div>
+      ` : attachmentsHtml}
+    `
+
+    drawer.classList.add('open')
+    backdrop.classList.add('open')
+    if(activeTransactionDrawerTab === 'details' && bankCatMode === 'vehicle' && !selectedCar){
+      setTimeout(() => document.getElementById('bank-cat-search')?.focus(), 50)
+    }
+    return
+  }
+
+  // ── Non-bank transactions: standard fields ──
+  const fields = getTransactionDrawerFields(source, record)
+  const detailRows = fields.map(field => `
+    <div class="transaction-drawer-detail-row">
+      <div class="transaction-drawer-detail-label">${escapeHtml(field.label)}</div>
+      <div class="transaction-drawer-detail-value">${renderTransactionDrawerField(field)}</div>
+    </div>
+  `).join('')
 
   body.innerHTML = `
     <div class="transaction-drawer-hero">
@@ -9337,7 +9413,7 @@ function renderTransactionDrawer(){
     ${activeTransactionDrawerTab === 'details'
       ? `<div class="transaction-drawer-card">${detailRows}</div>
          <div class="transaction-drawer-actions">
-           ${activeTransactionDrawerEditing ? `<button class="transaction-drawer-action" type="button" onclick="activeTransactionDrawerEditing=false;renderTransactionDrawer()">Cancel</button><button class="transaction-drawer-action primary" type="button" onclick="saveTransactionDrawer()">Save</button>` : `<button class="transaction-drawer-action primary" type="button" onclick="activeTransactionDrawerEditing=true;renderTransactionDrawer()">${source === 'bank' ? 'Categorise' : 'Edit'}</button>`}
+           ${activeTransactionDrawerEditing ? `<button class="transaction-drawer-action" type="button" onclick="activeTransactionDrawerEditing=false;renderTransactionDrawer()">Cancel</button><button class="transaction-drawer-action primary" type="button" onclick="saveTransactionDrawer()">Save</button>` : `<button class="transaction-drawer-action primary" type="button" onclick="activeTransactionDrawerEditing=true;renderTransactionDrawer()">Edit</button>`}
          </div>`
       : attachmentsHtml}
   `
@@ -9346,10 +9422,84 @@ function renderTransactionDrawer(){
   backdrop.classList.add('open')
 }
 
+
+function filterBankCatVehicles(){
+  const input = document.getElementById('bank-cat-search')
+  const results = document.getElementById('bank-cat-results')
+  if(!input || !results) return
+  const query = input.value.toLowerCase().trim()
+  const allCars = [...ownedCars, ...sorCars]
+  const filtered = allCars.filter(c =>
+    !query ||
+    (c.reg || '').toLowerCase().includes(query) ||
+    (c.make || '').toLowerCase().includes(query) ||
+    (c.model || '').toLowerCase().includes(query) ||
+    (c.stock_number || '').toLowerCase().includes(query)
+  )
+  results.innerHTML = filtered.length
+    ? filtered.map(c => `
+      <div class="bank-cat-vehicle-option" onclick="selectBankCatVehicle('${c.id}')">
+        <div class="bank-cat-vehicle-option-title">${escapeHtml([c.make, c.model].filter(Boolean).join(' ') || 'Unnamed')}</div>
+        <div class="bank-cat-vehicle-option-sub">${escapeHtml(c.reg || 'No reg')}</div>
+      </div>
+    `).join('')
+    : '<div style="padding:12px;color:#7a7368;font-size:13px;text-align:center">No vehicles found</div>'
+  results.classList.add('open')
+}
+
+function selectBankCatVehicle(carId){
+  bankCatSelectedVehicleId = carId
+  activeTransactionDrawerEditing = true
+  const results = document.getElementById('bank-cat-results')
+  if(results) results.classList.remove('open')
+  renderTransactionDrawer()
+}
+
+document.addEventListener('click', e => {
+  if(!e.target.closest('.bank-cat-vehicle-search')){
+    const results = document.getElementById('bank-cat-results')
+    if(results) results.classList.remove('open')
+  }
+})
+
+async function saveBankCategorisation(){
+  if(!activeTransactionDrawer) return
+  const {source, sourceId} = activeTransactionDrawer
+  if(source !== 'bank') return
+  const costType = document.getElementById('bank-cat-cost-type')?.value || null
+  const vatStatus = document.getElementById('bank-cat-vat-status')?.value || 'standard'
+  const isOverhead = bankCatMode === 'overhead'
+  const stockId = isOverhead ? null : (bankCatSelectedVehicleId || null)
+
+  if(bankCatMode === 'vehicle' && !stockId){
+    toast('Please select a vehicle', true)
+    return
+  }
+
+  const updates = {
+    stock_id: stockId,
+    is_overhead: isOverhead,
+    cost_type: costType || null,
+    vat_status: vatStatus
+  }
+  try {
+    const {error} = await sb.from('bank_transactions').update(updates).eq('id', sourceId)
+    if(error) throw error
+    toast('Transaction categorised')
+    activeTransactionDrawerEditing = false
+    await loadAll()
+    renderTransactionDrawer()
+  } catch(error){
+    toast('Error saving: ' + error.message, true)
+  }
+}
+
 function openTransactionDrawer(source, sourceId){
   activeTransactionDrawer = {source, sourceId}
   activeTransactionDrawerTab = 'details'
   activeTransactionDrawerEditing = false
+  bankCatMode = 'overhead'
+  bankCatSelectedVehicleId = null
   document.body.classList.add('transaction-drawer-open')
   renderTransactionDrawer()
 }
