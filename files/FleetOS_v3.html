@@ -1640,6 +1640,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
                 <option value="income">Income</option>
                 <option value="expense">Expense</option>
                 <option value="credit">Credit Line</option>
+                <option value="bank">Bank Feed</option>
               </select>
             </div>
             <div class="expenses-controls-right">
@@ -3938,6 +3939,41 @@ async function manualSyncFinexerAccounts(button){
   } finally {
     button.disabled = false
     button.textContent = originalText
+  }
+}
+
+async function backfillBankTransactions(daysBack = 7){
+  if(!accountId){
+    toast('No account selected', true)
+    return
+  }
+  const { data: { session } } = await sb.auth.getSession()
+  if(!session?.access_token){
+    toast('Please sign in first', true)
+    return
+  }
+  const dateFrom = new Date()
+  dateFrom.setDate(dateFrom.getDate() - daysBack)
+  const dateFromStr = dateFrom.toISOString()
+  toast(`Backfilling bank transactions from last ${daysBack} days...`)
+  try {
+    const response = await fetch('https://hnypmigzwfavwcwarmnk.supabase.co/functions/v1/finexer-sync-accounts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ account_id: accountId, date_from: dateFromStr })
+    })
+    const data = await response.json()
+    if(!response.ok || data?.error){
+      throw new Error(data?.error || 'Backfill failed')
+    }
+    toast(`Backfill complete! Synced ${data?.synced_transactions || 0} transactions from the last ${daysBack} days.`)
+    await loadAll(true)
+  } catch(error){
+    console.error('Backfill error:', error)
+    toast(error.message || 'Backfill failed', true)
   }
 }
 
@@ -8565,7 +8601,32 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
     }
   })
 
-  return [...expenseEntries, ...incomeEntries].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+  const bankEntries = (bankTransactions || []).map(txn => {
+    const isIn = txn.direction === 'in'
+    const amount = isIn ? Math.abs(num(txn.amount)) : -Math.abs(num(txn.amount))
+    const account = bankAccounts.find(b => b.id === txn.bank_account_id)
+    return {
+      id: `bank-${txn.id}`,
+      source: 'bank',
+      sourceId: txn.id,
+      date: txn.transaction_date || '',
+      dateLabel: formatExpenseLongDate(txn.transaction_date),
+      title: txn.merchant_name || txn.description || 'Bank Transaction',
+      subtitle: txn.reference || (txn.status === 'pending' ? 'Pending' : 'Booked'),
+      amount,
+      amountDirection: isIn ? 'in' : 'out',
+      accountName: account?.account_name || 'Unknown',
+      accountMeta: 'Bank feed',
+      vehicleTitle: 'Unassigned',
+      vehicleSubtitle: txn.category || 'Uncategorized',
+      personName: '-',
+      hasInvoice: false,
+      type: 'bank',
+      detailType: 'bank_feed'
+    }
+  })
+
+  return [...expenseEntries, ...incomeEntries, ...bankEntries].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 }
 
 function populateExpenseFilterOptions(rows){
@@ -8689,6 +8750,9 @@ function renderUnifiedExpenseRows(rows){
 }
 
 function getTransactionDrawerRecord(source, sourceId){
+  if(source === 'bank'){
+    return bankTransactions.find(entry => String(entry.id) === String(sourceId)) || null
+  }
   if(source === 'income'){
     return income.find(entry => String(entry.id) === String(sourceId)) || null
   }
@@ -8700,6 +8764,10 @@ function getTransactionDrawerRow(source, sourceId){
 }
 
 function getTransactionDrawerStatus(source, record){
+  if(source === 'bank'){
+    const isPending = record?.status === 'pending'
+    return {label: isPending ? 'Pending' : 'Booked', className: isPending ? 'pending' : 'settled'}
+  }
   if(source === 'income'){
     return {label: 'Settled', className: 'settled'}
   }
@@ -8713,6 +8781,9 @@ function getTransactionDrawerStatusMarkup(source, record){
 }
 
 function formatTransactionDrawerDate(source, record){
+  if(source === 'bank'){
+    return record?.transaction_date ? `${formatExpenseLongDate(record.transaction_date)}` : '—'
+  }
   if(source === 'income'){
     return record?.date ? `${formatExpenseLongDate(record.date)}` : '—'
   }
@@ -8720,6 +8791,7 @@ function formatTransactionDrawerDate(source, record){
 }
 
 function getTransactionDrawerAttachments(source, sourceId, record){
+  if(source === 'bank') return []
   if(source === 'income'){
     return record?.receipt_url ? [{
       id: record.receipt_url,
@@ -8746,6 +8818,25 @@ function hasTransactionAttachment(source, sourceId, record){
 }
 
 function getTransactionDrawerFields(source, record){
+  if(source === 'bank'){
+    const account = bankAccounts.find(b => b.id === record?.bank_account_id)
+    return [
+      {key:'id', label:'Transaction ID', type:'text', value:record?.id || '', editable:false},
+      {key:'finexer_id', label:'Finexer ID', type:'text', value:record?.finexer_transaction_id || '', editable:false},
+      {key:'status', label:'Status', type:'text', value:record?.status === 'pending' ? 'Pending' : 'Booked', editable:false},
+      {key:'direction', label:'Direction', type:'text', value:record?.direction === 'in' ? 'Money In' : 'Money Out', editable:false},
+      {key:'date', label:'Date', type:'text', value:record?.transaction_date || '', editable:false},
+      {key:'account', label:'Bank Account', type:'text', value:account?.account_name || 'Unknown', editable:false},
+      {key:'sort_code', label:'Sort Code / Account', type:'text', value:`${account?.sort_code || ''} ${account?.account_number || ''}`.trim(), editable:false},
+      {key:'amount', label:'Amount', type:'text', value:fmt(Math.abs(num(record?.amount))), editable:false},
+      {key:'merchant', label:'Merchant', type:'text', value:record?.merchant_name || '—', editable:false},
+      {key:'description', label:'Description', type:'text', value:record?.description || '—', editable:false},
+      {key:'reference', label:'Reference', type:'text', value:record?.reference || '—', editable:false},
+      {key:'category', label:'Category', type:'text', value:record?.category || 'Uncategorized', editable:false},
+      {key:'running_balance', label:'Running Balance', type:'text', value:record?.running_balance != null ? fmt(record.running_balance) : '—', editable:false},
+      {key:'booked_at', label:'Booked At', type:'text', value:record?.booked_at ? new Date(record.booked_at).toLocaleString('en-GB') : '—', editable:false}
+    ]
+  }
   if(source === 'income'){
     return [
       {key:'id', label:'Transaction ID', type:'text', value:record?.id || '', editable:false},
@@ -8827,6 +8918,7 @@ function renderTransactionDrawerField(field){
 async function saveTransactionDrawer(){
   if(!activeTransactionDrawer) return
   const {source, sourceId} = activeTransactionDrawer
+  if(source === 'bank') return // bank feed transactions are read-only
   const record = getTransactionDrawerRecord(source, sourceId)
   if(!record) return
 
@@ -9139,7 +9231,7 @@ function renderTransactionDrawer(){
     ${activeTransactionDrawerTab === 'details'
       ? `<div class="transaction-drawer-card">${detailRows}</div>
          <div class="transaction-drawer-actions">
-           ${activeTransactionDrawerEditing ? `<button class="transaction-drawer-action" type="button" onclick="activeTransactionDrawerEditing=false;renderTransactionDrawer()">Cancel</button><button class="transaction-drawer-action primary" type="button" onclick="saveTransactionDrawer()">Save</button>` : `<button class="transaction-drawer-action primary" type="button" onclick="activeTransactionDrawerEditing=true;renderTransactionDrawer()">Edit</button>`}
+           ${source === 'bank' ? '' : (activeTransactionDrawerEditing ? `<button class="transaction-drawer-action" type="button" onclick="activeTransactionDrawerEditing=false;renderTransactionDrawer()">Cancel</button><button class="transaction-drawer-action primary" type="button" onclick="saveTransactionDrawer()">Save</button>` : `<button class="transaction-drawer-action primary" type="button" onclick="activeTransactionDrawerEditing=true;renderTransactionDrawer()">Edit</button>`)}
          </div>`
       : attachmentsHtml}
   `

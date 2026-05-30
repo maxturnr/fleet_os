@@ -54,7 +54,7 @@ serve(async (req) => {
       );
     }
 
-    const { account_id } = await req.json();
+    const { account_id, date_from } = await req.json();
 
     if (!account_id) {
       return new Response(
@@ -170,7 +170,12 @@ serve(async (req) => {
           // Step 2: Fetch ALL transactions — booked AND pending separately
           // Finexer only returns booked by default; pending needs explicit status=pending
           console.log(`Fetching transactions (booked + pending) for ${ba.id}...`);
-          const allTransactions = await finexer.listAllTransactionsBothStatuses(ba.id);
+          // If date_from was passed, use it as timestamp.gte filter
+          const txnParams: Record<string, string> = {};
+          if (date_from) {
+            txnParams['timestamp.gte'] = date_from;
+          }
+          const allTransactions = await finexer.listAllTransactionsBothStatuses(ba.id, txnParams);
           console.log(`Total transactions fetched for ${ba.id}: ${allTransactions.length}`);
 
           if (allTransactions.length === 0) continue;
