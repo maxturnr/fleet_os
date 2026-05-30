@@ -251,13 +251,25 @@ serve(async (req) => {
                 const booked = allDbTxns.filter(t => t.status === 'booked');
                 const idsToDelete: string[] = [];
 
+                // Fuzzy match: pending merchant names are often truncated by the bank
+                const fuzzyMatch = (a: string | null, b: string | null): boolean => {
+                  if (!a || !b) return false;
+                  const la = a.toLowerCase().trim(), lb = b.toLowerCase().trim();
+                  if (la === lb) return true;
+                  const shorter = la.length <= lb.length ? la : lb;
+                  const longer = la.length > lb.length ? la : lb;
+                  return shorter.length >= 6 && longer.startsWith(shorter);
+                };
+
                 for (const p of pending) {
-                  // Match: same amount + (same description OR same merchant_name)
+                  // Match: same amount + fuzzy merchant/description (cross-check both fields)
                   const match = booked.find(b =>
                     Number(b.amount) === Number(p.amount) &&
                     (
-                      (b.description && p.description && b.description === p.description) ||
-                      (b.merchant_name && p.merchant_name && b.merchant_name === p.merchant_name)
+                      fuzzyMatch(b.description, p.description) ||
+                      fuzzyMatch(b.merchant_name, p.merchant_name) ||
+                      fuzzyMatch(b.description, p.merchant_name) ||
+                      fuzzyMatch(b.merchant_name, p.description)
                     )
                   );
                   if (match) {

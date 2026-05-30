@@ -8602,16 +8602,27 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
   })
 
   // Deduplicate: if a booked transaction exists, remove the pending twin
+  // Uses fuzzy merchant match — pending names are often truncated by the bank
+  function bankTxnFuzzyMatch(a, b){
+    if(!a || !b) return false
+    const la = a.toLowerCase().trim(), lb = b.toLowerCase().trim()
+    if(la === lb) return true
+    const shorter = la.length <= lb.length ? la : lb
+    const longer = la.length > lb.length ? la : lb
+    return shorter.length >= 6 && longer.startsWith(shorter)
+  }
   const dedupedBankTxns = (bankTransactions || []).filter(txn => {
     if(txn.status !== 'pending') return true
-    // Check if there's a booked version with same amount + same description/merchant
+    // Check if there's a booked version with same amount + fuzzy merchant/description
     return !(bankTransactions || []).some(other =>
       other.status === 'booked' &&
       other.bank_account_id === txn.bank_account_id &&
       Number(other.amount) === Number(txn.amount) &&
       (
-        (other.description && txn.description && other.description === txn.description) ||
-        (other.merchant_name && txn.merchant_name && other.merchant_name === txn.merchant_name)
+        bankTxnFuzzyMatch(other.description, txn.description) ||
+        bankTxnFuzzyMatch(other.merchant_name, txn.merchant_name) ||
+        bankTxnFuzzyMatch(other.description, txn.merchant_name) ||
+        bankTxnFuzzyMatch(other.merchant_name, txn.description)
       )
     )
   })
@@ -10693,7 +10704,15 @@ function renderBankTransactions(){
     bankAccounts.map(b => `<option value="${b.id}">${b.account_name}</option>`).join('')
   accountSelect.value = currentValue
   
-  // Deduplicate: hide pending when a booked twin exists (same amount + description/merchant)
+  // Deduplicate: hide pending when a booked twin exists (same amount + fuzzy merchant/description)
+  function bankTxnFuzzyMatchMov(a, b){
+    if(!a || !b) return false
+    const la = a.toLowerCase().trim(), lb = b.toLowerCase().trim()
+    if(la === lb) return true
+    const shorter = la.length <= lb.length ? la : lb
+    const longer = la.length > lb.length ? la : lb
+    return shorter.length >= 6 && longer.startsWith(shorter)
+  }
   const dedupedBankTxns = bankTransactions.filter(txn => {
     if(txn.status !== 'pending') return true
     return !bankTransactions.some(other =>
@@ -10701,8 +10720,10 @@ function renderBankTransactions(){
       other.bank_account_id === txn.bank_account_id &&
       Number(other.amount) === Number(txn.amount) &&
       (
-        (other.description && txn.description && other.description === txn.description) ||
-        (other.merchant_name && txn.merchant_name && other.merchant_name === txn.merchant_name)
+        bankTxnFuzzyMatchMov(other.description, txn.description) ||
+        bankTxnFuzzyMatchMov(other.merchant_name, txn.merchant_name) ||
+        bankTxnFuzzyMatchMov(other.description, txn.merchant_name) ||
+        bankTxnFuzzyMatchMov(other.merchant_name, txn.description)
       )
     )
   })
