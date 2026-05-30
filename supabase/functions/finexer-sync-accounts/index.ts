@@ -227,6 +227,71 @@ serve(async (req) => {
           syncedTransactions += allTransactions.length;
           console.log(`Synced ${allTransactions.length} transactions for ${ba.id}`);
 
+          // ── Step 3b: Clean up pending→booked duplicates ──────────────
+          // Finexer gives different IDs for pending vs booked versions of
+          // the same transaction. When a booked version exists, delete the
+          // stale pending row. Match on: bank_account_id + amount + description.
+          try {
+            const { data: deletedPending, error: cleanupError } = await supabaseClient
+              .rpc('cleanup_pending_bank_duplicates', {
+                p_bank_account_id: bankAccountId,
+              });
+            if (cleanupError) {
+              // If RPC doesn't exist yet, fall back to manual query
+              console.log('RPC cleanup not available, running inline cleanup...');
+              // Get all pending + booked transactions for this bank account
+              const { data: allDbTxns } = await supabaseClient
+                .from('bank_transactions')
+                .select('id, status, amount, description, merchant_name, transaction_date')
+                .eq('bank_account_id', bankAccountId)
+                .in('status', ['pending', 'booked']);
+
+              if (allDbTxns && allDbTxns.length > 0) {
+                const pending = allDbTxns.filter(t => t.status === 'pending');
+                const booked = allDbTxns.filter(t => t.status === 'booked');
+                const idsToDelete: string[] = [];
+
+                for (const p of pending) {
+                  // Match: same amount + (same description OR same merchant_name)
+                  const match = booked.find(b =>
+                    Number(b.amount) === Number(p.amount) &&
+                    (
+                      (b.description && p.description && b.description === p.description) ||
+                      (b.merchant_name && p.merchant_name && b.merchant_name === p.merchant_name)
+                    )
+                  );
+                  if (match) {
+                    idsToDelete.push(p.id);
+                  }
+                }
+
+                if (idsToDelete.length > 0) {
+                  // Delete matching reconciliation records first
+                  await supabaseClient
+                    .from('reconciliations')
+                    .delete()
+                    .in('bank_transaction_id', idsToDelete);
+
+                  const { error: deleteError } = await supabaseClient
+                    .from('bank_transactions')
+                    .delete()
+                    .in('id', idsToDelete);
+
+                  if (deleteError) {
+                    console.error('Error deleting pending duplicates:', deleteError);
+                  } else {
+                    console.log(`Cleaned up ${idsToDelete.length} pending duplicates for ${ba.id}`);
+                    syncedTransactions -= idsToDelete.length;
+                  }
+                }
+              }
+            } else {
+              console.log(`RPC cleanup result for ${ba.id}:`, deletedPending);
+            }
+          } catch (cleanupErr: any) {
+            console.error('Cleanup error (non-fatal):', cleanupErr.message);
+          }
+
           // Step 4: Create reconciliation records for NEW transactions
           // (upsert won't tell us which were new vs updated, so we check)
           if (newTransactionIds.length > 0) {

@@ -8601,7 +8601,22 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
     }
   })
 
-  const bankEntries = (bankTransactions || []).map(txn => {
+  // Deduplicate: if a booked transaction exists, remove the pending twin
+  const dedupedBankTxns = (bankTransactions || []).filter(txn => {
+    if(txn.status !== 'pending') return true
+    // Check if there's a booked version with same amount + same description/merchant
+    return !(bankTransactions || []).some(other =>
+      other.status === 'booked' &&
+      other.bank_account_id === txn.bank_account_id &&
+      Number(other.amount) === Number(txn.amount) &&
+      (
+        (other.description && txn.description && other.description === txn.description) ||
+        (other.merchant_name && txn.merchant_name && other.merchant_name === txn.merchant_name)
+      )
+    )
+  })
+
+  const bankEntries = dedupedBankTxns.map(txn => {
     const isIn = txn.direction === 'in'
     const amount = isIn ? Math.abs(num(txn.amount)) : -Math.abs(num(txn.amount))
     const account = bankAccounts.find(b => b.id === txn.bank_account_id)
@@ -10678,8 +10693,22 @@ function renderBankTransactions(){
     bankAccounts.map(b => `<option value="${b.id}">${b.account_name}</option>`).join('')
   accountSelect.value = currentValue
   
+  // Deduplicate: hide pending when a booked twin exists (same amount + description/merchant)
+  const dedupedBankTxns = bankTransactions.filter(txn => {
+    if(txn.status !== 'pending') return true
+    return !bankTransactions.some(other =>
+      other.status === 'booked' &&
+      other.bank_account_id === txn.bank_account_id &&
+      Number(other.amount) === Number(txn.amount) &&
+      (
+        (other.description && txn.description && other.description === txn.description) ||
+        (other.merchant_name && txn.merchant_name && other.merchant_name === txn.merchant_name)
+      )
+    )
+  })
+
   // Filter transactions
-  let filtered = bankTransactions.filter(t => {
+  let filtered = dedupedBankTxns.filter(t => {
     if(accountFilter && t.bank_account_id !== Number(accountFilter)) return false
     if(statusFilter && t.status !== statusFilter) return false
     if(directionFilter && t.direction !== directionFilter) return false
