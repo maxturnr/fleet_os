@@ -8562,6 +8562,7 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
       source: 'expense',
       sourceId: expense.id,
       date: expense?.date || '',
+      timestamp: expense?.created_at || expense?.date || '',
       dateLabel,
       title: stripHtml(expense?.supplier || (isRefundRecord(expense) ? 'Refund' : 'Unassigned supplier')),
       subtitle: getExpenseUnifiedSubtitle(expense),
@@ -8585,6 +8586,7 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
       source: 'income',
       sourceId: entry.id,
       date: entry?.date || '',
+      timestamp: entry?.created_at || entry?.date || '',
       dateLabel: formatExpenseLongDate(entry?.date),
       title: getIncomeUnifiedTitle(entry),
       subtitle: getIncomeUnifiedSubtitle(entry),
@@ -8636,6 +8638,7 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
       source: 'bank',
       sourceId: txn.id,
       date: txn.transaction_date || '',
+      timestamp: txn.booked_at || txn.created_at || txn.transaction_date || '',
       dateLabel: formatExpenseLongDate(txn.transaction_date),
       title: txn.merchant_name || txn.description || 'Bank Transaction',
       subtitle: txn.reference || (txn.status === 'pending' ? 'Pending' : 'Booked'),
@@ -8652,7 +8655,7 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
     }
   })
 
-  return [...expenseEntries, ...incomeEntries, ...bankEntries].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+  return [...expenseEntries, ...incomeEntries, ...bankEntries].sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.timestamp || '').localeCompare(a.timestamp || ''))
 }
 
 function populateExpenseFilterOptions(rows){
@@ -8699,15 +8702,16 @@ function resetExpenseFilters(){
 function sortExpenseRows(rows, sortBy){
   const sorted = [...rows]
   if(sortBy === 'oldest'){
-    return sorted.sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+    return sorted.sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.timestamp || '').localeCompare(b.timestamp || ''))
   }
   if(sortBy === 'amount_desc'){
-    return sorted.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount) || (b.date || '').localeCompare(a.date || ''))
+    return sorted.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount) || (b.date || '').localeCompare(a.date || '') || (b.timestamp || '').localeCompare(a.timestamp || ''))
   }
   if(sortBy === 'amount_asc'){
-    return sorted.sort((a, b) => Math.abs(a.amount) - Math.abs(b.amount) || (b.date || '').localeCompare(a.date || ''))
+    return sorted.sort((a, b) => Math.abs(a.amount) - Math.abs(b.amount) || (b.date || '').localeCompare(a.date || '') || (b.timestamp || '').localeCompare(a.timestamp || ''))
   }
-  return sorted.sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+  // Default: recent first — sort by date desc, then by timestamp desc within each day
+  return sorted.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.timestamp || '').localeCompare(a.timestamp || ''))
 }
 
 function getDateOrdinalSuffix(day){
@@ -10738,12 +10742,14 @@ function renderBankTransactions(){
     return true
   })
   
-  // Sort transactions
+  // Sort transactions — use booked_at/created_at as tiebreaker within same date
   filtered.sort((a, b) => {
-    if(sortBy === 'recent') return new Date(b.transaction_date) - new Date(a.transaction_date)
-    if(sortBy === 'oldest') return new Date(a.transaction_date) - new Date(b.transaction_date)
-    if(sortBy === 'amount_desc') return Number(b.amount) - Number(a.amount)
-    if(sortBy === 'amount_asc') return Number(a.amount) - Number(b.amount)
+    const aTs = a.booked_at || a.created_at || a.transaction_date || ''
+    const bTs = b.booked_at || b.created_at || b.transaction_date || ''
+    if(sortBy === 'recent') return (b.transaction_date || '').localeCompare(a.transaction_date || '') || bTs.localeCompare(aTs)
+    if(sortBy === 'oldest') return (a.transaction_date || '').localeCompare(b.transaction_date || '') || aTs.localeCompare(bTs)
+    if(sortBy === 'amount_desc') return Number(b.amount) - Number(a.amount) || bTs.localeCompare(aTs)
+    if(sortBy === 'amount_asc') return Number(a.amount) - Number(b.amount) || bTs.localeCompare(aTs)
     return 0
   })
   
