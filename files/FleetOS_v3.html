@@ -8250,7 +8250,7 @@ let expenseVisibleRows = []
 let activeTransactionDrawer = null
 let activeTransactionDrawerTab = 'details'
 let activeTransactionDrawerEditing = false
-let bankCatMode = 'overhead' // 'vehicle' or 'overhead'
+let bankCatMode = 'vehicle' // 'vehicle' or 'overhead'
 let bankCatSelectedVehicleId = null
 
 function isRefundRecord(entry){
@@ -9501,7 +9501,7 @@ async function saveBankCategorisation(){
   const costType = document.getElementById('bank-cat-cost-type')?.value || null
   const vatStatus = document.getElementById('bank-cat-vat-status')?.value || 'standard'
   const isOverhead = bankCatMode === 'overhead'
-  const stockId = isOverhead ? null : (bankCatSelectedVehicleId || null)
+  const stockId = isOverhead ? null : (bankCatSelectedVehicleId ? Number(bankCatSelectedVehicleId) : null)
 
   if(bankCatMode === 'vehicle' && !stockId){
     toast('Please select a vehicle', true)
@@ -9530,7 +9530,7 @@ function openTransactionDrawer(source, sourceId){
   activeTransactionDrawer = {source, sourceId}
   activeTransactionDrawerTab = 'details'
   activeTransactionDrawerEditing = false
-  bankCatMode = 'overhead'
+  bankCatMode = 'vehicle'
   bankCatSelectedVehicleId = null
   document.body.classList.add('transaction-drawer-open')
   renderTransactionDrawer()
