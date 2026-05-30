@@ -8589,6 +8589,25 @@ function getIncomeUnifiedSubtitle(entry){
   return formatIncomeType(entry?.type)
 }
 
+function parseBankPartyName(description){
+  if(!description) return ''
+  const tokens = description.trim().split(/\s+/)
+  const nameTokens = []
+  for(const t of tokens){
+    // Stop at: long numbers (8+ digits), UK reg plates, alphanumeric codes (mix of letters+digits 5+ chars), dates like 30MAY26
+    if(/^\d{8,}$/.test(t)) break
+    if(/^[A-Z]{2}\d{2}[A-Z]{3}$/i.test(t)) break  // AB12CDE
+    if(/^[A-Z]{1,3}\d{1,4}[A-Z]{0,3}$/i.test(t) && t.length >= 4 && /\d/.test(t) && /[A-Z]/i.test(t)) break  // FGZ1880, EK1600C, YH10
+    if(/^[A-Z0-9]{10,}$/i.test(t) && /\d/.test(t)) break  // RP4659988567403800, PB50FNSAFQUYUTPJ7V
+    if(/^\d{2}[A-Z]{3}\d{2}$/i.test(t)) break  // 30MAY26
+    if(/^\d{2}:\d{2}$/.test(t)) break  // 10:25
+    if(/^\d{4,}$/.test(t)) break  // 207481, 040075
+    nameTokens.push(t)
+  }
+  if(!nameTokens.length) return description.split(/\s+/)[0] || description
+  return nameTokens.map(w => w.length <= 2 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+}
+
 function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
   const expenseEntries = expenseRows.map(expense => {
     const amount = getExpenseUnifiedAmount(expense)
@@ -8679,7 +8698,7 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
       date: txn.transaction_date || '',
       timestamp: txn.booked_at || txn.created_at || txn.transaction_date || '',
       dateLabel: formatExpenseLongDate(txn.transaction_date),
-      title: txn.merchant_name || txn.description || 'Bank Transaction',
+      title: txn.counterparty_name || txn.merchant_name || parseBankPartyName(txn.description) || 'Bank Transaction',
       subtitle: txn.reference || (txn.status === 'pending' ? 'Pending' : 'Booked'),
       amount,
       amountDirection: isIn ? 'in' : 'out',
