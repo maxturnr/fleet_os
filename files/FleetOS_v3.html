@@ -8646,10 +8646,24 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
       amountDirection: isIn ? 'in' : 'out',
       accountName: account?.account_name || 'Unknown',
       accountMeta: 'Bank feed',
-      vehicleTitle: reconciliations.some(r => r.bank_transaction_id === txn.id && r.status === 'matched') ? 'Reconciled' : 'Requires Reconciliation',
-      vehicleSubtitle: '',
+      vehicleTitle: (() => {
+        if(txn.stock_id){
+          const car = [...ownedCars, ...sorCars].find(c => String(c.id) === String(txn.stock_id))
+          return car ? [car.make, car.model].filter(Boolean).join(' ') || 'Unnamed vehicle' : 'Unknown vehicle'
+        }
+        if(txn.is_overhead) return 'Overhead'
+        if(reconciliations.some(r => r.bank_transaction_id === txn.id && r.status === 'matched')) return 'Reconciled'
+        return 'Requires Reconciliation'
+      })(),
+      vehicleSubtitle: (() => {
+        if(txn.stock_id){
+          const car = [...ownedCars, ...sorCars].find(c => String(c.id) === String(txn.stock_id))
+          return car?.reg || ''
+        }
+        return ''
+      })(),
       personName: '-',
-      hasInvoice: false,
+      hasInvoice: Boolean(txn.invoice_url),
       type: 'bank',
       detailType: 'bank_feed'
     }
@@ -8821,7 +8835,18 @@ function formatTransactionDrawerDate(source, record){
 }
 
 function getTransactionDrawerAttachments(source, sourceId, record){
-  if(source === 'bank') return []
+  if(source === 'bank'){
+    if(record?.invoice_url){
+      return [{
+        id: record.invoice_url,
+        deleteType: 'bank_invoice',
+        label: 'Invoice',
+        meta: 'Uploaded invoice',
+        action: `viewBankInvoice('${String(record.invoice_url).replace(/'/g, "\\\\'")}')`
+      }]
+    }
+    return []
+  }
   if(source === 'income'){
     return record?.receipt_url ? [{
       id: record.receipt_url,
@@ -8843,6 +8868,7 @@ function getTransactionDrawerAttachments(source, sourceId, record){
 }
 
 function hasTransactionAttachment(source, sourceId, record){
+  if(source === 'bank') return Boolean(record?.invoice_url)
   if(source === 'income') return Boolean(record?.receipt_url)
   return expenseDocuments.some(doc => String(doc.transaction_id) === String(sourceId))
 }
@@ -8850,21 +8876,31 @@ function hasTransactionAttachment(source, sourceId, record){
 function getTransactionDrawerFields(source, record){
   if(source === 'bank'){
     const account = bankAccounts.find(b => b.id === record?.bank_account_id)
+    const allCars = [...ownedCars, ...sorCars]
+    const vehicleOptions = [
+      ['overhead', 'Overhead'],
+      ...allCars.map(c => [String(c.id), [c.make, c.model].filter(Boolean).join(' ') + (c.reg ? ` (${c.reg})` : '')])
+    ]
+    const currentVehicle = record?.stock_id ? String(record.stock_id) : 'overhead'
     return [
-      {key:'id', label:'Transaction ID', type:'text', value:record?.id || '', editable:false},
-      {key:'finexer_id', label:'Finexer ID', type:'text', value:record?.finexer_transaction_id || '', editable:false},
+      {key:'vehicle', label:'For', type:'select', value:currentVehicle, editable:true, options:vehicleOptions},
+      {key:'cost_type', label:'Cost type', type:'select', value:record?.cost_type || '', editable:true, options:[
+        ['','Select cost type'],
+        ['purchase','Purchase'],['parts','Parts'],['mechanics','Mechanics'],['bodywork','Bodywork'],['valeting','Valeting'],
+        ['mot','MOT'],['warranty','Warranty'],['tax','Tax'],['transport','Transport'],['fuel','Fuel'],
+        ['advertising','Advertising'],['rent','Rent'],['utilities','Utilities'],['insurance','Insurance'],['other','Other']
+      ]},
+      {key:'vat_status', label:'VAT status', type:'select', value:record?.vat_status || 'standard', editable:true, options:[
+        ['standard','Standard'],['margin','Margin'],['no-vat','No VAT']
+      ]},
       {key:'status', label:'Status', type:'text', value:record?.status === 'pending' ? 'Pending' : 'Booked', editable:false},
-      {key:'direction', label:'Direction', type:'text', value:record?.direction === 'in' ? 'Money In' : 'Money Out', editable:false},
       {key:'date', label:'Date', type:'text', value:record?.transaction_date || '', editable:false},
       {key:'account', label:'Bank Account', type:'text', value:account?.account_name || 'Unknown', editable:false},
-      {key:'sort_code', label:'Sort Code / Account', type:'text', value:`${account?.sort_code || ''} ${account?.account_number || ''}`.trim(), editable:false},
       {key:'amount', label:'Amount', type:'text', value:fmt(Math.abs(num(record?.amount))), editable:false},
       {key:'merchant', label:'Merchant', type:'text', value:record?.merchant_name || '—', editable:false},
       {key:'description', label:'Description', type:'text', value:record?.description || '—', editable:false},
       {key:'reference', label:'Reference', type:'text', value:record?.reference || '—', editable:false},
-      {key:'category', label:'Category', type:'text', value:record?.category || 'Uncategorized', editable:false},
-      {key:'running_balance', label:'Running Balance', type:'text', value:record?.running_balance != null ? fmt(record.running_balance) : '—', editable:false},
-      {key:'booked_at', label:'Booked At', type:'text', value:record?.booked_at ? new Date(record.booked_at).toLocaleString('en-GB') : '—', editable:false}
+      {key:'running_balance', label:'Running Balance', type:'text', value:record?.running_balance != null ? fmt(record.running_balance) : '—', editable:false}
     ]
   }
   if(source === 'income'){
@@ -8948,9 +8984,33 @@ function renderTransactionDrawerField(field){
 async function saveTransactionDrawer(){
   if(!activeTransactionDrawer) return
   const {source, sourceId} = activeTransactionDrawer
-  if(source === 'bank') return // bank feed transactions are read-only
   const record = getTransactionDrawerRecord(source, sourceId)
   if(!record) return
+
+  if(source === 'bank'){
+    const vehicleVal = document.getElementById('drawer-field-vehicle')?.value || 'overhead'
+    const costType = document.getElementById('drawer-field-cost_type')?.value || null
+    const vatStatus = document.getElementById('drawer-field-vat_status')?.value || 'standard'
+    const isOverhead = vehicleVal === 'overhead'
+    const stockId = isOverhead ? null : vehicleVal
+    const updates = {
+      stock_id: stockId,
+      is_overhead: isOverhead,
+      cost_type: costType,
+      vat_status: vatStatus
+    }
+    try {
+      const {error} = await sb.from('bank_transactions').update(updates).eq('id', sourceId)
+      if(error) throw error
+      toast('Transaction categorised')
+      activeTransactionDrawerEditing = false
+      await loadAll()
+      renderTransactionDrawer()
+    } catch(error){
+      toast('Error saving: ' + error.message, true)
+    }
+    return
+  }
 
   if(source === 'income'){
     const updates = {
@@ -9056,7 +9116,16 @@ async function handleTransactionDrawerAttachmentUpload(source, sourceId, input){
   if(!file) return
   loading(true, 'Uploading...')
   try{
-    if(source === 'income'){
+    if(source === 'bank'){
+      const fileName = `${Date.now()}-${file.name}`
+      const filePath = `${accountId}/bank-invoices/${fileName}`
+      const {error: uploadError} = await sb.storage.from('transaction-documents').upload(filePath, file)
+      if(uploadError) throw uploadError
+      const {data: urlData} = sb.storage.from('transaction-documents').getPublicUrl(filePath)
+      const invoiceUrl = urlData?.publicUrl || filePath
+      const {error} = await sb.from('bank_transactions').update({invoice_url: invoiceUrl}).eq('id', sourceId)
+      if(error) throw error
+    } else if(source === 'income'){
       const receiptUrl = await uploadIncomeInvoice(file)
       const {error} = await sb.from('income').update({receipt_url: receiptUrl}).eq('id', sourceId)
       if(error) throw error
@@ -9103,7 +9172,14 @@ async function handleTransactionDrawerAttachmentDelete(source, sourceId, deleteT
   loading(true, 'Deleting...')
   try{
     closeModal('receipt-viewer')
-    if(deleteType === 'income'){
+    if(deleteType === 'bank_invoice'){
+      const filePath = getTransactionDrawerStoragePathFromUrl(attachmentId)
+      if(filePath){
+        await sb.storage.from('transaction-documents').remove([filePath])
+      }
+      const {error} = await sb.from('bank_transactions').update({invoice_url: null}).eq('id', sourceId)
+      if(error) throw error
+    } else if(deleteType === 'income'){
       const filePath = getTransactionDrawerStoragePathFromUrl(attachmentId)
       if(filePath){
         await sb.storage.from('transaction-documents').remove([filePath])
@@ -9261,7 +9337,7 @@ function renderTransactionDrawer(){
     ${activeTransactionDrawerTab === 'details'
       ? `<div class="transaction-drawer-card">${detailRows}</div>
          <div class="transaction-drawer-actions">
-           ${source === 'bank' ? '' : (activeTransactionDrawerEditing ? `<button class="transaction-drawer-action" type="button" onclick="activeTransactionDrawerEditing=false;renderTransactionDrawer()">Cancel</button><button class="transaction-drawer-action primary" type="button" onclick="saveTransactionDrawer()">Save</button>` : `<button class="transaction-drawer-action primary" type="button" onclick="activeTransactionDrawerEditing=true;renderTransactionDrawer()">Edit</button>`)}
+           ${activeTransactionDrawerEditing ? `<button class="transaction-drawer-action" type="button" onclick="activeTransactionDrawerEditing=false;renderTransactionDrawer()">Cancel</button><button class="transaction-drawer-action primary" type="button" onclick="saveTransactionDrawer()">Save</button>` : `<button class="transaction-drawer-action primary" type="button" onclick="activeTransactionDrawerEditing=true;renderTransactionDrawer()">${source === 'bank' ? 'Categorise' : 'Edit'}</button>`}
          </div>`
       : attachmentsHtml}
   `
@@ -10561,6 +10637,10 @@ async function uploadIncomeInvoice(file){
 }
 
 function viewIncomeInvoice(url){
+  viewExpenseReceipt(url)
+}
+
+function viewBankInvoice(url){
   viewExpenseReceipt(url)
 }
 
