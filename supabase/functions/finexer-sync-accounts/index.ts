@@ -214,7 +214,7 @@ serve(async (req) => {
             // Upsert — duplicates matched on (provider, provider_transaction_id)
             const { data: upsertedTxns, error: txnError } = await supabaseClient
               .from('bank_transactions')
-              .upsert(rows, { onConflict: 'provider,provider_transaction_id' })
+              .upsert(rows, { onConflict: 'finexer_transaction_id' })
               .select('id');
 
             if (txnError) {

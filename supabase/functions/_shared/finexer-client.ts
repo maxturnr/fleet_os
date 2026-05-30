@@ -35,7 +35,8 @@ export class FinexerClient {
    */
   async request<T = any>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    _retryCount = 0
   ): Promise<T> {
     const url = endpoint.startsWith('http')
       ? endpoint
@@ -60,6 +61,14 @@ export class FinexerClient {
     let payload: any;
     try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
 
+    // Auto-retry on rate limit (429) — back off and retry up to 3 times
+    if (response.status === 429 && _retryCount < 3) {
+      const waitMs = 1500 * (_retryCount + 1);
+      console.log(`Rate limited, retrying in ${waitMs}ms (attempt ${_retryCount + 1}/3)...`);
+      await new Promise(r => setTimeout(r, waitMs));
+      return this.request<T>(endpoint, options, _retryCount + 1);
+    }
+
     if (!response.ok) {
       const msg = payload?.error?.message || payload?.error || text || `Finexer ${response.status}`;
       throw new Error(`Finexer API Error (${response.status}): ${msg}`);
@@ -77,12 +86,21 @@ export class FinexerClient {
   async getAll<T = any>(path: string): Promise<T[]> {
     const allItems: T[] = [];
     let nextPath: string | null = path;
+    let pageCount = 0;
 
     while (nextPath) {
       const res = await this.request<any>(nextPath);
       const items = res?.data || [];
       allItems.push(...items);
       nextPath = res?.paging?.next || null;
+      pageCount++;
+
+      // Throttle: stay under 12 req/sec limit
+      if (nextPath && pageCount % 5 === 0) {
+        await new Promise(r => setTimeout(r, 1000));
+      } else if (nextPath) {
+        await new Promise(r => setTimeout(r, 150));
+      }
 
       // Safety limit
       if (allItems.length > 50_000) break;
