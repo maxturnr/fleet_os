@@ -482,6 +482,18 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 .bank-cat-save{width:100%;height:44px;border-radius:12px;border:none;background:#14130f;color:#fff;font-family:'Inter Tight',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px;}
 .bank-cat-save:hover{opacity:.9;}
 .bank-cat-save:disabled{opacity:.5;cursor:not-allowed;}
+.bank-cat-invoice{margin-bottom:14px;}
+.bank-cat-invoice label{display:block;font-size:12px;color:#7a7368;margin-bottom:6px;font-weight:500;letter-spacing:0.02em;}
+.bank-cat-invoice-attached{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid rgba(20,19,15,0.1);border-radius:12px;background:#f7f4ef;}
+.bank-cat-invoice-attached-name{font-size:14px;color:#2f2b28;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
+.bank-cat-invoice-btns{display:flex;gap:6px;}
+.bank-cat-invoice-btn{border:none;background:none;font-size:13px;font-weight:500;cursor:pointer;padding:4px 8px;border-radius:8px;}
+.bank-cat-invoice-btn.view{color:#2563eb;}
+.bank-cat-invoice-btn.view:hover{background:rgba(37,99,235,0.08);}
+.bank-cat-invoice-btn.remove{color:#dc2626;}
+.bank-cat-invoice-btn.remove:hover{background:rgba(220,38,38,0.08);}
+.bank-cat-invoice-upload{display:flex;align-items:center;justify-content:center;height:42px;border:1.5px dashed rgba(20,19,15,0.15);border-radius:12px;background:#fff;cursor:pointer;font-family:'Inter Tight',sans-serif;font-size:14px;color:#7a7368;font-weight:500;transition:all .15s ease;}
+.bank-cat-invoice-upload:hover{border-color:#14130f;color:#14130f;background:#f7f4ef;}
 
 /* KPI */
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
@@ -9325,6 +9337,25 @@ function renderTransactionDrawer(){
     const currentCostType = record?.cost_type || ''
     const currentVatStatus = record?.vat_status || 'standard'
 
+    const bankCatUploadId = `bank-cat-invoice-upload-${escapeHtml(String(sourceId))}`.replace(/[^a-zA-Z0-9_-]/g, '-')
+    const hasInvoice = Boolean(record?.invoice_url)
+    const invoiceFilename = hasInvoice ? (record.invoice_url.split('/').pop() || 'Invoice') : ''
+    const invoiceHtml = `
+      <div class="bank-cat-invoice">
+        <label>Invoice</label>
+        ${hasInvoice
+          ? `<div class="bank-cat-invoice-attached">
+              <div class="bank-cat-invoice-attached-name" title="${escapeHtml(invoiceFilename)}">${escapeHtml(invoiceFilename)}</div>
+              <div class="bank-cat-invoice-btns">
+                <button class="bank-cat-invoice-btn view" type="button" onclick="viewBankInvoice('${escapeHtml(String(record.invoice_url).replace(/'/g, "\\\\'"))}')">View</button>
+                <button class="bank-cat-invoice-btn remove" type="button" onclick="handleTransactionDrawerAttachmentDelete('bank', '${escapeHtml(String(sourceId))}', 'bank_invoice', '${escapeHtml(String(record.invoice_url))}')">Remove</button>
+              </div>
+            </div>`
+          : `<input class="transaction-drawer-upload-input" type="file" id="${bankCatUploadId}" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx" onchange="handleTransactionDrawerAttachmentUpload('bank', '${escapeHtml(String(sourceId))}', this)" style="display:none">
+            <div class="bank-cat-invoice-upload" onclick="document.getElementById('${bankCatUploadId}')?.click()">+ Attach invoice</div>`}
+      </div>
+    `
+
     const bankInfoRows = [
       ['Date', formatTransactionDrawerDate(source, record)],
       ['Amount', `${record?.direction === 'in' ? '+' : '-'}${fmt(Math.abs(num(record?.amount)))}`],
@@ -9372,6 +9403,7 @@ function renderTransactionDrawer(){
             <option value="no-vat" ${currentVatStatus === 'no-vat' ? 'selected' : ''}>No VAT</option>
           </select>
         </div>
+        ${invoiceHtml}
         <button class="bank-cat-save" type="button" onclick="saveBankCategorisation()">Save</button>
       ` : activeTransactionDrawerTab === 'info' ? `
         <div class="transaction-drawer-card">${bankInfoRows}</div>
