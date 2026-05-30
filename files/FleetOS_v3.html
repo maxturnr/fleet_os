@@ -9358,10 +9358,16 @@ function renderTransactionDrawer(){
       </div>
     `
 
+    const catVehicle = record?.stock_id ? allCars.find(c => String(c.id) === String(record.stock_id)) : null
+    const catForLabel = catVehicle ? [catVehicle.make, catVehicle.model].filter(Boolean).join(' ') + (catVehicle.reg ? ` (${catVehicle.reg})` : '') : (record?.is_overhead ? 'Overhead' : '—')
+    const catCostType = record?.cost_type ? record.cost_type.charAt(0).toUpperCase() + record.cost_type.slice(1) : '—'
+    const catVatStatus = record?.vat_status === 'no-vat' ? 'No VAT' : record?.vat_status === 'margin' ? 'Margin' : record?.vat_status === 'standard' ? 'Standard' : '—'
+
     const bankInfoRows = [
       ['Date', formatTransactionDrawerDate(source, record)],
       ['Amount', `${record?.direction === 'in' ? '+' : '-'}${fmt(Math.abs(num(record?.amount)))}`],
       ['Bank Account', account?.account_name || 'Unknown'],
+      ...(isCategorised ? [['For', catForLabel], ['Cost Type', catCostType], ['VAT Status', catVatStatus]] : []),
       ['Reference', record?.reference || '—'],
       ['Description', record?.description || '—']
     ].map(([label, value]) => `
