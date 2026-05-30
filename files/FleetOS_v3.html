@@ -9306,10 +9306,12 @@ function renderTransactionDrawer(){
   if(source === 'bank'){
     const account = bankAccounts.find(b => b.id === record?.bank_account_id)
     const allCars = [...ownedCars, ...sorCars]
+    const isCategorised = Boolean(record?.stock_id || record?.is_overhead)
     // Init state from record on first open
     if(!activeTransactionDrawerEditing){
-      bankCatMode = record?.stock_id ? 'vehicle' : 'overhead'
+      bankCatMode = record?.stock_id ? 'vehicle' : (record?.is_overhead ? 'overhead' : 'vehicle')
       bankCatSelectedVehicleId = record?.stock_id || null
+      if(isCategorised && activeTransactionDrawerTab === 'details') activeTransactionDrawerTab = 'info'
     }
     const selectedCar = bankCatSelectedVehicleId ? allCars.find(c => String(c.id) === String(bankCatSelectedVehicleId)) : null
 
@@ -9381,7 +9383,7 @@ function renderTransactionDrawer(){
         ${getTransactionDrawerStatusMarkup(source, record)}
       </div>
       <div class="transaction-drawer-tabs">
-        <button class="transaction-drawer-tab ${activeTransactionDrawerTab === 'details' ? 'active' : ''}" type="button" onclick="setTransactionDrawerTab('details')">Categorise</button>
+        ${!isCategorised ? `<button class="transaction-drawer-tab ${activeTransactionDrawerTab === 'details' ? 'active' : ''}" type="button" onclick="setTransactionDrawerTab('details')">Categorise</button>` : ''}
         <button class="transaction-drawer-tab ${activeTransactionDrawerTab === 'info' ? 'active' : ''}" type="button" onclick="setTransactionDrawerTab('info')">Info</button>
         <button class="transaction-drawer-tab ${activeTransactionDrawerTab === 'attachments' ? 'active' : ''}" type="button" onclick="setTransactionDrawerTab('attachments')">Invoice <span class="transaction-drawer-tab-count">${attachments.length}</span></button>
       </div>
@@ -9519,6 +9521,7 @@ async function saveBankCategorisation(){
     if(error) throw error
     toast('Transaction categorised')
     activeTransactionDrawerEditing = false
+    activeTransactionDrawerTab = 'info'
     await loadAll()
     renderTransactionDrawer()
   } catch(error){
