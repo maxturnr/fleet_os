@@ -1349,8 +1349,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
       <button class="nav-btn" onclick="showTab('expenses',this)" title="Transactions"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 12L13 4M13 4H7M13 4v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Transactions</span><span class="nav-short">TX</span></button>
       <button class="nav-btn" onclick="showTab('credit-lines',this)" title="Credit Lines"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Credit Lines</span><span class="nav-short">CL</span></button>
       <button class="nav-btn" onclick="showTab('income',this)" title="Income"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4L13 12M3 12V6M3 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Income</span><span class="nav-short">IN</span></button>
-      <button class="nav-btn" onclick="showTab('bank-accounts',this)" title="Bank Accounts"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M4 7h8M4 10h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Bank Accounts</span><span class="nav-short">BA</span></button>
-      <button class="nav-btn" onclick="showTab('bank-movements',this)" title="Bank Movements"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6h10M3 10h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="6" cy="6" r="1.4" fill="currentColor"/><circle cx="11" cy="10" r="1.4" fill="currentColor"/></svg></span><span class="nav-label">Bank Movements</span><span class="nav-short">BM</span></button>
+
 
       <div class="nav-group-label">Reports</div>
       <button class="nav-btn" onclick="showTab('pnl',this)" title="Overall P&L"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 11V8M8 11V6M11 11V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Overall P&amp;L</span><span class="nav-short">PL</span></button>
@@ -1864,139 +1863,8 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
       </aside>
     </div>
 
-    <!-- BANK MOVEMENTS -->
-    <div class="tab-panel" id="tab-bank-accounts">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Bank <span>Accounts</span></div>
-          <div class="page-sub">Manage account balances and payment accounts used across transactions, income, and transfers.</div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn-secondary" onclick="manualSyncFinexerAccounts(this)">🔄 Sync Now</button>
-          <button class="btn-primary bank-connect-trigger" onclick="connectFinexerBank(this)">+ Add Bank Account</button>
-        </div>
-      </div>
-      <div class="kpi-row" style="margin-bottom:24px">
-        <div class="kpi">
-          <div class="kpi-label">Accounts</div>
-          <div class="kpi-value" id="bank-accounts-total-count">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Active</div>
-          <div class="kpi-value gold" id="bank-accounts-active-count">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Total Balance</div>
-          <div class="kpi-value green" id="bank-accounts-total-balance">£0.00</div>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr>
-            <th>Account Name</th><th>Type</th><th>Current Balance</th><th>Account Number</th><th>Sort Code</th><th>Default</th><th>Status</th><th></th>
-          </tr></thead>
-          <tbody id="bank-accounts-page-tbody"></tbody>
-        </table>
-      </div>
-    </div>
 
-    <!-- BANK MOVEMENTS -->
-    <div class="tab-panel" id="tab-bank-movements">
-      <div class="expenses-template">
-        <div class="expenses-surface">
-          <div class="expenses-header">
-            <div class="expenses-header-copy">
-              <div class="expenses-page-title">Bank Transactions</div>
-            </div>
-            <button class="expenses-add-btn" type="button" onclick="manualSyncFinexerAccounts(this)">🔄 Sync Now</button>
-          </div>
 
-          <div class="expenses-summary">
-            <div class="expenses-summary-card">
-              <div class="expenses-summary-value" id="bank-txn-total-count">0</div>
-              <div class="expenses-summary-label">Count</div>
-            </div>
-            <div class="expenses-summary-card">
-              <div class="expenses-summary-value money-in" id="bank-txn-money-in">£0.00</div>
-              <div class="expenses-summary-label">Money In</div>
-            </div>
-            <div class="expenses-summary-card">
-              <div class="expenses-summary-value money-out" id="bank-txn-money-out">£0.00</div>
-              <div class="expenses-summary-label">Money Out</div>
-            </div>
-            <div class="expenses-summary-card">
-              <div class="expenses-summary-value" id="bank-txn-net-change">£0.00</div>
-              <div class="expenses-summary-label">Net Change</div>
-            </div>
-          </div>
-
-          <div class="expenses-controls">
-            <div class="expenses-controls-left">
-              <button class="expenses-filter-btn" id="bank-txn-filter-toggle" type="button" onclick="toggleBankTxnFilters()" aria-label="Open filters">▽ Filters</button>
-              <select class="expenses-quick-filter" id="bank-txn-account-filter" onchange="renderBankTransactions()">
-                <option value="">Account is</option>
-              </select>
-              <select class="expenses-quick-filter" id="bank-txn-status-filter" onchange="renderBankTransactions()">
-                <option value="">Status is</option>
-                <option value="booked">Booked</option>
-                <option value="pending">Pending</option>
-              </select>
-            </div>
-            <div class="expenses-controls-right">
-              <select class="expenses-quick-filter" id="bank-txn-sort" onchange="renderBankTransactions()">
-                <option value="recent">Sort by: Most recent</option>
-                <option value="oldest">Sort by: Oldest</option>
-                <option value="amount_desc">Sort by: Highest amount</option>
-                <option value="amount_asc">Sort by: Lowest amount</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="expenses-table-shell">
-            <div class="expenses-table-wrapper">
-              <table class="expenses-table">
-                <thead>
-                  <tr>
-                    <th>Transaction</th>
-                    <th>Vehicle</th>
-                    <th>User</th>
-                    <th>Account</th>
-                    <th>Invoice</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody id="bank-movements-tbody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <div class="filter-drawer-backdrop" id="bank-txn-filter-backdrop" onclick="toggleFilterDrawer('bank-txn', false)"></div>
-        <aside class="filter-drawer" id="bank-txn-filter-drawer">
-          <div class="filter-drawer-head">
-            <div class="filter-drawer-title">Bank Transaction Filters</div>
-            <button class="filter-drawer-close" type="button" onclick="toggleFilterDrawer('bank-txn', false)">×</button>
-          </div>
-          <div class="filter-drawer-body">
-            <div class="filter-drawer-group">
-              <label class="filter-drawer-label" for="bank-txn-direction-filter">Direction</label>
-              <select class="filter-select" id="bank-txn-direction-filter" onchange="renderBankTransactions()">
-                <option value="">All</option>
-                <option value="in">Money In</option>
-                <option value="out">Money Out</option>
-              </select>
-            </div>
-            <div class="filter-drawer-group">
-              <div class="filter-drawer-label">Date Range</div>
-              <div class="filter-drawer-row">
-                <input type="date" class="filter-input" id="bank-txn-from" onchange="renderBankTransactions()">
-                <input type="date" class="filter-input" id="bank-txn-to" onchange="renderBankTransactions()">
-              </div>
-            </div>
-          </div>
-        </aside>
-      </div>
-    </div>
 
     <!-- SETTINGS -->
     <div class="tab-panel" id="tab-settings">
@@ -4285,8 +4153,7 @@ function renderCurrentTab(){
   else if(currentTab==='expenses') renderExpenses()
   else if(currentTab==='credit-lines') renderCreditLines()
   else if(currentTab==='income') renderIncome()
-  else if(currentTab==='bank-accounts') renderBankAccounts()
-  else if(currentTab==='bank-movements') renderBankTransactions()
+
   else if(currentTab==='pnl') renderPnl()
   else if(currentTab==='balance') renderBalance()
   else if(currentTab==='mileage') renderMileageTrips()
@@ -7555,7 +7422,6 @@ let editingBankAccountId=null
 
 function renderBankAccounts(){
   const settingsTbody=document.getElementById('bank-accounts-tbody')
-  const pageTbody=document.getElementById('bank-accounts-page-tbody')
   const emptyHtml=`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🏦</div><div class="empty-text">No bank accounts yet</div></div></td></tr>`
   const totalCount=bankAccounts.length
   const activeCount=bankAccounts.filter(b=>b.active!==false).length
@@ -7568,7 +7434,6 @@ function renderBankAccounts(){
   if(totalBalanceEl) totalBalanceEl.textContent=fmt(totalBalance)
   if(!bankAccounts.length){
     if(settingsTbody) settingsTbody.innerHTML=emptyHtml
-    if(pageTbody) pageTbody.innerHTML=emptyHtml
     maybeSyncFinexerBankAccounts().then(result => {
       const syncedAccounts = Number(result?.accounts_synced ?? result?.synced_accounts ?? 0)
       if(syncedAccounts > 0) loadAll(true)
@@ -7595,7 +7460,6 @@ function renderBankAccounts(){
     </tr>`
   }).join('')
   if(settingsTbody) settingsTbody.innerHTML=rowsHtml
-  if(pageTbody) pageTbody.innerHTML=rowsHtml
 }
 
 function editBankAccount(id){
@@ -11416,16 +11280,14 @@ async function deleteIncome(id){
 }
 
 // ══════════════════════════════════════════════
-// BANK TRANSACTIONS (FINEXER)
+// BANK TRANSACTIONS (FINEXER) – page removed, keeping render for reference
 // ══════════════════════════════════════════════
 let expandedBankTxnId = null
 
-function toggleBankTxnFilters(){
-  toggleFilterDrawer('bank-txn', !document.getElementById('bank-txn-filter-drawer').classList.contains('open'))
-}
-
 function renderBankTransactions(){
-  const accountFilter = document.getElementById('bank-txn-account-filter').value
+  const acctEl = document.getElementById('bank-txn-account-filter')
+  if(!acctEl) return // Bank Movements page removed
+  const accountFilter = acctEl.value
   const statusFilter = document.getElementById('bank-txn-status-filter').value
   const directionFilter = document.getElementById('bank-txn-direction-filter').value
   const dateFrom = document.getElementById('bank-txn-from').value
