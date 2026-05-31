@@ -373,7 +373,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 .expenses-empty-title{font-family:'Newsreader', Georgia, serif;font-size:30px;line-height:1.05;color:#14130f;margin-bottom:8px;}
 .expenses-empty-text{font-size:14px;line-height:1.6;max-width:420px;margin:0 auto;}
 /* ── Unified page shell (shared by Income, Credit Lines, P&L, Balance, Mileage, Settings) ── */
-.uni-shell{padding-top:0;margin-left:-28px;margin-right:-28px;height:calc(100vh - 44px);}
+.uni-shell{padding-top:0;margin-top:-8px;margin-left:-28px;margin-right:-28px;height:calc(100vh - 44px);}
 .uni-surface{background:#fff;border:1px solid rgba(20,19,15,0.08);border-right:none;border-radius:8px 0 0 8px;box-shadow:none;overflow:hidden;display:flex;flex-direction:column;height:100%;}
 .uni-header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:10px 24px;border-bottom:1px solid rgba(20,19,15,0.08);flex-wrap:wrap;}
 .uni-header-left{display:flex;align-items:center;gap:8px;min-height:20px;}
@@ -7750,9 +7750,6 @@ function renderBalance(){
 
   // Bank balances already reflect all spending (buy price, prep costs, overhead)
   // So we only add the advertised value of stock (what it's worth now)
-  // Calculate dividends paid (all-time)
-  const dividendsPaid=transactions.filter(t=>t.type==='Dividend').reduce((s,t)=>s+Number(t.amount),0)
-  
   const vatReclaimAsset = allTimeVatBreakdown.netVatDue < 0 ? Math.abs(allTimeVatBreakdown.netVatDue) : 0
   const vatLiability = allTimeVatBreakdown.netVatDue > 0 ? allTimeVatBreakdown.netVatDue : 0
   const totalAssets=totalBankBalance+stockAdvertisedVal+(balanceSheet.debtors||0)+allMileageRefund+vatReclaimAsset
@@ -7768,8 +7765,7 @@ function renderBalance(){
     </div>`
 
   document.getElementById('bs-content').innerHTML=`
-    <div class="pnl-grid">
-    <div>
+    <div class="pnl-grid" style="grid-template-columns:1fr;">
       <div class="pnl-section">
         <div class="pnl-section-title">Assets — What the Business Owns</div>
         <div class="pnl-row" style="background:var(--surface3)"><span style="font-size:11px;color:var(--gold);font-family:'DM Mono',monospace;letter-spacing:0.05em">BANK ACCOUNTS</span></div>
@@ -7794,24 +7790,7 @@ function renderBalance(){
         ${vatReclaimAsset>0?brow('VAT Reclaim Due',vatReclaimAsset,'var(--green)',true):''}
         ${brow('TOTAL ASSETS',totalAssets,'var(--gold2)',false,true)}
       </div>
-      <div style="height:16px"></div>
-      <div class="pnl-section">
-        <div class="pnl-section-title">Net Position</div>
-        ${brow('NET WORTH OF BUSINESS',netWorth,netWorth>=0?'var(--green)':'var(--red)',false,true)}
-        <div class="pnl-row" style="background:${netWorth>=0?'var(--green-dim)':'var(--red-dim)'}">
-          <span style="font-size:11px;color:var(--muted2);font-style:italic;font-family:'DM Mono',monospace">Total Assets minus Total Liabilities</span>
-        </div>
-      </div>
-      ${dividendsPaid>0?`<div style="height:16px"></div>
-      <div class="pnl-section">
-        <div class="pnl-section-title">Dividends</div>
-        ${brow('Total Dividends Paid',dividendsPaid,'var(--red)',true)}
-        <div class="pnl-row" style="background:var(--surface3)">
-          <span style="font-size:11px;color:var(--muted2);font-style:italic;font-family:'DM Mono',monospace">Paid from net profit after tax</span>
-        </div>
-      </div>`:''}
-    </div>
-    <div>
+
       <div class="pnl-section">
         <div class="pnl-section-title">Liabilities — What the Business Owes</div>
         ${brow('30-Day Owed — Parts',balanceSheet.parts30||0,'var(--red)',true)}
@@ -7822,15 +7801,14 @@ function renderBalance(){
         ${brow('Other Liabilities',balanceSheet.other_liab||0,'var(--muted2)',true)}
         ${brow('TOTAL LIABILITIES',totalLiab,'var(--red)',false,true)}
       </div>
-      <div style="height:16px"></div>
+
       <div class="pnl-section">
-        <div class="pnl-section-title">Auto-Calculated</div>
-        <div class="pnl-row indent"><span class="pnl-row-label">Owned stock values</span><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace">From Owned Stock tab</span></div>
-        <div class="pnl-row indent"><span class="pnl-row-label">Corp Tax Reserve</span><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace">Vehicle profit × 20%</span></div>
-        <div class="pnl-row indent"><span class="pnl-row-label">Dividends</span><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace">Shown separately below</span></div>
-        <div class="pnl-row indent"><span class="pnl-row-label">SOR cars</span><span style="font-size:11px;color:var(--purple);font-family:'DM Mono',monospace">Never appear here</span></div>
+        <div class="pnl-section-title">Net Worth</div>
+        ${brow('NET WORTH OF BUSINESS',netWorth,netWorth>=0?'var(--green)':'var(--red)',false,true)}
+        <div class="pnl-row" style="background:${netWorth>=0?'var(--green-dim)':'var(--red-dim)'}">
+          <span style="font-size:11px;color:var(--muted2);font-style:italic;font-family:'DM Mono',monospace">Total Assets minus Total Liabilities</span>
+        </div>
       </div>
-    </div>
     </div>`
 }
 
