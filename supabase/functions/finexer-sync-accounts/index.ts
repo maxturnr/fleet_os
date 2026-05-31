@@ -184,11 +184,21 @@ serve(async (req) => {
           const bankAccountId = upsertedAccount.id;
           let newTransactionIds: string[] = [];
 
+          // Preserve existing transaction_date — don't overwrite on re-sync
+          const { data: existingTxnDates } = await supabaseClient
+            .from('bank_transactions')
+            .select('provider_transaction_id, transaction_date')
+            .eq('bank_account_id', bankAccountId);
+          const existingDateMap = new Map(
+            (existingTxnDates || []).map((t: any) => [t.provider_transaction_id, t.transaction_date])
+          );
+
           for (let i = 0; i < allTransactions.length; i += 500) {
             const batch = allTransactions.slice(i, i + 500);
             const rows = batch.map((txn: any) => {
               const merchantName = parseMerchantName(txn);
-              const transactionDate = parseTransactionDate(txn);
+              // Keep existing date if we already have this transaction
+              const transactionDate = existingDateMap.get(txn.id) || parseTransactionDate(txn);
 
               return {
                 account_id: account_id,

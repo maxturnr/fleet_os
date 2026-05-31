@@ -153,11 +153,15 @@ serve(async (req) => {
             if (allTransactions.length === 0) continue;
 
             // ── Track which IDs existed before for "new" detection ──
+            // Also fetch existing transaction_date to preserve on re-sync
             const { data: existingTxns } = await supabase
               .from('bank_transactions')
-              .select('provider_transaction_id')
+              .select('provider_transaction_id, transaction_date')
               .eq('bank_account_id', bankAccountId);
             const existingIds = new Set((existingTxns || []).map((t: any) => t.provider_transaction_id));
+            const existingDateMap = new Map(
+              (existingTxns || []).map((t: any) => [t.provider_transaction_id, t.transaction_date])
+            );
 
             // ── Upsert in batches ────────────────────────────────
             let upsertedIds: string[] = [];
@@ -174,7 +178,8 @@ serve(async (req) => {
                 status: mapTransactionStatus(txn.status),
                 amount: Math.abs(Number(txn.amount || 0)),
                 currency: (txn.currency || 'GBP').toUpperCase(),
-                transaction_date: parseTransactionDate(txn),
+                // Keep existing date if we already have this transaction
+                transaction_date: existingDateMap.get(txn.id) || parseTransactionDate(txn),
                 booked_at: txn.status === 'booked' ? txn.timestamp : null,
                 reference: txn.reference || null,
                 description: txn.description || null,

@@ -401,7 +401,12 @@ export function parseMerchantName(txn: any): string | null {
  * Description often contains dates like "23MAY26" = 2026-05-23.
  */
 export function parseTransactionDate(txn: any): string {
-  // Try to extract from description
+  // 1. Prefer the API timestamp (works for both booked and pending)
+  if (txn.timestamp) {
+    return txn.timestamp.split('T')[0];
+  }
+
+  // 2. Try to extract from description (e.g. "30MAY26")
   if (txn.description) {
     const dateMatch = txn.description.match(/(\d{2})([A-Z]{3})(\d{2})/);
     if (dateMatch) {
@@ -415,10 +420,6 @@ export function parseTransactionDate(txn: any): string {
     }
   }
 
-  // Pending = today, Booked = use timestamp
-  if (txn.status === 'pending') {
-    return new Date().toISOString().split('T')[0];
-  }
-
-  return txn.timestamp?.split('T')[0] || new Date().toISOString().split('T')[0];
+  // 3. Last resort — today (only used for genuinely new transactions with no timestamp)
+  return new Date().toISOString().split('T')[0];
 }
