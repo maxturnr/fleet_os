@@ -1679,6 +1679,11 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
                 <option value="credit">Credit Line</option>
                 <option value="bank">Bank Feed</option>
               </select>
+              <select class="expenses-quick-filter" id="expense-reconciled-filter" onchange="renderExpenses()">
+                <option value="">All statuses</option>
+                <option value="unreconciled">Unreconciled</option>
+                <option value="reconciled">Reconciled</option>
+              </select>
             </div>
             <div class="expenses-controls-right">
               <select class="expenses-quick-filter" id="expense-sort" onchange="renderExpenses()">
@@ -8773,7 +8778,7 @@ function toggleExpenseFilters(forceState){
 }
 
 function resetExpenseFilters(){
-  ;['expense-account-filter','expense-type-filter','expense-detail-filter','expense-direction-filter','expense-from','expense-to'].forEach(id => {
+  ;['expense-account-filter','expense-type-filter','expense-detail-filter','expense-direction-filter','expense-reconciled-filter','expense-from','expense-to'].forEach(id => {
     const element = document.getElementById(id)
     if(element) element.value = ''
   })
@@ -9677,6 +9682,7 @@ async function renderExpenses(){
   const typeFilter = document.getElementById('expense-type-filter')?.value || ''
   const detailFilter = document.getElementById('expense-detail-filter')?.value || ''
   const directionFilter = document.getElementById('expense-direction-filter')?.value || ''
+  const reconciledFilter = document.getElementById('expense-reconciled-filter')?.value || ''
   const fromDate = document.getElementById('expense-from')?.value || ''
   const toDate = document.getElementById('expense-to')?.value || ''
   const sortBy = document.getElementById('expense-sort')?.value || 'recent'
@@ -9686,6 +9692,11 @@ async function renderExpenses(){
     if(typeFilter && row.type !== typeFilter) return false
     if(detailFilter && row.detailType !== detailFilter) return false
     if(directionFilter && row.amountDirection !== directionFilter) return false
+    if(reconciledFilter){
+      const isRecon = row.vehicleTitle !== 'Requires Reconciliation'
+      if(reconciledFilter === 'unreconciled' && isRecon) return false
+      if(reconciledFilter === 'reconciled' && !isRecon) return false
+    }
     if(fromDate && row.date < fromDate) return false
     if(toDate && row.date > toDate) return false
     return true
