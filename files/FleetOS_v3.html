@@ -372,6 +372,72 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 .expenses-empty-state{text-align:center;padding:56px 24px;color:#7a7368;}
 .expenses-empty-title{font-family:'Newsreader', Georgia, serif;font-size:30px;line-height:1.05;color:#14130f;margin-bottom:8px;}
 .expenses-empty-text{font-size:14px;line-height:1.6;max-width:420px;margin:0 auto;}
+/* ── Unified page shell (shared by Income, Credit Lines, P&L, Balance, Mileage, Settings) ── */
+.uni-shell{padding-top:0;margin-left:-28px;margin-right:-28px;height:calc(100vh - 44px);}
+.uni-surface{background:#fff;border:1px solid rgba(20,19,15,0.08);border-right:none;border-radius:8px 0 0 8px;box-shadow:none;overflow:hidden;display:flex;flex-direction:column;height:100%;}
+.uni-header{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:10px 24px;border-bottom:1px solid rgba(20,19,15,0.08);flex-wrap:wrap;}
+.uni-header-left{display:flex;align-items:center;gap:8px;min-height:20px;}
+.uni-title{font-family:'Inter Tight',sans-serif;font-size:15px;line-height:1.1;font-weight:400;letter-spacing:0;color:#878787;text-transform:none;}
+.uni-action-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;padding:0 14px;border-radius:8px;background:#14130f;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s;}
+.uni-action-btn::before{content:'+';font-size:15px;line-height:1;font-weight:400;}
+.uni-action-btn.no-plus::before{content:none;}
+.uni-action-btn:hover{opacity:0.88;}
+.uni-summary{display:flex;align-items:center;gap:0;padding:16px 24px 12px;flex-wrap:wrap;}
+.uni-summary-card{display:flex;align-items:baseline;gap:4px;padding:0;border:none;}
+.uni-summary-card:not(:last-child)::after{content:'·';color:#958f82;margin-left:4px;font-weight:500;}
+.uni-summary-label{font-family:'Inter Tight',sans-serif;font-size:14px;letter-spacing:0;color:#958f82;font-weight:400;margin:0;text-transform:none;}
+.uni-summary-value{font-size:.875rem;line-height:1.2;font-weight:500;letter-spacing:-0.01em;color:#14130f;}
+.uni-controls{display:flex;align-items:center;gap:8px;padding:10px 24px;border-bottom:1px solid rgba(20,19,15,0.08);flex-wrap:wrap;}
+.uni-controls .filter-input{box-sizing:border-box;min-height:25px;height:25px;border:1px solid #e7e0e2;border-radius:6px;background:#fcfcfc;color:#5f5a54;font-size:13px;padding:0 8px;outline:none;transition:border-color .15s ease,box-shadow .15s ease;}
+.uni-controls .filter-input:focus{border-color:#d8d1d4;box-shadow:0 0 0 3px rgba(231,224,226,0.45);}
+.uni-controls .filter-label{font-size:12px;color:#958f82;font-weight:400;}
+.uni-controls .filter-sep{width:1px;height:16px;background:rgba(20,19,15,0.1);}
+.uni-pill{box-sizing:border-box;min-height:25px;height:25px;display:inline-flex;align-items:center;justify-content:center;padding:0 10px;border:1px solid #e7e0e2;border-radius:6px;background:#fcfcfc;color:#5f5a54;font-size:13px;font-weight:450;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease;}
+.uni-pill:hover,.uni-pill.active{background:#f8f8f8;border-color:#d8d1d4;color:#3d3934;}
+.uni-pill.active{background:#14130f;border-color:#14130f;color:#fff;}
+.uni-quick-filter{box-sizing:border-box;min-height:25px;height:25px;min-width:0;width:auto;padding:0 28px 0 10px;border:1px solid #e7e0e2;border-radius:6px;background:#fcfcfc;color:#5f5a54;font-size:13px;font-weight:450;outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M2 3.75L5 6.75L8 3.75' stroke='%23716C66' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:10px 10px;transition:border-color .15s ease,box-shadow .15s ease;}
+.uni-quick-filter:focus{border-color:#d8d1d4;box-shadow:0 0 0 3px rgba(231,224,226,0.45);}
+.uni-table-shell{overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column;}
+.uni-table-wrap{overflow:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;}
+.uni-table{width:100%;border-collapse:collapse;}
+.uni-table thead{background:#fff;border-bottom:1px solid rgba(20,19,15,0.08);}
+.uni-table thead th{position:sticky;top:0;z-index:2;background:#fff;}
+.uni-table th{padding:12px 28px;text-align:left;font-size:14px;font-weight:400;color:#8d867b;letter-spacing:0.01em;text-transform:none;white-space:nowrap;}
+.uni-table tbody tr{border-bottom:1px solid rgba(20,19,15,0.06);cursor:pointer;transition:background-color .15s ease;}
+.uni-table tbody tr:last-child{border-bottom:none;}
+.uni-table tbody tr:hover td{background:#fbfaf8;}
+.uni-table td{padding:12px 28px;vertical-align:middle;background:#fff;font-size:14px;}
+.uni-body{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;padding:24px;}
+.uni-search-box{position:relative;min-width:200px;}
+.uni-search-box .stock-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#716c66;font-size:13px;pointer-events:none;}
+.uni-search-box input{width:100%;min-height:25px;height:25px;padding:0 28px 0 30px;border:1px solid #e7e0e2;border-radius:6px;background:#fcfcfc;font-size:13px;color:#5f5a54;outline:none;transition:background-color .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease;}
+.uni-search-box input:focus{border-color:#d8d1d4;box-shadow:0 0 0 3px rgba(231,224,226,0.45);background:#fff;color:#3d3934;}
+.uni-search-box .stock-search-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:5px;display:none;align-items:center;justify-content:center;color:#7a7368;font-size:16px;border:none;background:transparent;}
+.uni-search-box.has-value .stock-search-clear{display:flex;}
+/* Settings within uni-surface */
+.uni-tabs{display:flex;align-items:center;gap:0;padding:0 24px;border-bottom:1px solid rgba(20,19,15,0.08);}
+.uni-tab{padding:10px 16px;font-family:'Inter Tight',sans-serif;font-size:13px;font-weight:400;color:#958f82;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s ease,border-color .15s ease;}
+.uni-tab:hover{color:#5f5a54;}
+.uni-tab.active{color:#14130f;border-bottom-color:#14130f;}
+.uni-settings-section{padding:24px;}
+.uni-settings-card{background:#fff;border:1px solid rgba(20,19,15,0.08);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+.uni-settings-card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid rgba(20,19,15,0.06);}
+.uni-settings-card-title{font-family:'Inter Tight',sans-serif;font-size:13px;font-weight:500;color:#14130f;}
+.uni-settings-card-body{padding:20px;}
+.uni-settings-card-body .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.uni-settings-card-body .form-group.span2{grid-column:span 2;}
+.uni-settings-card-body .form-label{font-family:'Inter Tight',sans-serif;font-size:11px;letter-spacing:0.04em;text-transform:uppercase;color:#958f82;font-weight:400;margin-bottom:6px;display:block;}
+.uni-settings-card-body .form-control{background:#fafaf9;border:1px solid #e7e0e2;color:#14130f;padding:10px 12px;font-family:'Inter Tight',sans-serif;font-size:14px;border-radius:8px;outline:none;width:100%;transition:border-color .15s;}
+.uni-settings-card-body .form-control:focus{border-color:#d8d1d4;box-shadow:0 0 0 3px rgba(231,224,226,0.45);}
+.uni-settings-card-body .form-note{font-family:'Inter Tight',sans-serif;font-size:11px;color:#958f82;padding:10px 14px;background:#fafaf9;border-radius:8px;border-left:2px solid #e7e0e2;}
+.uni-save-btn{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 14px;border-radius:8px;background:#14130f;color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s;}
+.uni-save-btn:hover{opacity:0.88;}
+/* P&L / Balance sheet inside uni-surface */
+.uni-pnl-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:24px;}
+.uni-pnl-section{border:1px solid rgba(20,19,15,0.08);border-radius:12px;overflow:hidden;background:#fff;}
+.uni-pnl-section-title{padding:14px 18px;border-bottom:1px solid rgba(20,19,15,0.08);font-family:'Inter Tight',sans-serif;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#14130f;font-weight:500;background:#fafaf9;}
+/* Credit line cards inside uni-surface */
+.uni-credit-lines{padding:24px;display:flex;flex-direction:column;gap:12px;}
 .dashboard-page-shell{padding-top:0;margin-left:-28px;margin-right:-28px;}
 .dashboard-page-surface{background:#fff;border:1px solid rgba(20,19,15,0.08);border-right:none;border-radius:8px 0 0 8px;box-shadow:none;overflow:visible;min-height:calc(100vh - 44px);}
 .dashboard-page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:10px 24px;border-bottom:1px solid rgba(20,19,15,0.08);flex-wrap:wrap;position:sticky;top:0;z-index:40;background:rgba(255,255,255,0.96);backdrop-filter:blur(14px);border-top-left-radius:8px;}
@@ -646,15 +712,16 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 .form-note.purple{border-left-color:var(--purple);}
 
 /* P&L */
-.pnl-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-.pnl-section{border:1px solid var(--border);}
-.pnl-section-title{padding:14px 18px;border-bottom:1px solid var(--border);font-family:'Inter Tight',sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);background:var(--surface2);font-weight:400;}
-.pnl-row{display:flex;justify-content:space-between;align-items:center;padding:11px 18px;border-bottom:1px solid var(--border);font-size:13px;}
+.pnl-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:24px;}
+.pnl-section{border:1px solid rgba(20,19,15,0.08);border-radius:12px;overflow:hidden;background:#fff;}
+.pnl-section-title{padding:14px 18px;border-bottom:1px solid rgba(20,19,15,0.08);font-family:'Inter Tight',sans-serif;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#14130f;background:#fafaf9;font-weight:500;}
+.pnl-row{display:flex;justify-content:space-between;align-items:center;padding:11px 18px;border-bottom:1px solid rgba(20,19,15,0.06);font-size:13px;color:#14130f;}
 .pnl-row:last-child{border-bottom:none;}
 .pnl-row.indent{padding-left:30px;}
-.pnl-row.indent .pnl-row-label{color:var(--muted2);font-size:12px;}
-.pnl-row.total{background:var(--surface2);}
+.pnl-row.indent .pnl-row-label{color:#958f82;font-size:12px;}
+.pnl-row.total{background:#fafaf9;}
 .pnl-row.total .pnl-row-label{font-family:'Inter Tight',sans-serif;font-weight:600;font-size:14px;}
+.pnl-row-label{color:#14130f;}
 .pnl-row-value{font-family:'Inter Tight',sans-serif;font-size:13px;}
 
 /* CARD */
@@ -839,23 +906,24 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 .tx-detail-input:focus{border-color:var(--gold);}
 .tx-detail-input:disabled{opacity:0.5;cursor:not-allowed;}
 .tx-detail-actions{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);flex-wrap:wrap;}
-.credit-line-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;}
-.credit-line-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
-.credit-line-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border);}
-.credit-line-vendor{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--white);}
+.credit-line-grid{display:flex;flex-direction:column;gap:12px;padding:24px;}
+.credit-line-card{background:#fff;border:1px solid rgba(20,19,15,0.08);border-radius:12px;overflow:hidden;}
+.credit-line-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:16px 18px;border-bottom:1px solid rgba(20,19,15,0.06);}
+.credit-line-vendor{font-family:'Inter Tight',sans-serif;font-size:15px;font-weight:500;color:#14130f;}
 .credit-line-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;}
-.credit-line-total{font-family:'DM Mono',monospace;font-size:20px;color:var(--red);white-space:nowrap;}
+.credit-line-total{font-family:'Inter Tight',sans-serif;font-size:16px;font-weight:500;color:#c45c52;white-space:nowrap;}
 .credit-line-body{padding:0 18px 18px;}
-.credit-line-row{display:grid;grid-template-columns:110px 1fr 110px 110px auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--border2);}
+.credit-line-row{display:grid;grid-template-columns:110px 1fr 110px 110px auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid rgba(20,19,15,0.06);}
 .credit-line-row:last-child{border-bottom:none;padding-bottom:0;}
 .credit-line-primary{display:flex;flex-direction:column;gap:4px;min-width:0;}
-.credit-line-label{font-size:12px;color:var(--white);}
+.credit-line-label{font-size:12px;color:#14130f;}
 .credit-line-sub{font-size:10px;color:var(--muted2);font-family:'DM Mono',monospace;}
 .credit-line-amount{font-family:'DM Mono',monospace;color:var(--red);text-align:right;}
-.credit-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px;}
-.credit-summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
-.credit-summary-label{font-size:10px;color:var(--muted2);font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;}
-.credit-summary-value{margin-top:8px;font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--white);}
+.credit-summary{display:flex;align-items:center;gap:0;padding:16px 24px 12px;flex-wrap:wrap;}
+.credit-summary-card{display:flex;align-items:baseline;gap:4px;padding:0;border:none;background:none;}
+.credit-summary-card:not(:last-child)::after{content:'·';color:#958f82;margin-left:4px;font-weight:500;}
+.credit-summary-label{font-family:'Inter Tight',sans-serif;font-size:14px;letter-spacing:0;color:#958f82;font-weight:400;margin:0;text-transform:none;}
+.credit-summary-value{font-size:.875rem;line-height:1.2;font-weight:500;letter-spacing:-0.01em;color:#14130f;}
 .inline-note{font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace;}
 
 /* DOCUMENT UPLOAD */
@@ -1362,28 +1430,28 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
   .expenses-table td:nth-child(1){width:auto !important;}
 
   /* ── Income table: hide Description, VAT ── */
-  .tab-panel#tab-income .data-table{min-width:0 !important;}
-  .tab-panel#tab-income .data-table th:nth-child(4),
-  .tab-panel#tab-income .data-table td:nth-child(4),
-  .tab-panel#tab-income .data-table th:nth-child(6),
-  .tab-panel#tab-income .data-table td:nth-child(6){display:none;}
+  .tab-panel#tab-income .uni-table{min-width:0 !important;}
+  .tab-panel#tab-income .uni-table th:nth-child(4),
+  .tab-panel#tab-income .uni-table td:nth-child(4),
+  .tab-panel#tab-income .uni-table th:nth-child(6),
+  .tab-panel#tab-income .uni-table td:nth-child(6){display:none;}
 
   /* ── Mileage table: hide From, To, Purpose, Car, Driver, Return, Added By ── */
-  .tab-panel#tab-mileage .data-table{min-width:0 !important;}
-  .tab-panel#tab-mileage .data-table th:nth-child(2),
-  .tab-panel#tab-mileage .data-table td:nth-child(2),
-  .tab-panel#tab-mileage .data-table th:nth-child(3),
-  .tab-panel#tab-mileage .data-table td:nth-child(3),
-  .tab-panel#tab-mileage .data-table th:nth-child(4),
-  .tab-panel#tab-mileage .data-table td:nth-child(4),
-  .tab-panel#tab-mileage .data-table th:nth-child(5),
-  .tab-panel#tab-mileage .data-table td:nth-child(5),
-  .tab-panel#tab-mileage .data-table th:nth-child(6),
-  .tab-panel#tab-mileage .data-table td:nth-child(6),
-  .tab-panel#tab-mileage .data-table th:nth-child(8),
-  .tab-panel#tab-mileage .data-table td:nth-child(8),
-  .tab-panel#tab-mileage .data-table th:nth-child(10),
-  .tab-panel#tab-mileage .data-table td:nth-child(10){display:none;}
+  .tab-panel#tab-mileage .uni-table{min-width:0 !important;}
+  .tab-panel#tab-mileage .uni-table th:nth-child(2),
+  .tab-panel#tab-mileage .uni-table td:nth-child(2),
+  .tab-panel#tab-mileage .uni-table th:nth-child(3),
+  .tab-panel#tab-mileage .uni-table td:nth-child(3),
+  .tab-panel#tab-mileage .uni-table th:nth-child(4),
+  .tab-panel#tab-mileage .uni-table td:nth-child(4),
+  .tab-panel#tab-mileage .uni-table th:nth-child(5),
+  .tab-panel#tab-mileage .uni-table td:nth-child(5),
+  .tab-panel#tab-mileage .uni-table th:nth-child(6),
+  .tab-panel#tab-mileage .uni-table td:nth-child(6),
+  .tab-panel#tab-mileage .uni-table th:nth-child(8),
+  .tab-panel#tab-mileage .uni-table td:nth-child(8),
+  .tab-panel#tab-mileage .uni-table th:nth-child(10),
+  .tab-panel#tab-mileage .uni-table td:nth-child(10){display:none;}
 
   /* ── General data tables ── */
   .data-table{min-width:0 !important;}
@@ -1417,19 +1485,39 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
   .stock-redesign .stock-controls-left{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
   .stock-redesign .stock-filter-select{min-width:100px;flex-shrink:0;font-size:12px;}
 
+  /* ── Unified shell pages on mobile ── */
+  .uni-shell{height:auto;margin-left:0;margin-right:0;}
+  .uni-surface{border-radius:0;border-left:none;border-right:none;height:auto;min-height:calc(100vh - 120px);}
+  .uni-header{padding:10px 16px;}
+  .uni-controls{padding:8px 16px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;gap:6px;}
+  .uni-controls .filter-input{min-width:100px;flex-shrink:0;}
+  .uni-pill{flex-shrink:0;}
+  .uni-quick-filter{min-width:100px;flex-shrink:0;font-size:12px;}
+  .uni-summary{padding:12px 16px 8px;}
+  .uni-table th,.uni-table td{padding:10px 12px !important;font-size:12px !important;}
+  .uni-body{padding:16px !important;}
+  .uni-tabs{padding:0 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .uni-tab{white-space:nowrap;flex-shrink:0;}
+  .uni-settings-section{padding:16px;}
+  .uni-settings-card-body{padding:16px;}
+  .uni-search-box{min-width:140px;}
+  .uni-search-box input{font-size:12px;}
+
   /* ── P&L / Balance sheet ── */
-  .pnl-grid{gap:0 !important;}
-  .pnl-section{padding:12px !important;border-radius:12px !important;}
-  .pnl-section-title{font-size:13px !important;}
-  .pnl-row{padding:6px 0 !important;}
+  .pnl-grid{grid-template-columns:1fr !important;gap:12px !important;padding:16px !important;}
+  .pnl-section{border-radius:10px !important;}
+  .pnl-section-title{font-size:12px !important;padding:12px 14px !important;}
+  .pnl-row{padding:8px 14px !important;}
   .pnl-row-label{font-size:12px !important;}
   .pnl-row-value{font-size:12px !important;}
 
   /* ── Credit lines ── */
-  .credit-line-card{padding:14px !important;border-radius:12px !important;}
-
-  /* ── Settings ── */
-  .settings-section{padding:0 16px;}
+  .credit-line-grid{padding:16px !important;}
+  .credit-line-card{border-radius:10px !important;}
+  .credit-line-head{padding:12px 14px;}
+  .credit-line-vendor{font-size:14px;}
+  .credit-line-row{grid-template-columns:1fr;gap:6px;padding:10px 0;}
+  .credit-summary{padding:12px 16px 8px;}
 
   /* ── Form grid single column ── */
   .form-grid{grid-template-columns:1fr !important;}
@@ -1993,37 +2081,38 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 
     <!-- P&L -->
     <div class="tab-panel" id="tab-pnl">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Overall <span>P&L</span></div>
-          <div class="page-sub">Sold cars only. Unsold stock costs are working capital — not expenses.</div>
+      <div class="uni-shell">
+      <div class="uni-surface">
+        <div class="uni-header">
+          <div class="uni-header-left"><div class="uni-title">Profit &amp; Loss</div></div>
         </div>
+        <div class="uni-controls">
+          <button class="uni-pill" onclick="setPnlPeriod('month')">This Month</button>
+          <button class="uni-pill" onclick="setPnlPeriod('last-month')">Last Month</button>
+          <button class="uni-pill" onclick="setPnlPeriod('quarter')">This Quarter</button>
+          <button class="uni-pill" onclick="setPnlPeriod('tax-year')">Tax Year</button>
+          <button class="uni-pill" onclick="setPnlPeriod('all')">All Time</button>
+          <div class="filter-sep"></div>
+          <input type="date" class="filter-input" id="pnl-from" onchange="renderPnl()">
+          <span class="filter-label">to</span>
+          <input type="date" class="filter-input" id="pnl-to" onchange="renderPnl()">
+        </div>
+        <div class="uni-body" id="pnl-content" style="padding:0;"></div>
       </div>
-      <div class="filter-bar">
-        <span class="filter-label">Period:</span>
-        <button class="btn-ghost" onclick="setPnlPeriod('month')">This Month</button>
-        <button class="btn-ghost" onclick="setPnlPeriod('last-month')">Last Month</button>
-        <button class="btn-ghost" onclick="setPnlPeriod('quarter')">This Quarter</button>
-        <button class="btn-ghost" onclick="setPnlPeriod('tax-year')">This Tax Year</button>
-        <button class="btn-ghost" onclick="setPnlPeriod('all')">All Time</button>
-        <div class="filter-sep"></div>
-        <input type="date" class="filter-input" id="pnl-from" onchange="renderPnl()">
-        <span class="filter-label">to</span>
-        <input type="date" class="filter-input" id="pnl-to" onchange="renderPnl()">
       </div>
-      <div class="pnl-grid" id="pnl-content"></div>
     </div>
 
     <!-- BALANCE -->
     <div class="tab-panel" id="tab-balance">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Balance <span>Sheet</span></div>
-          <div class="page-sub">SOR cars are not assets — only owned stock appears here.</div>
+      <div class="uni-shell">
+      <div class="uni-surface">
+        <div class="uni-header">
+          <div class="uni-header-left"><div class="uni-title">Balance Sheet</div></div>
+          <button class="uni-action-btn no-plus" onclick="openModal('edit-balance')">Update Balances</button>
         </div>
-        <button class="btn-primary" onclick="openModal('edit-balance')">Update Balances</button>
+        <div class="uni-body" id="bs-content" style="padding:0;"></div>
       </div>
-      <div class="pnl-grid" id="bs-content"></div>
+      </div>
     </div>
 
     <!-- EXPENSES -->
@@ -2142,77 +2231,60 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 
     <!-- CREDIT LINES -->
     <div class="tab-panel" id="tab-credit-lines">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Credit <span>Lines</span></div>
-          <div class="page-sub">Open supplier balances grouped by vendor until you settle them from a bank account.</div>
+      <div class="uni-shell">
+      <div class="uni-surface">
+        <div class="uni-header">
+          <div class="uni-header-left"><div class="uni-title">Credit Lines</div></div>
+          <button class="uni-action-btn" onclick="openModal('add-expense');setExpensePaymentMode('credit')">Add Credit Expense</button>
         </div>
-        <button class="btn-primary" onclick="openModal('add-expense');setExpensePaymentMode('credit')">+ Add Credit Expense</button>
+        <div class="uni-body" id="credit-lines-content" style="padding:0;"></div>
       </div>
-      <div id="credit-lines-content"></div>
+      </div>
     </div>
 
     <!-- INCOME -->
     <div class="tab-panel" id="tab-income">
-      <div class="page-header">
-        <div>
-          <div class="page-title"><span>Income</span></div>
-          <div class="page-sub">Track deposits, sales, and upsells</div>
+      <div class="uni-shell">
+      <div class="uni-surface">
+        <div class="uni-header">
+          <div class="uni-header-left"><div class="uni-title">Income</div></div>
+          <button class="uni-action-btn" onclick="openModal('add-income')">Add Income</button>
         </div>
-        <button class="btn-primary" onclick="openModal('add-income')">+ Add Income</button>
-      </div>
-      <div class="table-shell">
-        <div class="table-shell-head">
-          <div class="table-shell-label">Income</div>
-          <div class="table-shell-tools">
-            <div class="table-search-wrap" id="income-search-wrap">
-              <input class="table-search-input" id="income-search" list="income-search-options" type="text" placeholder="Search vehicle" oninput="handleTableSearchInput('income');renderIncome()">
-              <button class="table-search-clear" type="button" onclick="clearTableSearch('income');renderIncome()">×</button>
+        <div class="uni-controls">
+          <select class="uni-quick-filter" id="income-type-filter" onchange="renderIncome()">
+            <option value="">Type is</option>
+            <option value="deposit">Deposit</option><option value="purchase">Vehicle Sale</option><option value="delivery">Delivery</option><option value="upsell_warranty">Warranty</option><option value="upsell_service">Service</option>
+            <option value="upsell_accessories">Accessories</option><option value="upsell_other">Other Upsell</option><option value="finance_commission">Finance Commission</option><option value="other">Other</option>
+          </select>
+          <select class="uni-quick-filter" id="income-vehicle-filter" onchange="renderIncome()">
+            <option value="">Vehicle is</option>
+            <option value="general">General</option>
+          </select>
+          <span class="filter-label">From</span>
+          <input type="date" class="filter-input" id="income-from" onchange="renderIncome()">
+          <span class="filter-label">to</span>
+          <input type="date" class="filter-input" id="income-to" onchange="renderIncome()">
+          <div style="margin-left:auto">
+            <div class="uni-search-box" id="income-search-wrap">
+              <span class="stock-search-icon">⌕</span>
+              <input id="income-search" list="income-search-options" type="text" placeholder="Search vehicle" oninput="handleTableSearchInput('income');renderIncome()">
+              <button class="stock-search-clear" type="button" onclick="clearTableSearch('income');renderIncome()">×</button>
               <datalist id="income-search-options"></datalist>
             </div>
-            <button class="table-icon-btn" type="button" onclick="toggleFilterDrawer('income')" aria-label="Open filters">≡</button>
           </div>
         </div>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr>
-              <th>Date</th><th>Type</th><th>Vehicle</th><th>Description</th><th>Amount</th><th>VAT</th><th></th>
-            </tr></thead>
-            <tbody id="income-tbody"></tbody>
-          </table>
+        <div class="uni-table-shell">
+          <div class="uni-table-wrap">
+            <table class="uni-table">
+              <thead><tr>
+                <th>Date</th><th>Type</th><th>Vehicle</th><th>Description</th><th>Amount</th><th>VAT</th><th></th>
+              </tr></thead>
+              <tbody id="income-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <div class="filter-drawer-backdrop" id="income-filter-backdrop" onclick="toggleFilterDrawer('income', false)"></div>
-      <aside class="filter-drawer" id="income-filter-drawer">
-        <div class="filter-drawer-head">
-          <div class="filter-drawer-title">Income Filters</div>
-          <button class="filter-drawer-close" type="button" onclick="toggleFilterDrawer('income', false)">×</button>
-        </div>
-        <div class="filter-drawer-body">
-          <div class="filter-drawer-group">
-            <label class="filter-drawer-label" for="income-type-filter">Type</label>
-            <select class="filter-select" id="income-type-filter" onchange="renderIncome()">
-              <option value="">All Types</option>
-              <option value="deposit">Deposit</option><option value="purchase">Vehicle Sale</option><option value="delivery">Delivery</option><option value="upsell_warranty">Warranty</option><option value="upsell_service">Service</option>
-              <option value="upsell_accessories">Accessories</option><option value="upsell_other">Other Upsell</option><option value="finance_commission">Finance Commission</option><option value="other">Other</option>
-            </select>
-          </div>
-          <div class="filter-drawer-group">
-            <label class="filter-drawer-label" for="income-vehicle-filter">Vehicle</label>
-            <select class="filter-select" id="income-vehicle-filter" onchange="renderIncome()">
-              <option value="">All Vehicles</option>
-              <option value="general">General</option>
-            </select>
-          </div>
-          <div class="filter-drawer-group">
-            <div class="filter-drawer-label">Date</div>
-            <div class="filter-drawer-row">
-              <input type="date" class="filter-input" id="income-from" onchange="renderIncome()">
-              <input type="date" class="filter-input" id="income-to" onchange="renderIncome()">
-            </div>
-          </div>
-        </div>
-      </aside>
+      </div>
     </div>
 
 
@@ -2220,176 +2292,171 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 
     <!-- SETTINGS -->
     <div class="tab-panel" id="tab-settings">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Account <span>Settings</span></div>
-          <div class="page-sub">Manage your profile and dealership settings</div>
+      <div class="uni-shell">
+      <div class="uni-surface">
+        <div class="uni-header">
+          <div class="uni-header-left"><div class="uni-title">Settings</div></div>
+        </div>
+        <div class="uni-tabs">
+          <div class="uni-tab active" onclick="showSettingsSection('profile')">Profile</div>
+          <div class="uni-tab" onclick="showSettingsSection('bank-accounts')">Bank Accounts</div>
+          <div class="uni-tab" onclick="showSettingsSection('vat')">VAT</div>
+          <div class="uni-tab" id="dealership-tab" onclick="showSettingsSection('dealership')" style="display:none">Dealership & Users</div>
+        </div>
+
+        <div class="uni-body" style="padding:0;">
+          <!-- Profile Section -->
+          <div id="settings-profile" class="uni-settings-section">
+            <div class="uni-settings-card">
+              <div class="uni-settings-card-header"><div class="uni-settings-card-title">Profile Information</div></div>
+              <div class="uni-settings-card-body">
+                <div class="form-grid">
+                  <div class="form-group span2">
+                    <label class="form-label">Full Name</label>
+                    <input class="form-control" type="text" id="profile-name" placeholder="Enter your full name">
+                  </div>
+                  <div class="form-group span2">
+                    <label class="form-label">Email</label>
+                    <input class="form-control" type="email" id="profile-email" readonly>
+                    <div style="font-size:10px;color:#958f82;margin-top:4px">Contact support to change your email address</div>
+                  </div>
+                  <div class="form-group span2">
+                    <label class="form-label">Role</label>
+                    <input class="form-control" type="text" id="profile-role" readonly>
+                  </div>
+                </div>
+                <div style="margin-top:16px;display:flex;gap:8px">
+                  <button class="uni-save-btn" onclick="saveProfile()">Save Changes</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bank Accounts Section -->
+          <div id="settings-bank-accounts" class="uni-settings-section" style="display:none">
+            <div class="uni-settings-card">
+              <div class="uni-settings-card-header">
+                <div class="uni-settings-card-title">Bank Accounts</div>
+                <button class="uni-action-btn bank-connect-trigger" onclick="connectFinexerBank(this)">Add Bank Account</button>
+              </div>
+              <div class="uni-settings-card-body" style="padding:0;">
+                <table class="uni-table">
+                  <thead><tr>
+                    <th>Account Name</th><th>Account Type</th><th>Current Balance</th><th>Account Number</th><th>Sort Code</th><th>Default</th><th>Status</th><th></th>
+                  </tr></thead>
+                  <tbody id="bank-accounts-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- VAT Section -->
+          <div id="settings-vat" class="uni-settings-section" style="display:none">
+            <div class="uni-settings-card">
+              <div class="uni-settings-card-header"><div class="uni-settings-card-title">VAT Registration</div></div>
+              <div class="uni-settings-card-body">
+                <div class="form-grid">
+                  <div class="form-group span2">
+                    <label class="form-label">VAT Registered</label>
+                    <select class="form-control" id="vat-registered-setting">
+                      <option value="false">No</option>
+                      <option value="true">Yes</option>
+                    </select>
+                  </div>
+                  <div class="form-group span2">
+                    <label class="form-label">VAT Effective Date</label>
+                    <input class="form-control" type="date" id="vat-effective-date">
+                    <div style="font-size:10px;color:#958f82;margin-top:4px">Optional. VAT reporting only applies from this date onward.</div>
+                  </div>
+                </div>
+                <div class="form-note" style="margin-top:16px">VAT types in income and expenses are now: <strong>Standard (20%)</strong>, <strong>VAT Margin</strong>, and <strong>No VAT</strong>.</div>
+                <div style="margin-top:16px;display:flex;gap:8px">
+                  <button class="uni-save-btn" onclick="saveVatSettings()">Save VAT Settings</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dealership Section (Admin Only) -->
+          <div id="settings-dealership" class="uni-settings-section" style="display:none">
+            <div class="uni-settings-card" style="margin-bottom:16px">
+              <div class="uni-settings-card-header"><div class="uni-settings-card-title">Dealership Information</div></div>
+              <div class="uni-settings-card-body">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Dealership Name</label>
+                    <input class="form-control" type="text" id="dealership-name" readonly>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Total Users</label>
+                    <input class="form-control" type="text" id="dealership-user-count" readonly>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="uni-settings-card">
+              <div class="uni-settings-card-header">
+                <div class="uni-settings-card-title">Team Members</div>
+                <button class="uni-action-btn" onclick="openModal('invite-user')">Invite User</button>
+              </div>
+              <div class="uni-settings-card-body" style="padding:0;">
+                <table class="uni-table">
+                  <thead><tr>
+                    <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th>
+                  </tr></thead>
+                  <tbody id="users-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      <!-- Settings Tabs -->
-      <div class="section-tab-row">
-        <div class="section-tab active" onclick="showSettingsSection('profile')">My Profile</div>
-        <div class="section-tab" onclick="showSettingsSection('bank-accounts')">Bank Accounts</div>
-        <div class="section-tab" onclick="showSettingsSection('vat')">VAT Registration</div>
-        <div class="section-tab" id="dealership-tab" onclick="showSettingsSection('dealership')" style="display:none">Dealership & Users</div>
-      </div>
-
-      <!-- Profile Section -->
-      <div id="settings-profile" class="settings-section">
-        <div class="card">
-          <div class="card-header"><div class="card-title">Profile Information</div></div>
-          <div class="card-body">
-            <div class="form-grid">
-              <div class="form-group span2">
-                <label class="form-label">Full Name</label>
-                <input class="form-control" type="text" id="profile-name" placeholder="Enter your full name">
-              </div>
-              <div class="form-group span2">
-                <label class="form-label">Email</label>
-                <input class="form-control" type="email" id="profile-email" readonly>
-                <div style="font-size:10px;color:var(--muted2);margin-top:4px">Contact support to change your email address</div>
-              </div>
-              <div class="form-group span2">
-                <label class="form-label">Role</label>
-                <input class="form-control" type="text" id="profile-role" readonly>
-              </div>
-            </div>
-            <div style="margin-top:16px;display:flex;gap:8px">
-              <button class="btn-primary" onclick="saveProfile()">Save Changes</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bank Accounts Section -->
-      <div id="settings-bank-accounts" class="settings-section" style="display:none">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">Bank Accounts</div>
-            <button class="btn-primary bank-connect-trigger" onclick="connectFinexerBank(this)">+ Add Bank Account</button>
-          </div>
-          <div class="card-body">
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead><tr>
-                  <th>Account Name</th><th>Account Type</th><th>Current Balance</th><th>Account Number</th><th>Sort Code</th><th>Default</th><th>Status</th><th></th>
-                </tr></thead>
-                <tbody id="bank-accounts-tbody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="settings-vat" class="settings-section" style="display:none">
-        <div class="card">
-          <div class="card-header"><div class="card-title">VAT Registration</div></div>
-          <div class="card-body">
-            <div class="form-grid">
-              <div class="form-group span2">
-                <label class="form-label">VAT Registered</label>
-                <select class="form-control" id="vat-registered-setting">
-                  <option value="false">No</option>
-                  <option value="true">Yes</option>
-                </select>
-              </div>
-              <div class="form-group span2">
-                <label class="form-label">VAT Effective Date</label>
-                <input class="form-control" type="date" id="vat-effective-date">
-                <div style="font-size:10px;color:var(--muted2);margin-top:4px">Optional. VAT reporting only applies from this date onward.</div>
-              </div>
-            </div>
-            <div class="form-note" style="margin-top:16px">VAT types in income and expenses are now: <strong>Standard (20%)</strong>, <strong>VAT Margin</strong>, and <strong>No VAT</strong>.</div>
-            <div style="margin-top:16px;display:flex;gap:8px">
-              <button class="btn-primary" onclick="saveVatSettings()">Save VAT Settings</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Dealership Section (Admin Only) -->
-      <div id="settings-dealership" class="settings-section" style="display:none">
-        <div class="card" style="margin-bottom:20px">
-          <div class="card-header"><div class="card-title">Dealership Information</div></div>
-          <div class="card-body">
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Dealership Name</label>
-                <input class="form-control" type="text" id="dealership-name" readonly>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Total Users</label>
-                <input class="form-control" type="text" id="dealership-user-count" readonly>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">Team Members</div>
-            <button class="btn-primary" onclick="openModal('invite-user')" style="padding:6px 12px;font-size:11px">+ Invite User</button>
-          </div>
-          <div class="card-body">
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead><tr>
-                  <th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th>
-                </tr></thead>
-                <tbody id="users-tbody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
     <!-- MILEAGE TRACKER -->
     <div class="tab-panel" id="tab-mileage">
-      <div class="page-header">
-        <div>
-          <div class="page-title">Mileage <span>Tracker</span></div>
-          <div class="page-sub">Track business mileage for tax deductions · 45p per mile</div>
+      <div class="uni-shell">
+      <div class="uni-surface">
+        <div class="uni-header">
+          <div class="uni-header-left"><div class="uni-title">Mileage Tracker</div></div>
+          <button class="uni-action-btn" onclick="openModal('add-mileage-trip')">Add Trip</button>
         </div>
-        <button class="btn-primary" onclick="openModal('add-mileage-trip')">+ Add Trip</button>
+        <div class="uni-summary">
+          <div class="uni-summary-card">
+            <div class="uni-summary-value" id="total-miles">0</div>
+            <div class="uni-summary-label">Miles</div>
+          </div>
+          <div class="uni-summary-card">
+            <div class="uni-summary-value" id="total-trips">0</div>
+            <div class="uni-summary-label">Trips</div>
+          </div>
+          <div class="uni-summary-card">
+            <div class="uni-summary-value" id="total-tax-claim">£0.00</div>
+            <div class="uni-summary-label">Tax Deduction (45p/mi)</div>
+          </div>
+        </div>
+        <div class="uni-controls">
+          <button class="uni-pill" onclick="setMileagePeriod('week')">This Week</button>
+          <button class="uni-pill" onclick="setMileagePeriod('month')">This Month</button>
+          <button class="uni-pill" onclick="setMileagePeriod('year')">This Year</button>
+          <button class="uni-pill" onclick="clearMileageFilters()">Clear</button>
+          <div class="filter-sep"></div>
+          <input type="date" class="filter-input" id="mileage-date-from" onchange="renderMileageTrips()">
+          <span class="filter-label">to</span>
+          <input type="date" class="filter-input" id="mileage-date-to" onchange="renderMileageTrips()">
+        </div>
+        <div class="uni-table-shell">
+          <div class="uni-table-wrap">
+            <table class="uni-table">
+              <thead><tr>
+                <th>Date</th><th>From</th><th>To</th><th>Purpose</th><th>Car</th><th>Driver</th><th>Miles</th><th>Return?</th><th>Claim</th><th>Added By</th><th></th>
+              </tr></thead>
+              <tbody id="mileage-tbody"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      
-      <div class="kpi-row" style="margin-bottom:24px">
-        <div class="kpi">
-          <div class="kpi-label">Total Miles</div>
-          <div class="kpi-value gold" id="total-miles">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Total Trips</div>
-          <div class="kpi-value" id="total-trips">0</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Tax Deduction</div>
-          <div class="kpi-value green" id="total-tax-claim">£0.00</div>
-          <div class="kpi-sub">@ 45p/mile</div>
-        </div>
-      </div>
-
-      <div class="filter-bar">
-        <span class="filter-label">Date:</span>
-        <input type="date" class="filter-input" id="mileage-date-from" onchange="renderMileageTrips()">
-        <span class="filter-label">to</span>
-        <input type="date" class="filter-input" id="mileage-date-to" onchange="renderMileageTrips()">
-        <div class="filter-sep"></div>
-        <button class="btn-ghost" onclick="setMileagePeriod('week')">This Week</button>
-        <button class="btn-ghost" onclick="setMileagePeriod('month')">This Month</button>
-        <button class="btn-ghost" onclick="setMileagePeriod('year')">This Year</button>
-        <button class="btn-ghost" onclick="clearMileageFilters()">Clear</button>
-      </div>
-
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr>
-            <th>Date</th><th>From</th><th>To</th><th>Purpose</th><th>Car</th><th>Driver</th><th>Miles</th><th>Return?</th><th>Claim</th><th>Added By</th><th></th>
-          </tr></thead>
-          <tbody id="mileage-tbody"></tbody>
-        </table>
       </div>
     </div>
 
@@ -7566,6 +7633,7 @@ function renderPnl(){
     </div>`
 
   document.getElementById('pnl-content').innerHTML=`
+    <div class="pnl-grid">
     <div>
       <div class="pnl-section">
         <div class="pnl-section-title">Money In vs Out — Cash Flow</div>
@@ -7631,6 +7699,7 @@ function renderPnl(){
           <span class="pnl-row-value" style="color:${pc(netProfitAfterDividends)}">${fmt(netProfitAfterDividends)}</span>
         </div>`:''}
       </div>
+    </div>
     </div>`
 }
 
@@ -7699,6 +7768,7 @@ function renderBalance(){
     </div>`
 
   document.getElementById('bs-content').innerHTML=`
+    <div class="pnl-grid">
     <div>
       <div class="pnl-section">
         <div class="pnl-section-title">Assets — What the Business Owns</div>
@@ -7760,6 +7830,7 @@ function renderBalance(){
         <div class="pnl-row indent"><span class="pnl-row-label">Dividends</span><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace">Shown separately below</span></div>
         <div class="pnl-row indent"><span class="pnl-row-label">SOR cars</span><span style="font-size:11px;color:var(--purple);font-family:'DM Mono',monospace">Never appear here</span></div>
       </div>
+    </div>
     </div>`
 }
 
@@ -8331,19 +8402,19 @@ function renderSettings(){
 }
 
 function showSettingsSection(section){
-  document.querySelectorAll('.settings-section').forEach(s => s.style.display = 'none')
-  document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('.uni-settings-section').forEach(s => s.style.display = 'none')
+  document.querySelectorAll('.uni-tab').forEach(t => t.classList.remove('active'))
   
   if(section === 'profile'){
     document.getElementById('settings-profile').style.display = 'block'
-    document.querySelectorAll('.section-tab')[0].classList.add('active')
+    document.querySelectorAll('.uni-tab')[0].classList.add('active')
   } else if(section === 'bank-accounts'){
     document.getElementById('settings-bank-accounts').style.display = 'block'
-    document.querySelectorAll('.section-tab')[1].classList.add('active')
+    document.querySelectorAll('.uni-tab')[1].classList.add('active')
     renderBankAccounts()
   } else if(section === 'vat'){
     document.getElementById('settings-vat').style.display = 'block'
-    document.querySelectorAll('.section-tab')[2].classList.add('active')
+    document.querySelectorAll('.uni-tab')[2].classList.add('active')
   } else if(section === 'dealership'){
     document.getElementById('settings-dealership').style.display = 'block'
     document.getElementById('dealership-tab').classList.add('active')
