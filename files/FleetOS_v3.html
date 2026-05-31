@@ -495,6 +495,45 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 .bank-cat-invoice-upload{display:flex;align-items:center;justify-content:center;height:42px;border:1.5px dashed rgba(20,19,15,0.15);border-radius:12px;background:#fff;cursor:pointer;font-family:'Inter Tight',sans-serif;font-size:14px;color:#7a7368;font-weight:500;transition:all .15s ease;}
 .bank-cat-invoice-upload:hover{border-color:#14130f;color:#14130f;background:#f7f4ef;}
 
+/* BANK SPLIT */
+.bank-split-or{display:flex;align-items:center;gap:12px;margin:8px 0 14px;color:#7a7368;font-size:12px;font-weight:500;letter-spacing:0.04em;}
+.bank-split-or::before,.bank-split-or::after{content:'';flex:1;height:1px;background:rgba(20,19,15,0.08);}
+.bank-split-btn{width:100%;height:40px;border-radius:12px;border:1.5px dashed rgba(20,19,15,0.15);background:#fff;color:#5b5248;font-family:'Inter Tight',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .15s ease;}
+.bank-split-btn:hover{border-color:#14130f;color:#14130f;background:#f7f4ef;}
+.bank-split-item{border:1px solid rgba(20,19,15,0.08);border-radius:14px;background:#faf9f6;padding:14px;margin-bottom:10px;position:relative;}
+.bank-split-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.bank-split-item-label{font-size:13px;font-weight:600;color:#2f2b28;}
+.bank-split-item-remove{border:none;background:none;color:#7a7368;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px;}
+.bank-split-item-remove:hover{color:#dc2626;background:rgba(220,38,38,0.08);}
+.bank-split-field{margin-bottom:10px;}
+.bank-split-field label{display:block;font-size:11px;color:#7a7368;margin-bottom:4px;font-weight:500;}
+.bank-split-field select,.bank-split-field input[type=number]{width:100%;height:36px;border:1px solid rgba(20,19,15,0.1);border-radius:10px;background:#fff;padding:0 10px;font-family:'Inter Tight',sans-serif;font-size:13px;color:#2f2b28;outline:none;box-sizing:border-box;}
+.bank-split-field select:focus,.bank-split-field input:focus{border-color:#14130f;box-shadow:0 0 0 3px rgba(20,19,15,0.06);}
+.bank-split-vehicle-search{position:relative;margin-bottom:0;}
+.bank-split-vehicle-search input{width:100%;height:36px;border:1px solid rgba(20,19,15,0.1);border-radius:10px;background:#fff;padding:0 10px;font-family:'Inter Tight',sans-serif;font-size:13px;color:#2f2b28;outline:none;box-sizing:border-box;}
+.bank-split-vehicle-search input:focus{border-color:#14130f;box-shadow:0 0 0 3px rgba(20,19,15,0.06);}
+.bank-split-vehicle-results{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid rgba(20,19,15,0.1);border-top:none;border-radius:0 0 10px 10px;max-height:160px;overflow-y:auto;z-index:10;display:none;box-shadow:0 6px 16px rgba(20,19,15,0.1);}
+.bank-split-vehicle-results.open{display:block;}
+.bank-split-selected{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid rgba(20,19,15,0.1);border-radius:10px;background:#f0eeea;}
+.bank-split-selected-name{font-size:13px;color:#2f2b28;font-weight:500;}
+.bank-split-selected-sub{font-size:11px;color:#7a7368;}
+.bank-split-selected-clear{border:none;background:none;color:#7a7368;font-size:16px;cursor:pointer;padding:0 4px;}
+.bank-split-toggle-row{display:flex;gap:6px;margin-bottom:8px;}
+.bank-split-toggle{flex:1;height:34px;border-radius:10px;border:1px solid rgba(20,19,15,0.1);background:#fff;color:#5b5248;font-family:'Inter Tight',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s ease;}
+.bank-split-toggle.active{background:#14130f;border-color:#14130f;color:#fff;}
+.bank-split-toggle:hover:not(.active){background:#f7f4ef;}
+.bank-split-total{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#14130f;border-radius:12px;color:#fff;margin-bottom:6px;}
+.bank-split-total-label{font-size:12px;font-weight:500;opacity:.7;}
+.bank-split-total-amount{font-size:16px;font-weight:700;}
+.bank-split-error{color:#dc2626;font-size:11px;margin-bottom:8px;min-height:14px;font-weight:500;}
+.bank-split-add{width:100%;height:36px;border-radius:10px;border:1.5px dashed rgba(20,19,15,0.15);background:#fff;color:#7a7368;font-family:'Inter Tight',sans-serif;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:12px;}
+.bank-split-add:hover{border-color:#14130f;color:#14130f;background:#f7f4ef;}
+.bank-split-invoice-upload{display:flex;align-items:center;justify-content:center;height:34px;border:1.5px dashed rgba(20,19,15,0.12);border-radius:10px;background:#fff;cursor:pointer;font-size:12px;color:#7a7368;font-weight:500;}
+.bank-split-invoice-upload:hover{border-color:#14130f;color:#14130f;}
+.bank-split-invoice-attached{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border:1px solid rgba(20,19,15,0.1);border-radius:10px;background:#f0eeea;font-size:12px;}
+.bank-split-invoice-name{color:#2f2b28;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}
+.bank-split-invoice-remove{border:none;background:none;color:#dc2626;font-size:12px;cursor:pointer;padding:2px 6px;}
+
 /* KPI */
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px;}
 .kpi{background:var(--surface);padding:18px 20px;border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow-sm);}
@@ -2825,6 +2864,8 @@ let transactionSplits = []
 let transactionDocuments = []
 let bankAccounts = []
 let bankTransactions = []
+let bankTransactionSplits = []
+let bankSplitItems = [] // [{mode:'vehicle'|'overhead', stockId:null, costType:'', vatStatus:'standard', invoiceUrl:null, amount:0}]
 let reconciliations = []
 let balanceSheet = {acc1:0,acc2:0,parts30:0,mech30:0,debtors:0,other_liab:0}
 let mileageTrips = []
@@ -4081,7 +4122,7 @@ async function loadAll(skipFinexerAutoSync=false){
   }
   loading(true,'Syncing...')
   try {
-    const [ownedRes,sorRes,txRes,refundsRes,incomeRes,splitsRes,bankRes,bankTxnRes,reconRes,bsRes,settingsRes,docsRes,mileageRes,usersRes] = await Promise.all([
+    const [ownedRes,sorRes,txRes,refundsRes,incomeRes,splitsRes,bankRes,bankTxnRes,bankSplitsRes,reconRes,bsRes,settingsRes,docsRes,mileageRes,usersRes] = await Promise.all([
       sb.from('cars').select('*').eq('type','owned').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('cars').select('*').eq('type','sor').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('expenses').select('*').eq('account_id',accountId).order('date',{ascending:false}),
@@ -4090,6 +4131,7 @@ async function loadAll(skipFinexerAutoSync=false){
       sb.from('transaction_splits').select('*'),
       sb.from('bank_accounts').select('*').eq('account_id',accountId).order('is_default',{ascending:false}),
       sb.from('bank_transactions').select('*').eq('account_id',accountId).order('transaction_date',{ascending:false}),
+      sb.from('bank_transaction_splits').select('*').eq('account_id',accountId),
       sb.from('reconciliations').select('*').eq('account_id',accountId),
       sb.from('balance_sheet').select('*').eq('account_id',accountId).limit(1).single(),
       sb.from('settings').select('*').eq('account_id',accountId),
@@ -4107,6 +4149,7 @@ async function loadAll(skipFinexerAutoSync=false){
     if(splitsRes.data) transactionSplits=splitsRes.data
     if(bankRes.data) bankAccounts=bankRes.data
     if(bankTxnRes.data) bankTransactions=bankTxnRes.data
+    bankTransactionSplits = bankSplitsRes?.data || []
     if(reconRes.data) reconciliations=reconRes.data
     if(bsRes.data) balanceSheet=bsRes.data
     transactionDocuments = docsRes.data || []
@@ -8722,6 +8765,10 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
       accountName: account?.account_name || 'Unknown',
       accountMeta: 'Bank feed',
       vehicleTitle: (() => {
+        if(txn.is_split){
+          const splits = bankTransactionSplits.filter(s => s.bank_transaction_id === txn.id)
+          return `Split (${splits.length} item${splits.length !== 1 ? 's' : ''})`
+        }
         if(txn.stock_id){
           const car = [...ownedCars, ...sorCars].find(c => String(c.id) === String(txn.stock_id))
           return car ? [car.make, car.model].filter(Boolean).join(' ') || 'Unnamed vehicle' : 'Unknown vehicle'
@@ -9342,12 +9389,24 @@ function renderTransactionDrawer(){
   if(source === 'bank'){
     const account = bankAccounts.find(b => b.id === record?.bank_account_id)
     const allCars = [...ownedCars, ...sorCars]
-    const isCategorised = Boolean(record?.stock_id || record?.is_overhead)
+    const isCategorised = Boolean(record?.stock_id || record?.is_overhead || record?.is_split)
+    const existingSplits = bankTransactionSplits.filter(s => s.bank_transaction_id === record?.id)
     // Init state from record on first open
     if(!activeTransactionDrawerEditing){
       bankCatMode = record?.stock_id ? 'vehicle' : (record?.is_overhead ? 'overhead' : 'vehicle')
       bankCatSelectedVehicleId = record?.stock_id || null
       if(isCategorised && activeTransactionDrawerTab === 'details') activeTransactionDrawerTab = 'info'
+      // If is_split, initialize bankSplitItems from existing splits
+      if(record?.is_split && existingSplits.length){
+        bankSplitItems = existingSplits.map(s => ({
+          mode: s.is_overhead ? 'overhead' : 'vehicle',
+          stockId: s.stock_id || null,
+          costType: s.cost_type || '',
+          vatStatus: s.vat_status || 'standard',
+          invoiceUrl: s.invoice_url || null,
+          amount: Math.abs(num(s.amount))
+        }))
+      }
     }
     const selectedCar = bankCatSelectedVehicleId ? allCars.find(c => String(c.id) === String(bankCatSelectedVehicleId)) : null
 
@@ -9402,15 +9461,31 @@ function renderTransactionDrawer(){
     `
 
     const catVehicle = record?.stock_id ? allCars.find(c => String(c.id) === String(record.stock_id)) : null
-    const catForLabel = catVehicle ? [catVehicle.make, catVehicle.model].filter(Boolean).join(' ') + (catVehicle.reg ? ` (${catVehicle.reg})` : '') : (record?.is_overhead ? 'Overhead' : '—')
+    const catForLabel = record?.is_split ? `Split (${existingSplits.length} item${existingSplits.length !== 1 ? 's' : ''})` : catVehicle ? [catVehicle.make, catVehicle.model].filter(Boolean).join(' ') + (catVehicle.reg ? ` (${catVehicle.reg})` : '') : (record?.is_overhead ? 'Overhead' : '—')
     const catCostType = record?.cost_type ? (isIncoming ? formatIncomeType(record.cost_type) : record.cost_type.charAt(0).toUpperCase() + record.cost_type.slice(1)) : '—'
     const catVatStatus = record?.vat_status === 'no-vat' ? 'No VAT' : record?.vat_status === 'margin' ? 'Margin' : record?.vat_status === 'standard' ? 'Standard' : '—'
+
+    // Build split breakdown HTML for info tab
+    const splitInfoHtml = record?.is_split && existingSplits.length ? existingSplits.map((s, idx) => {
+      const splitCar = s.stock_id ? allCars.find(c => String(c.id) === String(s.stock_id)) : null
+      const splitFor = splitCar ? [splitCar.make, splitCar.model].filter(Boolean).join(' ') + (splitCar.reg ? ` (${splitCar.reg})` : '') : (s.is_overhead ? 'Overhead' : '—')
+      const splitCost = s.cost_type ? (isIncoming ? formatIncomeType(s.cost_type) : s.cost_type.charAt(0).toUpperCase() + s.cost_type.slice(1)) : '—'
+      const splitVat = s.vat_status === 'no-vat' ? 'No VAT' : s.vat_status === 'margin' ? 'Margin' : 'Standard'
+      return `<div style="padding:10px 12px;background:#faf9f6;border-radius:10px;margin-bottom:6px;border:1px solid rgba(20,19,15,0.06)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:600;color:#2f2b28">Item ${idx+1}</span><span style="font-size:13px;font-weight:600;color:#2f2b28">${fmt(Math.abs(num(s.amount)))}</span></div>
+        <div style="font-size:12px;color:#7a7368">For: ${escapeHtml(splitFor)}</div>
+        <div style="font-size:12px;color:#7a7368">${escapeHtml(isIncoming ? 'Income Type' : 'Cost Type')}: ${escapeHtml(splitCost)}</div>
+        <div style="font-size:12px;color:#7a7368">VAT: ${escapeHtml(splitVat)}</div>
+        ${s.invoice_url ? `<div style="font-size:12px;color:#2563eb;margin-top:2px;cursor:pointer" onclick="viewBankInvoice('${escapeHtml(String(s.invoice_url).replace(/'/g, "\\\\'"))}')">📎 Invoice attached</div>` : ''}
+      </div>`
+    }).join('') : ''
 
     const bankInfoRows = [
       ['Date', formatTransactionDrawerDate(source, record)],
       ['Amount', `${record?.direction === 'in' ? '+' : '-'}${fmt(Math.abs(num(record?.amount)))}`],
       ['Bank Account', account?.account_name || 'Unknown'],
-      ...(isCategorised ? [['For', catForLabel], [isIncoming ? 'Income Type' : 'Cost Type', catCostType], ['VAT Status', catVatStatus]] : []),
+      ...(isCategorised && !record?.is_split ? [['For', catForLabel], [isIncoming ? 'Income Type' : 'Cost Type', catCostType], ['VAT Status', catVatStatus]] : []),
+      ...(record?.is_split ? [['For', catForLabel]] : []),
       ['Reference', record?.reference || '—'],
       ['Description', record?.description || '—']
     ].map(([label, value]) => `
@@ -9437,6 +9512,7 @@ function renderTransactionDrawer(){
         <button class="transaction-drawer-tab ${activeTransactionDrawerTab === 'attachments' ? 'active' : ''}" type="button" onclick="setTransactionDrawerTab('attachments')">Invoice <span class="transaction-drawer-tab-count">${attachments.length}</span></button>
       </div>
       ${activeTransactionDrawerTab === 'details' ? `
+        ${bankCatMode !== 'split' ? `
         <div class="bank-cat-toggle-row">
           <button class="bank-cat-toggle ${bankCatMode === 'vehicle' ? 'active' : ''}" type="button" onclick="bankCatMode='vehicle';bankCatSelectedVehicleId=null;activeTransactionDrawerEditing=true;renderTransactionDrawer()">Vehicle</button>
           <button class="bank-cat-toggle ${bankCatMode === 'overhead' ? 'active' : ''}" type="button" onclick="bankCatMode='overhead';bankCatSelectedVehicleId=null;activeTransactionDrawerEditing=true;renderTransactionDrawer()">Overhead</button>
@@ -9456,8 +9532,15 @@ function renderTransactionDrawer(){
         </div>
         ${invoiceHtml}
         <button class="bank-cat-save" type="button" onclick="saveBankCategorisation()">Save</button>
+        <div class="bank-split-or">or</div>
+        <button class="bank-split-btn" type="button" onclick="startBankSplit()">✂ Split across multiple</button>
+        ` : `
+        ${renderBankSplitItems(sourceId, isIncoming)}
+        `}
       ` : activeTransactionDrawerTab === 'info' ? `
         <div class="transaction-drawer-card">${bankInfoRows}</div>
+        ${splitInfoHtml}
+        ${record?.is_split ? `<button class="bank-cat-save" style="margin-top:8px;background:#dc2626" type="button" onclick="undoBankSplit()">Remove split</button>` : ''}
       ` : attachmentsHtml}
     `
 
@@ -9543,6 +9626,9 @@ document.addEventListener('click', e => {
     const results = document.getElementById('bank-cat-results')
     if(results) results.classList.remove('open')
   }
+  if(!e.target.closest('.bank-split-vehicle-search')){
+    document.querySelectorAll('.bank-split-vehicle-results.open').forEach(el => el.classList.remove('open'))
+  }
 })
 
 async function saveBankCategorisation(){
@@ -9604,12 +9690,311 @@ async function saveBankCategorisation(){
   }
 }
 
+// ── Bank Split Functions ──
+
+function startBankSplit(){
+  if(!activeTransactionDrawer) return
+  const {sourceId} = activeTransactionDrawer
+  const record = (bankTransactions || []).find(t => String(t.id) === String(sourceId))
+  if(!record) return
+  bankCatMode = 'split'
+  bankSplitItems = [{mode:'vehicle', stockId:null, costType:'', vatStatus:'standard', invoiceUrl:null, amount:0}]
+  activeTransactionDrawerEditing = true
+  renderTransactionDrawer()
+}
+
+function addBankSplitItem(){
+  bankSplitItems.push({mode:'vehicle', stockId:null, costType:'', vatStatus:'standard', invoiceUrl:null, amount:0})
+  renderTransactionDrawer()
+}
+
+function removeBankSplitItem(idx){
+  bankSplitItems.splice(idx, 1)
+  if(!bankSplitItems.length) bankSplitItems.push({mode:'vehicle', stockId:null, costType:'', vatStatus:'standard', invoiceUrl:null, amount:0})
+  renderTransactionDrawer()
+}
+
+function updateBankSplitField(idx, field, value){
+  if(!bankSplitItems[idx]) return
+  bankSplitItems[idx][field] = value
+  if(field === 'mode' && value === 'overhead') bankSplitItems[idx].stockId = null
+  if(field === 'amount'){
+    // Just update the total display without full re-render
+    const totalEl = document.getElementById('bank-split-total-amount')
+    const errorEl = document.getElementById('bank-split-error')
+    if(totalEl && errorEl && activeTransactionDrawer){
+      const record = (bankTransactions || []).find(t => String(t.id) === String(activeTransactionDrawer.sourceId))
+      const txnAmount = Math.abs(num(record?.amount))
+      const total = bankSplitItems.reduce((s, item) => s + (parseFloat(item.amount) || 0), 0)
+      totalEl.textContent = fmt(total)
+      const diff = Math.abs(total - txnAmount)
+      errorEl.textContent = diff > 0.01 ? `Total must equal ${fmt(txnAmount)} (difference: ${fmt(Math.abs(total - txnAmount))})` : ''
+    }
+    return
+  }
+  renderTransactionDrawer()
+}
+
+function selectBankSplitVehicle(idx, carId){
+  if(!bankSplitItems[idx]) return
+  bankSplitItems[idx].stockId = carId
+  renderTransactionDrawer()
+}
+
+function filterBankSplitVehicles(idx){
+  const input = document.getElementById(`bank-split-search-${idx}`)
+  const results = document.getElementById(`bank-split-results-${idx}`)
+  if(!input || !results) return
+  const query = input.value.toLowerCase().trim()
+  const allCars = [...ownedCars, ...sorCars]
+  const filtered = allCars.filter(c =>
+    !query ||
+    (c.reg || '').toLowerCase().includes(query) ||
+    (c.make || '').toLowerCase().includes(query) ||
+    (c.model || '').toLowerCase().includes(query) ||
+    (c.stock_number || '').toLowerCase().includes(query)
+  )
+  results.innerHTML = filtered.length
+    ? filtered.map(c => `
+      <div class="bank-cat-vehicle-option" onclick="selectBankSplitVehicle(${idx},'${c.id}')">
+        <div class="bank-cat-vehicle-option-title">${escapeHtml([c.make, c.model].filter(Boolean).join(' ') || 'Unnamed')}</div>
+        <div class="bank-cat-vehicle-option-sub">${escapeHtml(c.reg || 'No reg')}</div>
+      </div>
+    `).join('')
+    : '<div style="padding:10px;color:#7a7368;font-size:12px;text-align:center">No vehicles found</div>'
+  results.classList.add('open')
+}
+
+function handleBankSplitInvoiceUpload(idx, input){
+  const file = input?.files?.[0]
+  if(!file) return
+  const reader = new FileReader()
+  reader.onload = async () => {
+    const fileName = `split-invoices/${Date.now()}-${file.name}`
+    const {data, error} = await sb.storage.from('documents').upload(fileName, file, {upsert: true})
+    if(error){ toast('Upload failed: ' + error.message, true); return }
+    const {data: urlData} = sb.storage.from('documents').getPublicUrl(fileName)
+    bankSplitItems[idx].invoiceUrl = urlData?.publicUrl || null
+    renderTransactionDrawer()
+    toast('Invoice attached')
+  }
+  reader.readAsArrayBuffer(file)
+}
+
+function renderBankSplitItems(sourceId, isIncoming){
+  const record = (bankTransactions || []).find(t => String(t.id) === String(sourceId))
+  const txnAmount = Math.abs(num(record?.amount))
+  const allCars = [...ownedCars, ...sorCars]
+  const total = bankSplitItems.reduce((s, item) => s + (parseFloat(item.amount) || 0), 0)
+  const diff = Math.abs(total - txnAmount)
+
+  const costTypeOptions = isIncoming ? [
+    ['','Select income type'],
+    ['deposit','Deposit'],['purchase','Vehicle Sale'],['delivery','Delivery'],
+    ['upsell_warranty','Warranty'],['upsell_service','Service'],['upsell_accessories','Accessories'],
+    ['upsell_other','Other Upsell'],['finance_commission','Finance Commission'],['refund','Refund'],['other','Other']
+  ] : [
+    ['','Select cost type'],
+    ['purchase','Purchase'],['parts','Parts'],['mechanics','Mechanics'],['bodywork','Bodywork'],['valeting','Valeting'],
+    ['mot','MOT'],['warranty','Warranty'],['tax','Tax'],['transport','Transport'],['fuel','Fuel'],
+    ['advertising','Advertising'],['rent','Rent'],['utilities','Utilities'],['insurance','Insurance'],['other','Other']
+  ]
+
+  const itemsHtml = bankSplitItems.map((item, idx) => {
+    const car = item.stockId ? allCars.find(c => String(c.id) === String(item.stockId)) : null
+    const uploadId = `bank-split-invoice-${idx}`
+
+    const vehicleHtml = item.mode === 'vehicle' ? (
+      car
+        ? `<div class="bank-split-selected">
+            <div><div class="bank-split-selected-name">${escapeHtml([car.make, car.model].filter(Boolean).join(' ') || 'Unnamed')}</div>
+            <div class="bank-split-selected-sub">${escapeHtml(car.reg || '')}</div></div>
+            <button class="bank-split-selected-clear" type="button" onclick="updateBankSplitField(${idx},'stockId',null)">×</button>
+          </div>`
+        : `<div class="bank-split-vehicle-search">
+            <input type="text" id="bank-split-search-${idx}" placeholder="Search vehicle…" autocomplete="off" oninput="filterBankSplitVehicles(${idx})" onfocus="filterBankSplitVehicles(${idx})">
+            <div class="bank-split-vehicle-results" id="bank-split-results-${idx}"></div>
+          </div>`
+    ) : ''
+
+    const invoiceHtml = item.invoiceUrl
+      ? `<div class="bank-split-invoice-attached">
+          <span class="bank-split-invoice-name" title="${escapeHtml(item.invoiceUrl.split('/').pop() || 'Invoice')}">${escapeHtml(item.invoiceUrl.split('/').pop() || 'Invoice')}</span>
+          <button class="bank-split-invoice-remove" type="button" onclick="updateBankSplitField(${idx},'invoiceUrl',null)">Remove</button>
+        </div>`
+      : `<input type="file" id="${uploadId}" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx" onchange="handleBankSplitInvoiceUpload(${idx},this)" style="display:none">
+        <div class="bank-split-invoice-upload" onclick="document.getElementById('${uploadId}')?.click()">+ Invoice</div>`
+
+    return `<div class="bank-split-item">
+      <div class="bank-split-item-head">
+        <span class="bank-split-item-label">Item ${idx + 1}</span>
+        ${bankSplitItems.length > 1 ? `<button class="bank-split-item-remove" type="button" onclick="removeBankSplitItem(${idx})">×</button>` : ''}
+      </div>
+      <div class="bank-split-field">
+        <label>Amount (£)</label>
+        <input type="number" step="0.01" value="${item.amount || ''}" oninput="updateBankSplitField(${idx},'amount',parseFloat(this.value)||0)" placeholder="0.00">
+      </div>
+      <div class="bank-split-toggle-row">
+        <button class="bank-split-toggle ${item.mode === 'vehicle' ? 'active' : ''}" type="button" onclick="updateBankSplitField(${idx},'mode','vehicle')">Vehicle</button>
+        <button class="bank-split-toggle ${item.mode === 'overhead' ? 'active' : ''}" type="button" onclick="updateBankSplitField(${idx},'mode','overhead')">Overhead</button>
+      </div>
+      ${vehicleHtml}
+      <div class="bank-split-field">
+        <label>${isIncoming ? 'Income type' : 'Cost type'}</label>
+        <select onchange="updateBankSplitField(${idx},'costType',this.value)">${costTypeOptions.map(([v,l]) => `<option value="${escapeHtml(v)}" ${v === item.costType ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}</select>
+      </div>
+      <div class="bank-split-field">
+        <label>VAT status</label>
+        <select onchange="updateBankSplitField(${idx},'vatStatus',this.value)">
+          <option value="standard" ${item.vatStatus === 'standard' ? 'selected' : ''}>Standard</option>
+          <option value="margin" ${item.vatStatus === 'margin' ? 'selected' : ''}>Margin</option>
+          <option value="no-vat" ${item.vatStatus === 'no-vat' ? 'selected' : ''}>No VAT</option>
+        </select>
+      </div>
+      <div class="bank-split-field">
+        <label>Invoice</label>
+        ${invoiceHtml}
+      </div>
+    </div>`
+  }).join('')
+
+  return `
+    ${itemsHtml}
+    <button class="bank-split-add" type="button" onclick="addBankSplitItem()">+ Add item</button>
+    <div class="bank-split-total">
+      <span class="bank-split-total-label">Total allocated</span>
+      <span class="bank-split-total-amount" id="bank-split-total-amount">${fmt(total)}</span>
+    </div>
+    <div class="bank-split-error" id="bank-split-error">${diff > 0.01 ? `Total must equal ${fmt(txnAmount)} (difference: ${fmt(Math.abs(total - txnAmount))})` : ''}</div>
+    <button class="bank-cat-save" type="button" onclick="saveBankSplit()">Save split</button>
+    <button class="bank-cat-save" style="background:#fff;color:#5b5248;border:1px solid rgba(20,19,15,0.1);margin-top:6px" type="button" onclick="bankCatMode='vehicle';renderTransactionDrawer()">Cancel</button>
+  `
+}
+
+async function saveBankSplit(){
+  if(!activeTransactionDrawer) return
+  const {sourceId} = activeTransactionDrawer
+  const record = (bankTransactions || []).find(t => String(t.id) === String(sourceId))
+  if(!record) return
+
+  const txnAmount = Math.abs(num(record.amount))
+  const total = bankSplitItems.reduce((s, item) => s + (parseFloat(item.amount) || 0), 0)
+
+  if(Math.abs(total - txnAmount) > 0.01){
+    toast('Total split must equal transaction amount', true)
+    return
+  }
+
+  for(let i = 0; i < bankSplitItems.length; i++){
+    const item = bankSplitItems[i]
+    if(item.mode === 'vehicle' && !item.stockId){
+      toast(`Item ${i + 1}: please select a vehicle`, true)
+      return
+    }
+    if(!item.amount || item.amount <= 0){
+      toast(`Item ${i + 1}: enter an amount`, true)
+      return
+    }
+  }
+
+  try {
+    // Delete existing splits
+    await sb.from('bank_transaction_splits').delete().eq('bank_transaction_id', sourceId)
+
+    // Insert new splits
+    const splits = bankSplitItems.map(item => ({
+      bank_transaction_id: sourceId,
+      account_id: accountId,
+      stock_id: item.mode === 'vehicle' ? Number(item.stockId) : null,
+      is_overhead: item.mode === 'overhead',
+      cost_type: item.costType || null,
+      vat_status: item.vatStatus || 'standard',
+      invoice_url: item.invoiceUrl || null,
+      amount: item.amount
+    }))
+
+    const {error: insertError} = await sb.from('bank_transaction_splits').insert(splits)
+    if(insertError) throw insertError
+
+    // Mark parent as split and clear single-categorisation fields
+    const {error: updateError} = await sb.from('bank_transactions').update({
+      is_split: true,
+      stock_id: null,
+      is_overhead: false,
+      cost_type: null,
+      vat_status: null,
+      invoice_url: null
+    }).eq('id', sourceId)
+    if(updateError) throw updateError
+
+    // Update vehicle statuses for any deposit/purchase splits
+    if(record.direction === 'in'){
+      for(const item of bankSplitItems){
+        if(item.stockId && (item.costType === 'deposit' || item.costType === 'purchase')){
+          const allCars = [...ownedCars, ...sorCars]
+          const car = allCars.find(c => String(c.id) === String(item.stockId))
+          if(car){
+            const carUpdates = {}
+            if(item.costType === 'purchase'){
+              carUpdates.status = 'Sold'
+              if(!car.sale_date) carUpdates.sale_date = record.transaction_date || today()
+              carUpdates.sold = num(car.deposit_amount) + item.amount
+            } else if(item.costType === 'deposit' && car.status !== 'Sold'){
+              carUpdates.status = 'Deposited'
+              carUpdates.deposit_date = record.transaction_date || today()
+              carUpdates.deposit_amount = num(car.deposit_amount) + item.amount
+              carUpdates.deposit_received = carUpdates.deposit_amount
+            }
+            if(Object.keys(carUpdates).length){
+              await sb.from('cars').update(carUpdates).eq('id', item.stockId)
+            }
+          }
+        }
+      }
+    }
+
+    toast('Split saved')
+    activeTransactionDrawerEditing = false
+    activeTransactionDrawerTab = 'info'
+    bankCatMode = 'vehicle'
+    await loadAll()
+    renderTransactionDrawer()
+  } catch(error){
+    toast('Error saving split: ' + error.message, true)
+  }
+}
+
+async function undoBankSplit(){
+  if(!activeTransactionDrawer) return
+  const {sourceId} = activeTransactionDrawer
+  try {
+    await sb.from('bank_transaction_splits').delete().eq('bank_transaction_id', sourceId)
+    await sb.from('bank_transactions').update({
+      is_split: false,
+      stock_id: null,
+      is_overhead: false,
+      cost_type: null,
+      vat_status: null
+    }).eq('id', sourceId)
+    toast('Split removed')
+    activeTransactionDrawerEditing = false
+    activeTransactionDrawerTab = 'details'
+    bankCatMode = 'vehicle'
+    bankSplitItems = []
+    await loadAll()
+    renderTransactionDrawer()
+  } catch(error){
+    toast('Error removing split: ' + error.message, true)
+  }
+}
+
 function openTransactionDrawer(source, sourceId){
   activeTransactionDrawer = {source, sourceId}
   activeTransactionDrawerTab = 'details'
   activeTransactionDrawerEditing = false
   bankCatMode = 'vehicle'
   bankCatSelectedVehicleId = null
+  bankSplitItems = []
   document.body.classList.add('transaction-drawer-open')
   renderTransactionDrawer()
 }
