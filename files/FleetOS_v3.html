@@ -1289,6 +1289,292 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
   .dashboard-redesign .dashboard-activity-panel + .dashboard-activity-panel{border-left:none;border-top:1px solid var(--dash-line-2);}
   .dashboard-redesign .dashboard-hero-row{flex-direction:column;}
 }
+
+/* ═══════════════════════════════════════════════
+   MOBILE – 768px and below
+   ═══════════════════════════════════════════════ */
+@media(max-width:768px){
+  /* ── Hide sidebar, show mobile header + bottom nav ── */
+  .sidebar{display:none !important;}
+  .main-content{margin-left:0 !important;padding-bottom:72px;}
+  .content{padding:0 0 8px !important;}
+
+  /* ── Mobile top header ── */
+  .mobile-header{display:flex !important;}
+
+  /* ── Mobile bottom nav ── */
+  .mobile-bottom-nav{display:flex !important;}
+
+  /* ── Mobile menu overlay ── */
+  .mobile-menu-overlay.open{display:flex;}
+
+  /* ── Dashboard adjustments ── */
+  .dashboard-page-shell{margin:0 !important;}
+  .dashboard-page-header{padding:12px 16px !important;}
+  .dashboard-page-actions{flex-wrap:wrap;gap:8px;}
+  .dashboard-page-btn{font-size:13px;padding:8px 14px;}
+  .dashboard-redesign{padding:0 !important;}
+  .dashboard-redesign .dashboard-hero-row{gap:8px;}
+  .dashboard-redesign .dashboard-hero-card{padding:16px 14px;}
+  .dashboard-redesign .dashboard-hero-metric{font-size:28px !important;}
+  .dashboard-redesign .dashboard-hero-label{font-size:11px;}
+  .dashboard-summary-shell{max-height:none;}
+
+  /* ── Stock page ── */
+  .stock-template{margin:0 !important;}
+  .stock-redesign .stock-page-header{padding:12px 16px !important;}
+  .stock-redesign .stock-summary{padding:8px 16px !important;gap:8px !important;}
+  .stock-redesign .stock-controls{padding:8px 16px !important;}
+  .stock-redesign .stock-search-box{width:100% !important;min-width:0 !important;}
+
+  /* Stock table: hide Advertised, Sold For, Direct Costs, VAT on mobile */
+  .stock-redesign .stock-table{min-width:0 !important;}
+  .stock-redesign .stock-table th:nth-child(3),
+  .stock-redesign .stock-table td:nth-child(3),
+  .stock-redesign .stock-table th:nth-child(4),
+  .stock-redesign .stock-table td:nth-child(4),
+  .stock-redesign .stock-table th:nth-child(5),
+  .stock-redesign .stock-table td:nth-child(5),
+  .stock-redesign .stock-table th:nth-child(6),
+  .stock-redesign .stock-table td:nth-child(6){display:none;}
+  .stock-redesign .stock-table th,
+  .stock-redesign .stock-table td{padding:10px 12px !important;font-size:12px;}
+
+  /* ── Transactions page ── */
+  .expenses-template{margin:0 !important;}
+  .expenses-header{padding:12px 16px !important;}
+  .expenses-controls{padding:8px 16px !important;}
+  .expenses-summary{padding:8px 16px !important;gap:8px !important;flex-wrap:nowrap;overflow-x:auto;}
+  .expenses-summary-card{white-space:nowrap;flex-shrink:0;}
+  .expenses-page-title{font-size:14px !important;}
+
+  /* Transactions table: hide User, Account, Invoice on mobile */
+  .expenses-table{min-width:0 !important;}
+  .expenses-table th:nth-child(3),
+  .expenses-table td:nth-child(3),
+  .expenses-table th:nth-child(4),
+  .expenses-table td:nth-child(4),
+  .expenses-table th:nth-child(5),
+  .expenses-table td:nth-child(5){display:none;}
+  .expenses-table th,
+  .expenses-table td{padding:10px 12px !important;}
+  .expenses-table th:nth-child(1),
+  .expenses-table td:nth-child(1){width:auto !important;}
+
+  /* ── Income table: hide Description, VAT ── */
+  .tab-panel#tab-income .data-table{min-width:0 !important;}
+  .tab-panel#tab-income .data-table th:nth-child(4),
+  .tab-panel#tab-income .data-table td:nth-child(4),
+  .tab-panel#tab-income .data-table th:nth-child(6),
+  .tab-panel#tab-income .data-table td:nth-child(6){display:none;}
+
+  /* ── Mileage table: hide From, To, Purpose, Car, Driver, Return, Added By ── */
+  .tab-panel#tab-mileage .data-table{min-width:0 !important;}
+  .tab-panel#tab-mileage .data-table th:nth-child(2),
+  .tab-panel#tab-mileage .data-table td:nth-child(2),
+  .tab-panel#tab-mileage .data-table th:nth-child(3),
+  .tab-panel#tab-mileage .data-table td:nth-child(3),
+  .tab-panel#tab-mileage .data-table th:nth-child(4),
+  .tab-panel#tab-mileage .data-table td:nth-child(4),
+  .tab-panel#tab-mileage .data-table th:nth-child(5),
+  .tab-panel#tab-mileage .data-table td:nth-child(5),
+  .tab-panel#tab-mileage .data-table th:nth-child(6),
+  .tab-panel#tab-mileage .data-table td:nth-child(6),
+  .tab-panel#tab-mileage .data-table th:nth-child(8),
+  .tab-panel#tab-mileage .data-table td:nth-child(8),
+  .tab-panel#tab-mileage .data-table th:nth-child(10),
+  .tab-panel#tab-mileage .data-table td:nth-child(10){display:none;}
+
+  /* ── General data tables ── */
+  .data-table{min-width:0 !important;}
+  .data-table th,.data-table td{padding:10px 10px !important;font-size:12px !important;}
+  .table-wrap{border-radius:12px;overflow-x:auto;}
+
+  /* ── KPI row ── */
+  .kpi-row{grid-template-columns:1fr 1fr !important;gap:8px;margin-bottom:16px;}
+  .kpi{padding:12px 14px;}
+
+  /* ── Page headers ── */
+  .page-header{margin-bottom:16px;padding:0 16px;}
+  .page-title{font-size:18px;}
+  .page-sub{font-size:12px;}
+
+  /* ── Modals full-width on mobile ── */
+  .modal{width:100vw !important;max-width:100vw !important;max-height:100vh !important;border-radius:0 !important;height:100vh;}
+
+  /* ── Transaction/stock drawer full screen ── */
+  .transaction-drawer{padding:0 !important;}
+  .transaction-drawer-panel{width:100vw !important;max-width:100vw !important;border-radius:0 !important;height:100vh !important;max-height:100vh !important;}
+  .transaction-drawer-floating-close{position:absolute;top:12px;left:12px;z-index:10;background:rgba(20,19,15,0.7);width:36px;height:36px;font-size:22px;}
+
+  /* ── Filter drawer full width ── */
+  .filter-drawer{width:100vw !important;border-radius:0 !important;}
+
+  /* ── Quick filters horizontal scroll ── */
+  .expenses-controls-left{overflow-x:auto;flex-wrap:nowrap;gap:6px;-webkit-overflow-scrolling:touch;}
+  .expenses-quick-filter{min-width:120px !important;font-size:12px !important;flex-shrink:0;}
+
+  .stock-redesign .stock-controls-left{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
+  .stock-redesign .stock-filter-select{min-width:100px;flex-shrink:0;font-size:12px;}
+
+  /* ── P&L / Balance sheet ── */
+  .pnl-grid{gap:0 !important;}
+  .pnl-section{padding:12px !important;border-radius:12px !important;}
+  .pnl-section-title{font-size:13px !important;}
+  .pnl-row{padding:6px 0 !important;}
+  .pnl-row-label{font-size:12px !important;}
+  .pnl-row-value{font-size:12px !important;}
+
+  /* ── Credit lines ── */
+  .credit-line-card{padding:14px !important;border-radius:12px !important;}
+
+  /* ── Settings ── */
+  .settings-section{padding:0 16px;}
+
+  /* ── Form grid single column ── */
+  .form-grid{grid-template-columns:1fr !important;}
+  .form-group.span2,.form-group.span3{grid-column:span 1 !important;}
+
+  /* ── Stock switch buttons (Owned/SOR) ── */
+  .stock-switch-btn{font-size:18px !important;}
+  .stock-switch-slash{font-size:18px !important;}
+
+  /* ── Summary shell ── */
+  .dashboard-summary-shell{max-height:none !important;}
+  .dashboard-redesign .dashboard-summary-panel{min-height:280px !important;}
+}
+
+/* ── Mobile header bar (always hidden above 768px) ── */
+.mobile-header{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px;
+  background:#f5f5f5;
+  border-bottom:1px solid rgba(20,19,15,0.06);
+  position:sticky;
+  top:0;
+  z-index:200;
+}
+.mobile-header-logo{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.mobile-header-logo .sidebar-brand-mark{
+  width:28px;height:28px;border-radius:8px;background:#14130f;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-family:'Newsreader',Georgia,serif;font-size:15px;
+  font-style:italic;font-weight:400;
+}
+.mobile-header-logo-text{
+  font-family:'Newsreader',Georgia,serif;font-size:20px;
+  font-weight:400;letter-spacing:-0.02em;color:#14130f;
+}
+.mobile-header-actions{display:flex;gap:8px;align-items:center;}
+.mobile-hamburger-btn{
+  width:36px;height:36px;border:none;background:transparent;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;border-radius:8px;
+  color:#14130f;
+}
+.mobile-hamburger-btn:hover{background:rgba(20,19,15,0.06);}
+.mobile-hamburger-btn svg{width:22px;height:22px;}
+
+/* ── Mobile bottom nav bar ── */
+.mobile-bottom-nav{
+  display:none;
+  position:fixed;
+  bottom:0;left:0;right:0;
+  height:64px;
+  background:#fff;
+  border-top:1px solid rgba(20,19,15,0.08);
+  z-index:300;
+  align-items:stretch;
+  justify-content:space-around;
+  padding:0 4px;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.mobile-nav-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  flex:1;
+  gap:3px;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  color:#8d867b;
+  font-family:'Inter Tight',sans-serif;
+  font-size:10px;
+  font-weight:500;
+  letter-spacing:0.02em;
+  padding:6px 0;
+  transition:color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.mobile-nav-item.active{color:#1f3eb8;}
+.mobile-nav-item svg{width:22px;height:22px;}
+
+/* ── Mobile menu overlay ── */
+.mobile-menu-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:400;
+  flex-direction:column;
+  justify-content:flex-end;
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.mobile-menu-sheet{
+  background:#fff;
+  border-radius:20px 20px 0 0;
+  padding:12px 0 0;
+  max-height:70vh;
+  overflow-y:auto;
+  animation:mobileSheetUp .25s ease both;
+}
+@keyframes mobileSheetUp{
+  from{transform:translateY(100%);opacity:0.5;}
+  to{transform:translateY(0);opacity:1;}
+}
+.mobile-menu-handle{
+  width:36px;height:4px;
+  background:rgba(20,19,15,0.15);
+  border-radius:2px;
+  margin:0 auto 12px;
+}
+.mobile-menu-item{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  width:100%;
+  padding:14px 24px;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  font-family:'Inter Tight',sans-serif;
+  font-size:15px;
+  font-weight:400;
+  color:#14130f;
+  text-align:left;
+  -webkit-tap-highlight-color:transparent;
+}
+.mobile-menu-item:hover{background:rgba(20,19,15,0.04);}
+.mobile-menu-item:active{background:rgba(20,19,15,0.08);}
+.mobile-menu-item svg{width:20px;height:20px;color:#8d867b;flex-shrink:0;}
+.mobile-menu-item .mobile-menu-label{flex:1;}
+.mobile-menu-divider{height:1px;background:rgba(20,19,15,0.08);margin:4px 24px;}
+.mobile-menu-cancel{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;padding:16px 24px;
+  border:none;background:transparent;cursor:pointer;
+  font-family:'Inter Tight',sans-serif;font-size:15px;font-weight:500;
+  color:#8d867b;
+  padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
+}
 </style>
 </head>
 <body>
@@ -1364,6 +1650,72 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
         <svg class="ask-spark" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l1.5 5L14 8l-4.5 1.5L8 15l-1.5-5.5L2 8l4.5-2L8 1z"/></svg>
         Ask Pitch
       </button>
+    </div>
+  </div>
+
+  <!-- MOBILE HEADER -->
+  <div class="mobile-header" id="mobile-header">
+    <div class="mobile-header-logo">
+      <div class="sidebar-brand-mark">F</div>
+      <span class="mobile-header-logo-text">FleetOS</span>
+    </div>
+    <div class="mobile-header-actions">
+      <button class="mobile-hamburger-btn" onclick="toggleMobileMenu()" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+    <button class="mobile-nav-item active" id="mob-nav-dashboard" onclick="mobileShowTab('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 10.5l9-6 9 6V20a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 20V10.5z"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="mobile-nav-item" id="mob-nav-stock" onclick="mobileShowTab('stock')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 12h18"/></svg>
+      <span>Stock</span>
+    </button>
+    <button class="mobile-nav-item" id="mob-nav-expenses" onclick="mobileShowTab('expenses')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 18L20 6M20 6H12M20 6v8"/></svg>
+      <span>Transactions</span>
+    </button>
+    <button class="mobile-nav-item" id="mob-nav-income" onclick="mobileShowTab('income')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6L20 18M4 18V10M4 18h8"/></svg>
+      <span>Income</span>
+    </button>
+    <button class="mobile-nav-item" id="mob-nav-more" onclick="toggleMobileMenu()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+      <span>More</span>
+    </button>
+  </nav>
+
+  <!-- MOBILE MENU OVERLAY -->
+  <div class="mobile-menu-overlay" id="mobile-menu-overlay" onclick="if(event.target===this)closeMobileMenu()">
+    <div class="mobile-menu-sheet">
+      <div class="mobile-menu-handle"></div>
+      <button class="mobile-menu-item" onclick="mobileShowTab('credit-lines')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M7 12h10M7 16h6"/></svg>
+        <span class="mobile-menu-label">Credit Lines</span>
+      </button>
+      <button class="mobile-menu-item" onclick="mobileShowTab('pnl')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M7.5 17V12M12 17V8M16.5 17V14" stroke-linecap="round"/></svg>
+        <span class="mobile-menu-label">Profit &amp; Loss</span>
+      </button>
+      <button class="mobile-menu-item" onclick="mobileShowTab('balance')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l5.5 3.5" stroke-linecap="round"/></svg>
+        <span class="mobile-menu-label">Balance Sheet</span>
+      </button>
+      <button class="mobile-menu-item" onclick="mobileShowTab('mileage')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 18c3-9 9-9 9-9m0 0c0 0 6 0 9 9M12 9V4.5"/></svg>
+        <span class="mobile-menu-label">Mileage Tracker</span>
+      </button>
+      <div class="mobile-menu-divider"></div>
+      <button class="mobile-menu-item" onclick="mobileShowTab('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.5 4.5l2 2M17.5 17.5l2 2M4.5 19.5l2-2M17.5 6.5l2-2" stroke-linecap="round"/></svg>
+        <span class="mobile-menu-label">Settings</span>
+      </button>
+      <button class="mobile-menu-cancel" onclick="closeMobileMenu()">Cancel</button>
     </div>
   </div>
 
@@ -4126,6 +4478,33 @@ function openDashboardSettings(){
   renderSettings()
 }
 
+// ══════════════════════════════════════════════
+// MOBILE NAVIGATION
+// ══════════════════════════════════════════════
+function toggleMobileMenu(){
+  document.getElementById('mobile-menu-overlay').classList.toggle('open')
+}
+function closeMobileMenu(){
+  document.getElementById('mobile-menu-overlay').classList.remove('open')
+}
+function mobileShowTab(name){
+  closeMobileMenu()
+  // Find matching sidebar nav button for active state
+  const normalizedTab = name === 'stock-owned' || name === 'stock-sor' ? 'stock' : name
+  const btn = document.querySelector(`.nav-btn[onclick*="showTab('${normalizedTab}'"]`)
+    || document.querySelector(`.nav-btn[title="${normalizedTab}"]`)
+  showTab(name, btn)
+  updateMobileNavActive(normalizedTab)
+}
+function updateMobileNavActive(tab){
+  document.querySelectorAll('.mobile-nav-item').forEach(b => b.classList.remove('active'))
+  const bottomTabs = ['dashboard','stock','expenses','income']
+  if(bottomTabs.includes(tab)){
+    const el = document.getElementById('mob-nav-' + tab)
+    if(el) el.classList.add('active')
+  }
+}
+
 function showTab(name,btn){
   if(name === 'stock-owned'){
     name = 'stock'
@@ -4144,6 +4523,7 @@ function showTab(name,btn){
   if(btn) btn.classList.add('active')
   currentTab=name
   safeLocalStorage.setItem('fleet_current_tab', name)
+  updateMobileNavActive(name)
   renderCurrentTab()
 }
 function renderCurrentTab(){
