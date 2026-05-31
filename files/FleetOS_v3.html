@@ -3362,15 +3362,10 @@ function expensePaymentBadge(expense){
 }
 
 async function applyBankBalanceDelta(bankAccountId, delta){
-  const normalizedId = normalizeBankAccountId(bankAccountId)
-  const amountDelta = num(delta)
-  if(!normalizedId || !amountDelta) return
-
-  const account = bankAccounts.find(b => Number(b.id) === normalizedId)
-  const nextBalance = num(account?.current_balance) + amountDelta
-  const {error} = await sb.from('bank_accounts').update({current_balance: nextBalance}).eq('id', normalizedId)
-  if(error) throw error
-  if(account) account.current_balance = nextBalance
+  // Bank balances are now live from the bank feed (Finexer sync).
+  // Manual transactions no longer adjust the balance — it updates
+  // automatically when the bank account syncs.
+  return
 }
 
 async function reconcileExpenseBankBalance(previousExpense=null, nextExpense=null){
@@ -5103,17 +5098,7 @@ async function saveTx(){
     await sb.from('cars').update({paid:row.amount,purchase_date:row.date}).eq('id',stockId)
   }
   
-  // Update bank account balance
-  if(bankAccountId){
-    const account = bankAccounts.find(a=>a.id==bankAccountId)
-    if(account){
-      const currentBalance = Number(account.current_balance)||0
-      const newBalance = row.type==='Refund' 
-        ? currentBalance + Number(row.amount)  // Refunds add to balance
-        : currentBalance - Number(row.amount)  // Costs deduct from balance
-      await sb.from('bank_accounts').update({current_balance:newBalance}).eq('id',bankAccountId)
-    }
-  }
+  // Bank balances are live from bank feed — manual transactions don't adjust them
   
   // Handle document upload if file selected
   const fileInput = document.getElementById('tx-document')
@@ -7260,29 +7245,7 @@ async function saveQuickEditTx(txId){
     await sb.from('cars').update({paid:updates.amount,purchase_date:updates.date}).eq('id',stockId)
   }
   
-  // Update bank account balance if amount or type changed
-  if(tx.bank_account_id){
-    const account = bankAccounts.find(a=>a.id==tx.bank_account_id)
-    if(account){
-      let currentBalance = Number(account.current_balance)||0
-      
-      // Reverse the old transaction
-      if(tx.type==='Refund'){
-        currentBalance -= Number(tx.amount)  // Remove old refund
-      } else {
-        currentBalance += Number(tx.amount)  // Add back old cost
-      }
-      
-      // Apply the new transaction
-      if(updates.type==='Refund'){
-        currentBalance += Number(updates.amount)  // Add new refund
-      } else {
-        currentBalance -= Number(updates.amount)  // Deduct new cost
-      }
-      
-      await sb.from('bank_accounts').update({current_balance:currentBalance}).eq('id',tx.bank_account_id)
-    }
-  }
+  // Bank balances are live from bank feed — manual transactions don't adjust them
   
   await loadAll()
   toast('Transaction updated')
@@ -7876,10 +7839,15 @@ async function saveBankAccount(){
   const data={
     account_name:name,
     account_type:document.getElementById('bank-account-type').value,
-    current_balance:parseFloat(document.getElementById('bank-account-balance').value)||0,
     account_number:document.getElementById('bank-account-number').value.trim()||null,
     sort_code:document.getElementById('bank-account-sort').value.trim()||null,
     is_default:isDefault
+  }
+
+  // Only set balance for manually-added accounts — Finexer-connected accounts get live balances from the bank
+  const existingAccount = editingBankAccountId ? bankAccounts.find(a=>a.id==editingBankAccountId) : null
+  if(!existingAccount?.provider || existingAccount.provider !== 'finexer'){
+    data.current_balance = parseFloat(document.getElementById('bank-account-balance').value)||0
   }
   
   try {
