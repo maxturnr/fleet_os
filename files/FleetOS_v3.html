@@ -9556,6 +9556,29 @@ async function saveBankCategorisation(){
   try {
     const {error} = await sb.from('bank_transactions').update(updates).eq('id', sourceId)
     if(error) throw error
+
+    // Update vehicle status for incoming deposit / vehicle sale
+    const record = (bankTransactions || []).find(t => String(t.id) === String(sourceId))
+    if(stockId && record?.direction === 'in' && (costType === 'deposit' || costType === 'purchase')){
+      const allCars = [...ownedCars, ...sorCars]
+      const car = allCars.find(c => String(c.id) === String(stockId))
+      if(car){
+        const carUpdates = {}
+        if(costType === 'purchase'){
+          carUpdates.status = 'Sold'
+          if(!car.sale_date) carUpdates.sale_date = record.transaction_date || today()
+        } else if(costType === 'deposit' && car.status !== 'Sold'){
+          carUpdates.status = 'Deposited'
+          if(!car.deposit_date) carUpdates.deposit_date = record.transaction_date || today()
+          carUpdates.deposit_amount = num(car.deposit_amount) + Math.abs(num(record.amount))
+          carUpdates.deposit_received = carUpdates.deposit_amount
+        }
+        if(Object.keys(carUpdates).length){
+          await sb.from('cars').update(carUpdates).eq('id', stockId)
+        }
+      }
+    }
+
     toast('Transaction categorised')
     activeTransactionDrawerEditing = false
     activeTransactionDrawerTab = 'info'
