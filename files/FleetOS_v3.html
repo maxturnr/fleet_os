@@ -3724,7 +3724,7 @@ function sorProfit(car){
   const netFee = sorNetFee(car)
   const costs = getDirectCosts(car.id)
   const net = netFee + extraIncomeNet - costs
-  const tax = net>0?net*0.19:0
+  const tax = net>0?net*0.20:0
   return {cashCollected:getVehicleSaleIncomeTotal(car?.id),grossFee,netFee,extraIncomeGross,extraIncomeNet,costs,net,tax,afterTax:net-tax}
 }
 
@@ -3740,7 +3740,7 @@ function ownedProfit(car){
   const netVat = saleVat - vatReclaimable
   const gross = salePrice + extraIncomeNet - Number(car.paid) - costs - netVat
   const netProfit = gross
-  const tax = netProfit > 0 ? netProfit * 0.19 : 0
+  const tax = netProfit > 0 ? netProfit * 0.20 : 0
   return {
     salePrice,
     extraIncomeGross,
@@ -6205,7 +6205,9 @@ function renderDashboard(){
   const allTimeVat = allSoldOwned.reduce((sum, car) => sum + getOwnedVehicleVat(car), 0)
   const allTimeOverhead = transactions.filter(t => !t.stock_id && t.type !== 'Dividend').reduce((sum, t) => sum + getExpenseNetAmount(t), 0)
   const netBeforeTax = allTimeRevenue + allMileageRefund - allTimeBuyPrice - allTimeDirectCosts - allTimeVat - allTimeOverhead
-  const corpTaxReserve = netBeforeTax > 0 ? netBeforeTax * 0.19 : 0
+  // Corp tax: 20% of profit from sold cars + SOR fees only (not overhead/mileage)
+  const vehicleProfit = allTimeRevenue - allTimeBuyPrice - allTimeDirectCosts - allTimeVat
+  const corpTaxReserve = vehicleProfit > 0 ? vehicleProfit * 0.20 : 0
   const totalAssets = totalBankBalance + stockAdvertisedVal + num(balanceSheet.debtors) + allMileageRefund + vatReclaimAsset
   const totalLiabilities = num(balanceSheet.parts30) + num(balanceSheet.mech30) + unpaid + corpTaxReserve + vatLiability + num(balanceSheet.other_liab)
   const netWorth = totalAssets - totalLiabilities
@@ -7542,7 +7544,8 @@ function renderPnl(){
   const mileageRefund=getMileageRefundTotal(mileageInPeriod)
   
   const profitBeforeTax=netBeforeTax+mileageRefund
-  const corpTax=profitBeforeTax>0?profitBeforeTax*0.19:0
+  // Corp tax: 20% of sold car profit + SOR fees only (not overhead/mileage)
+  const corpTax=totalGross>0?totalGross*0.20:0
   
   const netAfterTax=profitBeforeTax-corpTax
   
@@ -7616,7 +7619,7 @@ function renderPnl(){
           <span class="pnl-row-label">Net Profit Before Tax</span>
           <span class="pnl-row-value" style="color:${pc(profitBeforeTax)}">${fmt(profitBeforeTax)}</span>
         </div>
-        ${prow('Corporation Tax (19%)',corpTax,'var(--red)',true)}
+        ${prow('Corporation Tax (20%)',corpTax,'var(--red)',true)}
         <div class="pnl-row total" style="border-top:2px solid ${pc(netAfterTax)}">
           <span class="pnl-row-label" style="color:${pc(netAfterTax)}">NET PROFIT AFTER TAX</span>
           <span class="pnl-row-value" style="color:${pc(netAfterTax)};font-size:22px;font-family:'Syne',sans-serif;font-weight:800">${fmt(netAfterTax)}</span>
@@ -7669,7 +7672,9 @@ function renderBalance(){
   const aVat=allSoldOwned.reduce((s,c)=>s+getOwnedVehicleVat(c),0)
   const aOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend').reduce((s,t)=>s+getExpenseNetAmount(t),0)
   const nbt=aRev+allMileageRefund-aBuy-aDirect-aVat-aOverhead
-  const corpTaxReserve=nbt>0?nbt*0.19:0
+  // Corp tax: 20% of profit from sold cars + SOR fees only (not overhead/mileage)
+  const vehicleProfit=aRev-aBuy-aDirect-aVat
+  const corpTaxReserve=vehicleProfit>0?vehicleProfit*0.20:0
 
   // Calculate total bank balances
   const totalBankBalance=bankAccounts.reduce((s,b)=>s+Number(b.current_balance||0),0)
@@ -7742,7 +7747,7 @@ function renderBalance(){
         ${brow('30-Day Owed — Parts',balanceSheet.parts30||0,'var(--red)',true)}
         ${brow('30-Day Owed — Mechanics',balanceSheet.mech30||0,'var(--red)',true)}
         ${brow('Vendor Credit Lines',vendorCreditLiabilities,'var(--red)',true)}
-        ${brow('Corporation Tax Reserve (19%)',corpTaxReserve,'var(--red)',true)}
+        ${brow('Corporation Tax Reserve (20%)',corpTaxReserve,'var(--red)',true)}
         ${brow('VAT Owed',vatLiability,'var(--red)',true)}
         ${brow('Other Liabilities',balanceSheet.other_liab||0,'var(--muted2)',true)}
         ${brow('TOTAL LIABILITIES',totalLiab,'var(--red)',false,true)}
@@ -7751,7 +7756,7 @@ function renderBalance(){
       <div class="pnl-section">
         <div class="pnl-section-title">Auto-Calculated</div>
         <div class="pnl-row indent"><span class="pnl-row-label">Owned stock values</span><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace">From Owned Stock tab</span></div>
-        <div class="pnl-row indent"><span class="pnl-row-label">Corp Tax Reserve</span><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace">All-time P&L × 19%</span></div>
+        <div class="pnl-row indent"><span class="pnl-row-label">Corp Tax Reserve</span><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace">Vehicle profit × 20%</span></div>
         <div class="pnl-row indent"><span class="pnl-row-label">Dividends</span><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace">Shown separately below</span></div>
         <div class="pnl-row indent"><span class="pnl-row-label">SOR cars</span><span style="font-size:11px;color:var(--purple);font-family:'DM Mono',monospace">Never appear here</span></div>
       </div>
