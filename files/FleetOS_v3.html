@@ -2337,7 +2337,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
             <div class="uni-settings-card">
               <div class="uni-settings-card-header">
                 <div class="uni-settings-card-title">Bank Accounts</div>
-                <button class="uni-action-btn bank-connect-trigger" onclick="connectFinexerBank(this)">Add Bank Account</button>
+                <button class="uni-action-btn" onclick="openModal('add-bank-account')">Add Bank Account</button>
               </div>
               <div class="uni-settings-card-body" style="padding:0;">
                 <table class="uni-table">
@@ -3429,7 +3429,7 @@ function expensePaymentBadge(expense){
 }
 
 async function applyBankBalanceDelta(bankAccountId, delta){
-  // Bank balances are now live from the bank feed (Finexer sync).
+  // Bank balances are updated manually and via transaction reconciliation.
   // Manual transactions no longer adjust the balance — it updates
   // automatically when the bank account syncs.
   return
@@ -4132,272 +4132,11 @@ function updateQBBadge(){
   if(menuItem) menuItem.textContent=qbConnected?'QB: ON':'QB: OFF'
 }
 
-async function checkFinexerCallback(){
-  const params = new URLSearchParams(window.location.search)
-  const finexerReturn = params.get('finexer_return')
-  
-  if(finexerReturn === 'success' || params.get('consent')){
-    window.history.replaceState({},'',window.location.pathname)
-    
-    toast('Syncing bank accounts...')
-    
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    try {
-      const { data: { session } } = await sb.auth.getSession()
-      if(!session?.access_token){
-        toast('Please sign in to sync your bank accounts', true)
-        return
-      }
-      
-      const response = await fetch('https://hnypmigzwfavwcwarmnk.supabase.co/functions/v1/finexer-sync-accounts', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ account_id: accountId })
-      })
-      
-      const data = await response.json()
-      if(!response.ok || data?.error){
-        console.error('Finexer sync error:', data?.error)
-        toast('Bank connected! Accounts will sync shortly.', false)
-      } else {
-        const syncedAccounts = data?.synced_accounts || 0
-        if(syncedAccounts > 0){
-          toast(`Successfully synced ${syncedAccounts} bank account${syncedAccounts > 1 ? 's' : ''}!`)
-          await loadAll(true)
-        } else {
-          toast('Bank connected! Accounts will appear shortly.', false)
-        }
-      }
-    } catch(error){
-      console.error('Finexer callback sync error:', error)
-      toast('Bank connected! Accounts will sync shortly.', false)
-    }
-  }
-}
-
-async function connectFinexerBank(trigger){
-  if(!accountId){
-    toast('No account selected', true)
-    return
-  }
-
-  const buttons=[...document.querySelectorAll('.bank-connect-trigger')]
-  const originalLabels=buttons.map(button => button.textContent)
-  buttons.forEach(button => {
-    button.disabled=true
-    button.textContent='Connecting...'
-  })
-  if(trigger && !buttons.includes(trigger)){
-    trigger.disabled=true
-    trigger.textContent='Connecting...'
-  }
-
-  try {
-    const { data: { session } } = await sb.auth.getSession()
-    if(!session?.access_token){
-      throw new Error('You need to sign in again before connecting a bank account')
-    }
-
-    const isHttpsReturn = window.location.protocol === 'https:'
-    let returnUrl = null
-    if(isHttpsReturn){
-      const baseUrl = window.location.origin + window.location.pathname
-      returnUrl = `${baseUrl}?finexer_return=success`
-    }
-    
-    const response = await fetch('https://hnypmigzwfavwcwarmnk.supabase.co/functions/v1/finexer-create-consent-link', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        account_id: accountId,
-        history_days: 365,
-        return_url: returnUrl
-      })
-    })
-
-    const data = await response.json()
-    if(!response.ok || data?.error){
-      throw new Error(data?.error || 'Failed to create Finexer consent link')
-    }
-    if(!data?.consent_url){
-      throw new Error('Finexer did not return a consent URL')
-    }
-
-    toast('Redirecting to Finexer…')
-    window.location.href = data.consent_url
-  } catch(error){
-    console.error('Finexer connect error:', error)
-    toast(error.message || 'Failed to connect bank account', true)
-    buttons.forEach((button, index) => {
-      button.disabled=false
-      button.textContent=originalLabels[index]
-    })
-    if(trigger && !buttons.includes(trigger)){
-      trigger.disabled=false
-      trigger.textContent='+ Add Bank Account'
-    }
-  }
-}
-
-async function manualSyncFinexerAccounts(button){
-  if(!accountId){
-    toast('No account selected', true)
-    return
-  }
-  
-  const originalText = button.textContent
-  button.disabled = true
-  button.textContent = 'Syncing...'
-  
-  try {
-    const { data: { session } } = await sb.auth.getSession()
-    if(!session?.access_token){
-      throw new Error('Please sign in to sync bank accounts')
-    }
-    
-    const { data: connection } = await sb
-      .from('bank_connections')
-      .select('id')
-      .eq('account_id', accountId)
-      .eq('provider', 'finexer')
-      .limit(1)
-      .maybeSingle()
-    
-    if(!connection){
-      toast('No Finexer connection found. Please connect a bank first.', true)
-      return
-    }
-    
-    const response = await fetch('https://hnypmigzwfavwcwarmnk.supabase.co/functions/v1/finexer-sync-accounts', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ account_id: accountId })
-    })
-    
-    const data = await response.json()
-    if(!response.ok || data?.error){
-      throw new Error(data?.error || 'Failed to sync bank accounts')
-    }
-    
-    const syncedAccounts = data?.synced_accounts || 0
-    const syncedTransactions = data?.synced_transactions || 0
-    
-    if(syncedAccounts > 0){
-      toast(`Synced ${syncedAccounts} account${syncedAccounts > 1 ? 's' : ''} and ${syncedTransactions} transaction${syncedTransactions !== 1 ? 's' : ''}!`)
-      await loadAll(true)
-    } else {
-      toast('No new accounts found. Your data is up to date.')
-    }
-  } catch(error){
-    console.error('Manual sync error:', error)
-    toast(error.message || 'Failed to sync bank accounts', true)
-  } finally {
-    button.disabled = false
-    button.textContent = originalText
-  }
-}
-
-async function backfillBankTransactions(daysBack = 7){
-  if(!accountId){
-    toast('No account selected', true)
-    return
-  }
-  const { data: { session } } = await sb.auth.getSession()
-  if(!session?.access_token){
-    toast('Please sign in first', true)
-    return
-  }
-  const dateFrom = new Date()
-  dateFrom.setDate(dateFrom.getDate() - daysBack)
-  const dateFromStr = dateFrom.toISOString()
-  toast(`Backfilling bank transactions from last ${daysBack} days...`)
-  try {
-    const response = await fetch('https://hnypmigzwfavwcwarmnk.supabase.co/functions/v1/finexer-sync-accounts', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ account_id: accountId, date_from: dateFromStr })
-    })
-    const data = await response.json()
-    if(!response.ok || data?.error){
-      throw new Error(data?.error || 'Backfill failed')
-    }
-    toast(`Backfill complete! Synced ${data?.synced_transactions || 0} transactions from the last ${daysBack} days.`)
-    await loadAll(true)
-  } catch(error){
-    console.error('Backfill error:', error)
-    toast(error.message || 'Backfill failed', true)
-  }
-}
-
-let finexerAutoSyncPromise = null
-
-async function maybeSyncFinexerBankAccounts(){
-  if(!accountId || finexerAutoSyncPromise) return finexerAutoSyncPromise
-
-  const cooldownKey = `finexer_sync_attempt_${accountId}`
-  const lastAttempt = Number(safeSessionStorage.getItem(cooldownKey) || 0)
-  if(Date.now() - lastAttempt < 2 * 60 * 1000) return null
-  safeSessionStorage.setItem(cooldownKey, String(Date.now()))
-
-  finexerAutoSyncPromise = (async () => {
-    const { data: { session } } = await sb.auth.getSession()
-    if(!session?.access_token) return null
-
-    const { data: connection, error: connectionError } = await sb
-      .from('bank_connections')
-      .select('id, status, last_synced_at, last_auto_synced_at')
-      .eq('account_id', accountId)
-      .eq('provider', 'finexer')
-      .limit(1)
-      .maybeSingle()
-
-    if(connectionError){
-      console.error('Failed to inspect Finexer connection:', connectionError)
-      return null
-    }
-    if(!connection) return null
-
-    const response = await fetch('https://hnypmigzwfavwcwarmnk.supabase.co/functions/v1/finexer-sync-accounts', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ account_id: accountId })
-    })
-
-    const data = await response.json()
-    if(!response.ok || data?.error){
-      throw new Error(data?.error || 'Failed to sync connected bank accounts')
-    }
-    return data
-  })().catch(error => {
-    console.error('Finexer auto-sync error:', error)
-    return null
-  }).finally(() => {
-    finexerAutoSyncPromise = null
-  })
-
-  return finexerAutoSyncPromise
-}
 
 // ══════════════════════════════════════════════
 // LOAD DATA
 // ══════════════════════════════════════════════
-async function loadAll(skipFinexerAutoSync=false){
+async function loadAll(){
   if(!accountId){
     console.error('No account ID - user not logged in')
     return
@@ -4438,14 +4177,6 @@ async function loadAll(skipFinexerAutoSync=false){
     expenseDocuments = docsRes.data || []
     mileageTrips = mileageRes.data || []
 
-    if(!skipFinexerAutoSync && bankAccounts.length===0){
-      const syncResult = await maybeSyncFinexerBankAccounts()
-      const syncedAccounts = Number(syncResult?.accounts_synced ?? syncResult?.synced_accounts ?? 0)
-      if(syncedAccounts > 0){
-        return await loadAll(true)
-      }
-    }
-    
     // Debug users RPC call
     console.log('Users RPC Response:', usersRes)
     if(usersRes.error) console.error('Users RPC Error:', usersRes.error)
@@ -4483,7 +4214,6 @@ async function initApp(){
   if(savedStockTab === 'owned' || savedStockTab === 'sor') activeStockTab = savedStockTab
   applySidebarState()
   checkQBCallback()
-  await checkFinexerCallback()
   await loadAll()
   
   // Restore last active tab
@@ -7831,10 +7561,6 @@ function renderBankAccounts(){
   if(totalBalanceEl) totalBalanceEl.textContent=fmt(totalBalance)
   if(!bankAccounts.length){
     if(settingsTbody) settingsTbody.innerHTML=emptyHtml
-    maybeSyncFinexerBankAccounts().then(result => {
-      const syncedAccounts = Number(result?.accounts_synced ?? result?.synced_accounts ?? 0)
-      if(syncedAccounts > 0) loadAll(true)
-    }).catch(error => console.error('Bank accounts tab sync error:', error))
     return
   }
   
@@ -7898,11 +7624,7 @@ async function saveBankAccount(){
     is_default:isDefault
   }
 
-  // Only set balance for manually-added accounts — Finexer-connected accounts get live balances from the bank
-  const existingAccount = editingBankAccountId ? bankAccounts.find(a=>a.id==editingBankAccountId) : null
-  if(!existingAccount?.provider || existingAccount.provider !== 'finexer'){
-    data.current_balance = parseFloat(document.getElementById('bank-account-balance').value)||0
-  }
+  data.current_balance = parseFloat(document.getElementById('bank-account-balance').value)||0
   
   try {
     if(isDefault){
@@ -11682,7 +11404,7 @@ async function deleteIncome(id){
 }
 
 // ══════════════════════════════════════════════
-// BANK TRANSACTIONS (FINEXER) – page removed, keeping render for reference
+// BANK TRANSACTIONS – page removed, keeping render for reference
 // ══════════════════════════════════════════════
 let expandedBankTxnId = null
 
