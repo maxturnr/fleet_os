@@ -4215,7 +4215,7 @@ async function initApp(){
   document.getElementById('pnl-from').value=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0]
   document.getElementById('pnl-to').value=today()
   const savedStockTab = safeSessionStorage.getItem('fleet_stock_subtab')
-  if(savedStockTab === 'owned' || savedStockTab === 'sor') activeStockTab = savedStockTab
+  if(savedStockTab === 'owned' || savedStockTab === 'sor' || savedStockTab === 'all') activeStockTab = savedStockTab
   applySidebarState()
   checkQBCallback()
   await loadAll()
@@ -4338,22 +4338,25 @@ function renderCurrentTab(){
 
 function updateStockTabUI(){
   const isOwned = activeStockTab === 'owned'
+  const isSor = activeStockTab === 'sor'
+  const isAll = activeStockTab === 'all'
   document.getElementById('stock-tab-owned')?.classList.toggle('active', isOwned)
-  document.getElementById('stock-tab-sor')?.classList.toggle('active', !isOwned)
-  document.getElementById('stock-subpanel-owned')?.classList.toggle('active', isOwned)
-  document.getElementById('stock-subpanel-sor')?.classList.toggle('active', !isOwned)
-  document.getElementById('stock-action-owned')?.classList.toggle('active', isOwned)
-  document.getElementById('stock-action-sor')?.classList.toggle('active', !isOwned)
-  document.getElementById('stock-filter-owned')?.classList.toggle('active', isOwned)
-  document.getElementById('stock-filter-sor')?.classList.toggle('active', !isOwned)
+  document.getElementById('stock-tab-sor')?.classList.toggle('active', isSor)
+  document.getElementById('stock-subpanel-owned')?.classList.toggle('active', isOwned || isAll)
+  document.getElementById('stock-subpanel-sor')?.classList.toggle('active', isSor || isAll)
+  document.getElementById('stock-action-owned')?.classList.toggle('active', isOwned || isAll)
+  document.getElementById('stock-action-sor')?.classList.toggle('active', isSor || isAll)
+  document.getElementById('stock-filter-owned')?.classList.toggle('active', isOwned || isAll)
+  document.getElementById('stock-filter-sor')?.classList.toggle('active', isSor || isAll)
   const activeLabel = document.getElementById('stock-meta-active-label')
   const valueLabel = document.getElementById('stock-meta-value-label')
-  if(activeLabel) activeLabel.textContent = isOwned ? 'In Stock' : 'On Site'
-  if(valueLabel) valueLabel.textContent = isOwned ? 'Total Value' : 'Listed Value'
+  if(activeLabel) activeLabel.textContent = isAll ? 'Active' : isOwned ? 'In Stock' : 'On Site'
+  if(valueLabel) valueLabel.textContent = isAll ? 'Total Value' : isOwned ? 'Total Value' : 'Listed Value'
 }
 
 function setStockTab(name){
-  activeStockTab = name === 'sor' ? 'sor' : 'owned'
+  const target = name === 'sor' ? 'sor' : 'owned'
+  activeStockTab = activeStockTab === target ? 'all' : target
   safeSessionStorage.setItem('fleet_stock_subtab', activeStockTab)
   updateStockTabUI()
   if(currentTab === 'stock') renderStock()
@@ -4361,7 +4364,8 @@ function setStockTab(name){
 
 function renderStock(){
   updateStockTabUI()
-  if(activeStockTab === 'sor') renderSOR()
+  if(activeStockTab === 'all'){ renderOwned(); renderSOR() }
+  else if(activeStockTab === 'sor') renderSOR()
   else renderOwned()
   updateStockMetaSummary()
 }
@@ -6663,6 +6667,16 @@ function updateStockMetaSummary(){
   const totalEl = document.getElementById('stock-meta-total')
   const activeEl = document.getElementById('stock-meta-active')
   const valueEl = document.getElementById('stock-meta-value')
+  if(activeStockTab === 'all'){
+    const totalVehicles = ownedCars.length + sorCars.length
+    const activeCount = ownedCars.filter(isOwnedActiveStock).length + sorCars.filter(car => car.status === 'On Site').length
+    const totalValue = ownedCars.filter(isOwnedActiveStock).reduce((sum, car) => sum + getOwnedBalanceSheetValue(car), 0)
+      + sorCars.filter(car => car.status === 'On Site').reduce((sum, car) => sum + num(car.sale_price || car.min_price), 0)
+    if(totalEl) totalEl.textContent = totalVehicles.toLocaleString('en-GB')
+    if(activeEl) activeEl.textContent = activeCount.toLocaleString('en-GB')
+    if(valueEl) valueEl.textContent = fmt(totalValue)
+    return
+  }
   if(activeStockTab === 'sor'){
     const totalVehicles = sorCars.length
     const onSite = sorCars.filter(car => car.status === 'On Site').length
