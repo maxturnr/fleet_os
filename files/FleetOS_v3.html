@@ -3429,10 +3429,14 @@ function expensePaymentBadge(expense){
 }
 
 async function applyBankBalanceDelta(bankAccountId, delta){
-  // Bank balances are updated manually and via transaction reconciliation.
-  // Manual transactions no longer adjust the balance — it updates
-  // automatically when the bank account syncs.
-  return
+  const id = normalizeBankAccountId(bankAccountId)
+  if(!id || !delta) return
+  const account = bankAccounts.find(b => Number(b.id) === id)
+  if(!account) return
+  const newBalance = Number(account.current_balance || 0) + delta
+  const {error} = await sb.from('bank_accounts').update({current_balance: newBalance}).eq('id', id)
+  if(error){ console.error('Bank balance update failed:', error); return }
+  account.current_balance = newBalance
 }
 
 async function reconcileExpenseBankBalance(previousExpense=null, nextExpense=null){
