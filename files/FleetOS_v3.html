@@ -169,6 +169,8 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 .stock-action-btn.active{display:inline-flex;}
 .stock-subpanel{display:none;}
 .stock-subpanel.active{display:flex;flex-direction:column;flex:1;min-height:0;}
+.stock-subpanel-label{display:none;font-size:13px;font-weight:600;color:#5f5a54;padding:12px 0 4px 4px;letter-spacing:.02em;}
+.stock-subpanel.show-label .stock-subpanel-label{display:block;}
 .stock-template{padding-top:0;margin-left:-28px;margin-right:-28px;height:calc(100vh - 44px);}
 .stock-surface{background:#fff;border:1px solid rgba(20,19,15,0.08);border-right:none;border-radius:8px 0 0 8px;box-shadow:none;overflow:hidden;display:flex;flex-direction:column;height:100%;}
 .stock-redesign{display:flex;flex-direction:column;gap:0;min-height:0;flex:1;}
@@ -1935,8 +1937,10 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
         </div>
         <div class="stock-table-shell">
           <div class="stock-subpanel active" id="stock-subpanel-owned">
+            <div class="stock-subpanel-label">Owned Stock</div>
             <div class="stock-table-wrap">
               <table class="stock-table">
+                <colgroup><col style="width:24%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:11%"><col style="width:9%"><col style="width:13%"><col style="width:13%"></colgroup>
                 <thead><tr>
                   <th>Vehicle</th>
                   <th>Paid</th>
@@ -1952,8 +1956,10 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
             </div>
           </div>
           <div class="stock-subpanel" id="stock-subpanel-sor">
+            <div class="stock-subpanel-label">Sale or Return</div>
             <div class="stock-table-wrap">
               <table class="stock-table">
+                <colgroup><col style="width:24%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:11%"><col style="width:9%"><col style="width:13%"><col style="width:13%"></colgroup>
                 <thead><tr>
                   <th>Vehicle</th>
                   <th>Sale Price</th>
@@ -1962,6 +1968,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
                   <th>VAT</th>
                   <th>Pre-Tax Profit</th>
                   <th>Status</th>
+                  <th></th>
                 </tr></thead>
                 <tbody id="sor-tbody"></tbody>
               </table>
@@ -1979,6 +1986,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
               <div class="filter-drawer-group">
                 <label class="filter-drawer-label" for="owned-status-filter">Status</label>
                 <select class="filter-select" id="owned-status-filter" onchange="renderOwned()">
+                  <option value="active">Active (In Stock & Deposited)</option>
                   <option value="">All Status</option>
                   <option>In Stock</option><option>Deposited</option><option>Sold</option><option>Part Exchange</option>
                 </select>
@@ -2007,6 +2015,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
               <div class="filter-drawer-group">
                 <label class="filter-drawer-label" for="sor-status-filter">Status</label>
                 <select class="filter-select" id="sor-status-filter" onchange="renderSOR()">
+                  <option value="active">Active (On Site)</option>
                   <option value="">All Status</option>
                   <option>On Site</option><option>Sold</option><option>Returned</option>
                 </select>
@@ -4344,6 +4353,8 @@ function updateStockTabUI(){
   document.getElementById('stock-tab-sor')?.classList.toggle('active', isSor)
   document.getElementById('stock-subpanel-owned')?.classList.toggle('active', isOwned || isAll)
   document.getElementById('stock-subpanel-sor')?.classList.toggle('active', isSor || isAll)
+  document.getElementById('stock-subpanel-owned')?.classList.toggle('show-label', isAll)
+  document.getElementById('stock-subpanel-sor')?.classList.toggle('show-label', isAll)
   document.getElementById('stock-action-owned')?.classList.toggle('active', isOwned || isAll)
   document.getElementById('stock-action-sor')?.classList.toggle('active', isSor || isAll)
   document.getElementById('stock-filter-owned')?.classList.toggle('active', isOwned || isAll)
@@ -6720,8 +6731,10 @@ function renderOwned(){
   const dateFrom=document.getElementById('owned-date-from').value
   const dateTo=document.getElementById('owned-date-to').value
   const searchQuery=(document.getElementById('stock-search')?.value || '').trim().toLowerCase()
+  const ownedActiveStatuses = ['In Stock', 'Deposited']
   let filtered=ownedCars.filter(c=>{
-    if(statusF&&c.status!==statusF) return false
+    if(statusF==='active'){ if(!ownedActiveStatuses.includes(c.status)) return false }
+    else if(statusF&&c.status!==statusF) return false
     if(makeF&&c.make!==makeF) return false
     if(searchQuery && !matchesCarSearch(c, searchQuery)) return false
     const completedDate = getOwnedCompletionDate(c)
@@ -6773,7 +6786,8 @@ function setOwnedPeriod(p){
   renderOwned()
 }
 function clearOwnedFilters(){
-  ['owned-status-filter','owned-make-filter','owned-date-from','owned-date-to'].forEach(id=>document.getElementById(id).value='')
+  ['owned-make-filter','owned-date-from','owned-date-to'].forEach(id=>document.getElementById(id).value='')
+  document.getElementById('owned-status-filter').value='active'
   renderOwned()
 }
 
@@ -6785,8 +6799,10 @@ function renderSOR(){
   const dateFrom=document.getElementById('sor-date-from').value
   const dateTo=document.getElementById('sor-date-to').value
   const searchQuery=(document.getElementById('stock-search')?.value || '').trim().toLowerCase()
+  const sorActiveStatuses = ['On Site']
   let filtered=sorCars.filter(c=>{
-    if(statusF&&c.status!==statusF) return false
+    if(statusF==='active'){ if(!sorActiveStatuses.includes(c.status)) return false }
+    else if(statusF&&c.status!==statusF) return false
     if(searchQuery && !matchesCarSearch(c, searchQuery)) return false
     if(dateFrom&&c.sale_date&&c.sale_date<dateFrom) return false
     if(dateTo&&c.sale_date&&c.sale_date>dateTo) return false
@@ -6797,7 +6813,7 @@ function renderSOR(){
     return numA - numB
   })
   const tbody=document.getElementById('sor-tbody')
-  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="7"><div class="stock-empty-state"><div class="stock-empty-icon">🔄</div><div class="stock-empty-text">No sale or return cars</div></div></td></tr>`;return}
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8"><div class="stock-empty-state"><div class="stock-empty-icon">🔄</div><div class="stock-empty-text">No sale or return cars</div></div></td></tr>`;return}
   tbody.innerHTML=filtered.map(c=>{
     const p=sorProfit(c); const costs=getDirectCosts(c.id)
     const saleIncomeTotal=p?.cashCollected ?? getVehicleSaleIncomeTotal(c.id)
@@ -6817,6 +6833,7 @@ function renderSOR(){
       <td class="cell-amount">${vatLabel}</td>
       <td class="cell-amount ${p && p.net > 0 ? 'positive' : ''}" style="color:${p?pc(p.net):'#14130f'}">${p?fmt(p.net):'—'}</td>
       <td>${renderStockStatusText(c.status)}</td>
+      <td></td>
     </tr>`
     return mainRow
   }).join('')
@@ -6831,7 +6848,8 @@ function setSORPeriod(p){
   renderSOR()
 }
 function clearSORFilters(){
-  ['sor-status-filter','sor-date-from','sor-date-to'].forEach(id=>document.getElementById(id).value='')
+  ['sor-date-from','sor-date-to'].forEach(id=>document.getElementById(id).value='')
+  document.getElementById('sor-status-filter').value='active'
   renderSOR()
 }
 
