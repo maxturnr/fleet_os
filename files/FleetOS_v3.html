@@ -2502,7 +2502,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
         <div class="form-group"><label class="form-label">Advertised Date</label><input class="form-control" type="date" id="owned-advertised-date"></div>
         <div class="form-group"><label class="form-label">Sold For (£) — if sold</label><input class="form-control" type="number" id="owned-sold" placeholder="Leave blank if unsold" step="0.01"></div>
         <div class="form-group"><label class="form-label">Deposit Date</label><input class="form-control" type="date" id="owned-deposit-date"></div>
-        <div class="form-group"><label class="form-label">Handover Date — when complete</label><input class="form-control" type="date" id="owned-handover-date"></div>
+        
         <div class="form-group span2"><label class="form-label">Status</label>
           <select class="form-control" id="owned-status" onchange="if(this.value==='Deposited'){const d=document.getElementById('owned-deposit-date');if(d&&!d.value)d.value=today()}"><option>In Stock</option><option>Deposited</option><option>Sold</option><option>Part Exchange</option></select>
         </div>
@@ -3864,7 +3864,7 @@ function getOwnedHandoverDateFromIncome(carOrStockId){
 }
 
 function getOwnedCompletionDate(car){
-  return car?.handover_date || getOwnedHandoverDateFromIncome(car) || car?.sale_date || null
+  return getOwnedHandoverDateFromIncome(car) || car?.sale_date || null
 }
 
 function isVehicleSaleIncomeType(type){
@@ -4436,7 +4436,7 @@ function chooseTransactionType(type){
 
 function openModal(name){
   if(name==='add-owned'){
-    ['owned-reg','owned-make','owned-model','owned-sold','owned-advertised-date','owned-deposit-date','owned-handover-date'].forEach(id=>document.getElementById(id).value='')
+    ['owned-reg','owned-make','owned-model','owned-sold','owned-advertised-date','owned-deposit-date'].forEach(id=>document.getElementById(id).value='')
     document.getElementById('owned-purchase-date').value=today()
     document.getElementById('owned-purchase-vat').innerHTML=ownedPurchaseVatOptions('margin')
     document.getElementById('owned-purchase-vat').value='margin'
@@ -4825,7 +4825,6 @@ async function saveOwned(){
     purchase_vat_type:normalizeOwnedPurchaseVatType(document.getElementById('owned-purchase-vat').value, document.getElementById('owned-purchase-date').value),
     advertised_date:document.getElementById('owned-advertised-date').value||null,
     deposit_date:document.getElementById('owned-deposit-date').value||null,
-    handover_date:document.getElementById('owned-handover-date').value||null,
     status:document.getElementById('owned-status').value,
   }
   let {error}=await insertCarWithFallback(row)
@@ -6473,7 +6472,7 @@ function renderStockDrawerInvoicesTable(stockId, emptyText){
   )
 }
 
-function renderOwnedStockInfoList(car, purchaseVatType, depositAmount, extraIncomeGross, handoverDate){
+function renderOwnedStockInfoList(car, purchaseVatType, depositAmount, extraIncomeGross){
   return renderStockDrawerDetailList([
     ['Registration', `<input type="text" class="stock-detail-input" id="owned-edit-reg-${car.id}" value="${(car.reg||'').replace(/"/g,'&quot;')}">`],
     ['Make', `<input type="text" class="stock-detail-input" id="owned-edit-make-${car.id}" value="${(car.make||'').replace(/"/g,'&quot;')}">`],
@@ -6487,7 +6486,6 @@ function renderOwnedStockInfoList(car, purchaseVatType, depositAmount, extraInco
     ['Sold (£)', `<input type="number" class="stock-detail-input" id="owned-edit-sold-${car.id}" value="${car.sold||''}" step="0.01">`],
     ['Extra Income Logged', `<div class="stock-detail-value" style="color:${extraIncomeGross>0?'oklch(0.55 0.14 150)':'#7a7368'};font-weight:500">${extraIncomeGross>0?fmt(extraIncomeGross):'—'}</div>`],
     ['Deposit Date', `<input type="date" class="stock-detail-input" id="owned-edit-deposit-date-${car.id}" value="${car.deposit_date||''}">`],
-    ['Handover Date', `<input type="date" class="stock-detail-input" id="owned-edit-handover-date-${car.id}" value="${handoverDate||''}">`],
     ['Status', `<select class="stock-detail-input" id="owned-edit-status-${car.id}" onchange="handleOwnedStatusChange(${car.id}, this.value)"><option ${car.status==='In Stock'?'selected':''}>In Stock</option><option ${car.status==='Deposited'?'selected':''}>Deposited</option><option ${car.status==='Part Exchange'?'selected':''}>Part Exchange</option><option ${car.status==='Sold'?'selected':''}>Sold</option></select>`]
   ])
 }
@@ -6605,7 +6603,7 @@ function renderOwnedStockDrawerContent(car){
             )
           : activeTransactionDrawerTab === 'invoices'
             ? renderStockDrawerInvoicesTable(car.id, 'No invoices attached to this vehicle')
-            : renderOwnedStockInfoList(car, purchaseVatType, depositAmount, extraIncomeGross, handoverDate)}
+            : renderOwnedStockInfoList(car, purchaseVatType, depositAmount, extraIncomeGross)}
     <div class="transaction-drawer-actions">
       <button class="transaction-drawer-action" type="button" onclick="closeTransactionDrawer()">Close</button>
       <button class="transaction-drawer-action" type="button" onclick="deleteCar(${car.id})">Delete</button>
@@ -7239,7 +7237,6 @@ async function saveQuickEditOwned(carId){
     advertised_date: document.getElementById(`owned-edit-advertised-date-${carId}`).value || null,
     sold: document.getElementById(`owned-edit-sold-${carId}`).value || null,
     deposit_date: document.getElementById(`owned-edit-deposit-date-${carId}`).value || null,
-    handover_date: document.getElementById(`owned-edit-handover-date-${carId}`).value || null,
     status: document.getElementById(`owned-edit-status-${carId}`).value
   }
   
@@ -11200,11 +11197,6 @@ async function syncOwnedCarIncomeFields(stockId){
     .map(row => row.date)
     .filter(Boolean)
     .sort()[0] || null
-  const handoverDate = purchaseRows
-    .map(row => row.date)
-    .filter(Boolean)
-    .sort()
-    .slice(-1)[0] || null
   const salePriceTotal = rows
     .filter(row => isVehicleSaleIncomeType(row.type))
     .reduce((sum, row) => sum + num(row.amount), 0)
@@ -11213,9 +11205,8 @@ async function syncOwnedCarIncomeFields(stockId){
     deposit_amount: depositAmount,
     deposit_received: depositAmount,
     deposit_date: depositAmount > 0 ? (ownedCar.deposit_date || depositDate) : null,
-    handover_date: handoverDate
   }
-  const nextCompletionDate = handoverDate || ownedCar.sale_date || null
+  const nextCompletionDate = getOwnedCompletionDate(ownedCar) || ownedCar.sale_date || null
 
   if(purchaseRows.length){
     updates.status = 'Sold'
