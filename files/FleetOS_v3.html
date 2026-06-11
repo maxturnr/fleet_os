@@ -9184,6 +9184,7 @@ async function saveTransactionDrawer(){
   } else {
     updates.paid_from_account_id = updates.bank_account_id
     updates.paid_date = statusDate || updates.date
+    updates.date = updates.paid_date
     updates.due_date = null
   }
   const nextExpense = {
@@ -10464,6 +10465,7 @@ async function saveExpenseDetails(id){
     updates.bank_account_id = bankAccountId
     updates.paid_from_account_id = bankAccountId
     updates.paid_date = statusDate || date || today()
+    updates.date = updates.paid_date
     updates.due_date = null
   }
 
@@ -10505,6 +10507,11 @@ async function updateExpenseField(id, field, value){
     updates.net_amount = netAmount
     updates.vat_amount = vatAmount
   }
+
+  // Keep date and paid_date in sync for non-credit expenses
+  if(field === 'date' && !isCreditExpense(expense)){
+    updates.paid_date = value || null
+  }
   
   // Handle overhead flag
   if(field === 'stock_id'){
@@ -10519,6 +10526,7 @@ async function updateExpenseField(id, field, value){
 
   if(field === 'paid_date'){
     updates.paid_date = value || null
+    updates.date = value || null
   }
 
   if(field === 'due_date'){
