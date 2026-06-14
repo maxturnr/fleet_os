@@ -8658,6 +8658,19 @@ function getExpenseLinkedCars(expense){
 function getExpenseVehicleMeta(expense){
   const linkedCars = getExpenseLinkedCars(expense)
 
+  if(expense?.is_split){
+    const splits = transactionSplits.filter(s => String(s.transaction_id) === String(expense.id))
+    const splitVehicleTotal = splits.reduce((sum, s) => sum + num(s.amount), 0)
+    const hasOverhead = Math.abs(num(expense.amount) - splitVehicleTotal) > 0.01
+    const parts = linkedCars.map(car => car.stock_number || car.reg || [car.make, car.model].filter(Boolean).join(' ') || 'Vehicle')
+    if(hasOverhead) parts.push('Overhead')
+    return {
+      primary: `Split: ${parts.join(' & ')}`,
+      secondary: linkedCars.map(car => car.reg).filter(Boolean).join(' / '),
+      tone: 'vehicle'
+    }
+  }
+
   if(linkedCars.length > 1){
     return {
       primary: `Split across ${linkedCars.length} vehicles`,
@@ -8711,6 +8724,21 @@ function getVehicleCellMetaFromCar(car){
 
 function getExpenseVehicleCellMeta(expense){
   const linkedCars = getExpenseLinkedCars(expense)
+
+  // For split transactions, build a combined label
+  if(expense?.is_split){
+    const splits = transactionSplits.filter(s => String(s.transaction_id) === String(expense.id))
+    const splitVehicleTotal = splits.reduce((sum, s) => sum + num(s.amount), 0)
+    const hasOverhead = Math.abs(num(expense.amount) - splitVehicleTotal) > 0.01
+
+    const labels = linkedCars.map(car => [car.make, car.model].filter(Boolean).join(' ') || car.reg || 'Vehicle')
+    if(hasOverhead) labels.push('Overhead')
+
+    return {
+      title: labels.join(' & '),
+      subtitle: linkedCars.map(car => car.reg).filter(Boolean).join(', ')
+    }
+  }
 
   if(linkedCars.length > 1){
     return {
@@ -9765,6 +9793,34 @@ function renderTransactionDrawer(){
     </div>
   `).join('')
 
+  // Build split breakdown for expense transactions
+  let expenseSplitInfoHtml = ''
+  if(source === 'expense' && record?.is_split){
+    const allStock = [...ownedCars, ...sorCars]
+    const expSplits = transactionSplits.filter(s => String(s.transaction_id) === String(record.id))
+    const vehicleSplitTotal = expSplits.reduce((sum, s) => sum + num(s.amount), 0)
+    const overheadAmount = num(record.amount) - vehicleSplitTotal
+
+    const splitCards = expSplits.map((s, idx) => {
+      const car = allStock.find(c => String(c.id) === String(s.car_id))
+      const forLabel = car ? [car.make, car.model].filter(Boolean).join(' ') + (car.reg ? ` (${car.reg})` : '') : 'Unknown vehicle'
+      return `<div style="padding:10px 12px;background:#faf9f6;border-radius:10px;margin-bottom:6px;border:1px solid rgba(20,19,15,0.06)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:600;color:#2f2b28">${escapeHtml(forLabel)}</span><span style="font-size:13px;font-weight:600;color:#2f2b28">${fmt(Math.abs(num(s.amount)))}</span></div>
+      </div>`
+    })
+
+    if(overheadAmount > 0.01){
+      splitCards.push(`<div style="padding:10px 12px;background:#faf9f6;border-radius:10px;margin-bottom:6px;border:1px solid rgba(20,19,15,0.06)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:600;color:#2f2b28">Overhead</span><span style="font-size:13px;font-weight:600;color:#2f2b28">${fmt(overheadAmount)}</span></div>
+      </div>`)
+    }
+
+    expenseSplitInfoHtml = `<div style="margin-top:6px">
+      <div style="font-size:13px;font-weight:600;color:#2f2b28;margin-bottom:8px">Split Breakdown</div>
+      ${splitCards.join('')}
+    </div>`
+  }
+
   body.innerHTML = `
     <div class="transaction-drawer-hero">
       <div class="transaction-drawer-avatar">${escapeHtml((row.title || '?').charAt(0).toUpperCase())}</div>
@@ -9782,6 +9838,7 @@ function renderTransactionDrawer(){
     </div>
     ${activeTransactionDrawerTab === 'details'
       ? `<div class="transaction-drawer-card">${detailRows}</div>
+         ${expenseSplitInfoHtml}
          <div class="transaction-drawer-actions">
            ${activeTransactionDrawerEditing ? `<button class="transaction-drawer-action" type="button" onclick="activeTransactionDrawerEditing=false;renderTransactionDrawer()">Cancel</button><button class="transaction-drawer-action primary" type="button" onclick="saveTransactionDrawer()">Save</button>` : `<button class="transaction-drawer-action primary" type="button" onclick="activeTransactionDrawerEditing=true;renderTransactionDrawer()">Edit</button>`}
          </div>`
