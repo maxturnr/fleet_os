@@ -2940,13 +2940,27 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
             </div>
           </div>
         </div>
-        <div class="form-group span2">
+        <div class="form-group span2" id="expense-vehicle-section">
           <label class="form-label">Assign to Vehicle (or leave blank for overhead)</label>
           <div class="searchable-select">
             <input class="searchable-select-input" type="text" id="expense-car-search" placeholder="Start typing reg or stock number..." autocomplete="off" onfocus="openCarDropdown('expense')" oninput="filterCarDropdown('expense')">
             <div class="searchable-select-dropdown" id="expense-car-dropdown"></div>
             <input type="hidden" id="expense-stock-id">
           </div>
+          <button type="button" class="btn-ghost" style="margin-top:8px;font-size:12px;padding:4px 10px" onclick="toggleExpenseSplitMode()">Split across vehicles</button>
+        </div>
+        <div class="form-group span2" id="expense-split-section" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <label class="form-label" style="margin:0">Split Transaction</label>
+            <button type="button" class="btn-ghost" style="font-size:12px;padding:4px 10px" onclick="toggleExpenseSplitMode()">Cancel split</button>
+          </div>
+          <div id="expense-split-items"></div>
+          <button type="button" class="bank-split-add" onclick="addExpenseSplitItem()">+ Add Another Item</button>
+          <div class="bank-split-total">
+            <span class="bank-split-total-label">Split Total</span>
+            <span class="bank-split-total-amount" id="expense-split-total">£0.00</span>
+          </div>
+          <div class="bank-split-error" id="expense-split-error"></div>
         </div>
         <div class="form-group span2"><label class="form-label">Notes</label><input class="form-control" type="text" id="expense-notes" placeholder="Optional"></div>
         <div class="form-group span2">
@@ -3173,6 +3187,8 @@ let currentTab = 'dashboard'
 let activeStockTab = 'owned'
 let assigningTxId = null
 let splittingTxId = null
+let expenseSplitMode = false
+let expenseSplitItems = []
 let currentUser = null  // {id, email, full_name, role, account_id, dealer_name}
 let accountId = null
 let userRole = null
@@ -4504,6 +4520,7 @@ function openModal(name){
     document.getElementById('expense-due-date').value=''
     document.getElementById('expense-credit-reference').value=''
     document.getElementById('expense-document').value=''
+    resetExpenseSplitState()
     toggleExpensePaymentFields()
     handleExpenseTypeChange()
   }
@@ -4531,6 +4548,7 @@ function closeModal(name){
   if(name==='add-expense'){
     document.getElementById('expense-document').value=''
     document.getElementById('expense-id').value=''
+    resetExpenseSplitState()
   }
   if(name==='add-refund'){
     document.getElementById('refund-id').value=''
@@ -4801,6 +4819,170 @@ async function saveSplit(){
   } catch(e){
     loading(false)
     toast('Error saving split: '+e.message,true)
+  }
+}
+
+// ══════════════════════════════════════════════
+// EXPENSE SPLIT MODE (Add/Edit Expense Modal)
+// ══════════════════════════════════════════════
+
+function toggleExpenseSplitMode(){
+  expenseSplitMode = !expenseSplitMode
+  document.getElementById('expense-vehicle-section').style.display = expenseSplitMode ? 'none' : ''
+  document.getElementById('expense-split-section').style.display = expenseSplitMode ? '' : 'none'
+  if(expenseSplitMode){
+    // Initialize with the currently selected vehicle if any
+    const existingStockId = document.getElementById('expense-stock-id').value
+    if(existingStockId){
+      expenseSplitItems = [{stockId: existingStockId, amount: 0, isOverhead: false}]
+    } else {
+      expenseSplitItems = [{stockId: null, amount: 0, isOverhead: false}]
+    }
+    renderExpenseSplitItems()
+  } else {
+    expenseSplitItems = []
+    document.getElementById('expense-stock-id').value = ''
+    document.getElementById('expense-car-search').value = ''
+  }
+}
+
+function resetExpenseSplitState(){
+  expenseSplitMode = false
+  expenseSplitItems = []
+  const vehicleSection = document.getElementById('expense-vehicle-section')
+  const splitSection = document.getElementById('expense-split-section')
+  if(vehicleSection) vehicleSection.style.display = ''
+  if(splitSection) splitSection.style.display = 'none'
+}
+
+function addExpenseSplitItem(){
+  expenseSplitItems.push({stockId: null, amount: 0, isOverhead: false})
+  renderExpenseSplitItems()
+}
+
+function removeExpenseSplitItem(idx){
+  expenseSplitItems.splice(idx, 1)
+  if(!expenseSplitItems.length) expenseSplitItems.push({stockId: null, amount: 0, isOverhead: false})
+  renderExpenseSplitItems()
+}
+
+function renderExpenseSplitItems(){
+  const container = document.getElementById('expense-split-items')
+  if(!container) return
+  const allStock = [...ownedCars, ...sorCars]
+
+  container.innerHTML = expenseSplitItems.map((item, idx) => {
+    const car = item.stockId ? allStock.find(c => String(c.id) === String(item.stockId)) : null
+    const vehicleHtml = item.isOverhead
+      ? `<div class="bank-split-selected">
+           <div><span class="bank-split-selected-name">Overhead</span><div class="bank-split-selected-sub">No vehicle</div></div>
+           <button type="button" class="bank-split-selected-clear" onclick="clearExpenseSplitVehicle(${idx})">×</button>
+         </div>`
+      : car
+        ? `<div class="bank-split-selected">
+             <div><span class="bank-split-selected-name">${escapeHtml(car.stock_number || '')} · ${escapeHtml(car.reg || '')}</span><div class="bank-split-selected-sub">${escapeHtml((car.make || '') + ' ' + (car.model || ''))}</div></div>
+             <button type="button" class="bank-split-selected-clear" onclick="clearExpenseSplitVehicle(${idx})">×</button>
+           </div>`
+        : `<div class="bank-split-toggle-row">
+             <button type="button" class="bank-split-toggle" onclick="setExpenseSplitOverhead(${idx})">Overhead</button>
+             <button type="button" class="bank-split-toggle active" style="flex:2">Vehicle</button>
+           </div>
+           <div class="bank-split-vehicle-search">
+             <input type="text" id="expense-split-car-${idx}" placeholder="Search reg or stock number..." autocomplete="off"
+               onfocus="openExpenseSplitCarDropdown(${idx})" oninput="filterExpenseSplitCarDropdown(${idx})">
+             <div class="bank-split-vehicle-results" id="expense-split-car-dropdown-${idx}"></div>
+           </div>`
+
+    return `<div class="bank-split-item">
+      <div class="bank-split-item-head">
+        <span class="bank-split-item-label">Item ${idx + 1}</span>
+        ${expenseSplitItems.length > 1 ? `<button type="button" class="bank-split-item-remove" onclick="removeExpenseSplitItem(${idx})">×</button>` : ''}
+      </div>
+      <div class="bank-split-field">
+        <label>Assign to</label>
+        ${vehicleHtml}
+      </div>
+      <div class="bank-split-field">
+        <label>Amount (£)</label>
+        <input type="number" step="0.01" min="0" value="${item.amount || ''}" placeholder="0.00"
+          oninput="updateExpenseSplitAmount(${idx}, this.value)">
+      </div>
+    </div>`
+  }).join('')
+
+  updateExpenseSplitTotal()
+}
+
+function openExpenseSplitCarDropdown(idx){
+  filterExpenseSplitCarDropdown(idx)
+  const dropdown = document.getElementById(`expense-split-car-dropdown-${idx}`)
+  if(dropdown) dropdown.classList.add('open')
+}
+
+function filterExpenseSplitCarDropdown(idx){
+  const input = document.getElementById(`expense-split-car-${idx}`)
+  const dropdown = document.getElementById(`expense-split-car-dropdown-${idx}`)
+  if(!input || !dropdown) return
+  const query = input.value.toLowerCase()
+  const allStock = [...ownedCars, ...sorCars]
+  const filtered = allStock.filter(c =>
+    !query ||
+    (c.reg || '').toLowerCase().includes(query) ||
+    (c.stock_number || '').toLowerCase().includes(query) ||
+    (c.make || '').toLowerCase().includes(query) ||
+    (c.model || '').toLowerCase().includes(query)
+  ).slice(0, 20)
+
+  dropdown.innerHTML = filtered.map(c => `
+    <div class="searchable-select-option" onclick="selectExpenseSplitVehicle(${idx}, '${c.id}')">
+      <div class="searchable-select-option-reg">${escapeHtml(c.stock_number || '')} · ${escapeHtml(c.reg || '')}</div>
+      <div class="searchable-select-option-detail">${escapeHtml((c.make || '') + ' ' + (c.model || ''))}</div>
+    </div>
+  `).join('')
+  dropdown.classList.add('open')
+}
+
+function selectExpenseSplitVehicle(idx, carId){
+  if(!expenseSplitItems[idx]) return
+  expenseSplitItems[idx].stockId = carId
+  expenseSplitItems[idx].isOverhead = false
+  renderExpenseSplitItems()
+}
+
+function setExpenseSplitOverhead(idx){
+  if(!expenseSplitItems[idx]) return
+  expenseSplitItems[idx].stockId = null
+  expenseSplitItems[idx].isOverhead = true
+  renderExpenseSplitItems()
+}
+
+function clearExpenseSplitVehicle(idx){
+  if(!expenseSplitItems[idx]) return
+  expenseSplitItems[idx].stockId = null
+  expenseSplitItems[idx].isOverhead = false
+  renderExpenseSplitItems()
+}
+
+function updateExpenseSplitAmount(idx, value){
+  if(!expenseSplitItems[idx]) return
+  expenseSplitItems[idx].amount = parseFloat(value) || 0
+  updateExpenseSplitTotal()
+}
+
+function updateExpenseSplitTotal(){
+  const total = expenseSplitItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
+  const totalEl = document.getElementById('expense-split-total')
+  const errorEl = document.getElementById('expense-split-error')
+  if(totalEl) totalEl.textContent = fmt(total)
+
+  const txAmount = parseFloat(document.getElementById('expense-amount')?.value) || 0
+  if(errorEl){
+    const diff = Math.abs(total - txAmount)
+    if(txAmount > 0 && diff > 0.01){
+      errorEl.textContent = `Total must equal ${fmt(txAmount)} (difference: ${fmt(Math.abs(total - txAmount))})`
+    } else {
+      errorEl.textContent = ''
+    }
   }
 }
 
@@ -10738,6 +10920,29 @@ async function saveExpense(){
     return
   }
 
+  // Validate split mode
+  if(expenseSplitMode){
+    const splitTotal = expenseSplitItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
+    if(Math.abs(splitTotal - amount) > 0.01){
+      btn.disabled = false
+      btn.textContent = 'Save Expense'
+      toast(`Split total (${fmt(splitTotal)}) must equal the expense amount (${fmt(amount)})`, true)
+      return
+    }
+    if(expenseSplitItems.some(item => !item.stockId && !item.isOverhead)){
+      btn.disabled = false
+      btn.textContent = 'Save Expense'
+      toast('Assign each split item to a vehicle or mark as overhead', true)
+      return
+    }
+    if(expenseSplitItems.some(item => !item.amount || item.amount <= 0)){
+      btn.disabled = false
+      btn.textContent = 'Save Expense'
+      toast('Enter an amount for each split item', true)
+      return
+    }
+  }
+
   const expenseData = {
     account_id: accountId,
     type: expenseType,
@@ -10752,8 +10957,9 @@ async function saveExpense(){
     paid_date: isCredit ? null : expenseDate,
     paid_from_account_id: isCredit ? null : bankAccountId,
     credit_reference: creditReference,
-    stock_id: stockId || null,
-    is_overhead: !stockId,
+    stock_id: expenseSplitMode ? null : (stockId || null),
+    is_overhead: expenseSplitMode ? false : !stockId,
+    is_split: expenseSplitMode,
     date: expenseDate,
     notes: document.getElementById('expense-notes').value,
     source: 'manual',
@@ -10782,7 +10988,28 @@ async function saveExpense(){
   }
   
   const newExpenseId = expenseId || result.data[0].id
-  
+
+  // Save split items if in split mode
+  if(expenseSplitMode && expenseSplitItems.length > 0){
+    try {
+      // Remove old splits if editing
+      if(expenseId){
+        await sb.from('transaction_splits').delete().eq('transaction_id', newExpenseId)
+      }
+      const splits = expenseSplitItems.filter(item => !item.isOverhead).map(item => ({
+        transaction_id: newExpenseId,
+        car_id: item.stockId,
+        amount: item.amount
+      }))
+      if(splits.length > 0){
+        const {error: splitError} = await sb.from('transaction_splits').insert(splits)
+        if(splitError) console.error('Split insert error:', splitError)
+      }
+    } catch(err){
+      console.error('Split save error:', err)
+    }
+  }
+
   // Handle document upload if present
   const fileInput = document.getElementById('expense-document')
   if(fileInput.files.length > 0){
