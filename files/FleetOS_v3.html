@@ -3894,8 +3894,12 @@ function isOwnedActiveStock(car){
 function getOwnedBalanceSheetValue(car){
   if(!car) return 0
   if(car.status === 'Deposited'){
-    const salePrice = num(car.sold || car.final_sale_price || car.advertised || car.paid)
     const depositReceived = getOwnedDepositAmount(car)
+    // During Deposited phase, car.sold is auto-synced from income and equals the
+    // deposit total — not the real sale price.  Only trust it when it exceeds the
+    // deposit (meaning a genuine sale price was entered).
+    const trustedSold = num(car.sold) > depositReceived ? num(car.sold) : 0
+    const salePrice = trustedSold || num(car.advertised) || num(car.paid)
     return Math.max(0, salePrice - depositReceived)
   }
   return num(car.advertised)
