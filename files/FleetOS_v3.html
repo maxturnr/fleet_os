@@ -6206,9 +6206,8 @@ function renderDashboard(){
   const allTimeVat = allSoldOwned.reduce((sum, car) => sum + getOwnedVehicleVat(car), 0)
   const allTimeOverhead = transactions.filter(t => !t.stock_id && t.type !== 'Dividend').reduce((sum, t) => sum + getExpenseNetAmount(t), 0)
   const netBeforeTax = allTimeRevenue + allMileageRefund - allTimeBuyPrice - allTimeDirectCosts - allTimeVat - allTimeOverhead
-  // Corp tax: 20% of profit from sold cars + SOR fees only (not overhead/mileage)
-  const vehicleProfit = allTimeRevenue - allTimeBuyPrice - allTimeDirectCosts - allTimeVat
-  const corpTaxReserve = vehicleProfit > 0 ? vehicleProfit * 0.20 : 0
+  // Corp tax: 20% of net profit (after overhead & mileage)
+  const corpTaxReserve = netBeforeTax > 0 ? netBeforeTax * 0.20 : 0
   const totalAssets = totalBankBalance + stockAdvertisedVal + num(balanceSheet.debtors) + allMileageRefund + vatReclaimAsset
   const totalLiabilities = num(balanceSheet.parts30) + num(balanceSheet.mech30) + unpaid + corpTaxReserve + vatLiability + num(balanceSheet.other_liab)
   const netWorth = totalAssets - totalLiabilities
@@ -7560,8 +7559,8 @@ function renderPnl(){
   const mileageRefund=getMileageRefundTotal(mileageInPeriod)
   
   const profitBeforeTax=netBeforeTax+mileageRefund
-  // Corp tax: 20% of sold car profit + SOR fees only (not overhead/mileage)
-  const corpTax=totalGross>0?totalGross*0.20:0
+  // Corp tax: 20% of net profit (after overhead & mileage)
+  const corpTax=profitBeforeTax>0?profitBeforeTax*0.20:0
   
   const netAfterTax=profitBeforeTax-corpTax
   
@@ -7690,9 +7689,8 @@ function renderBalance(){
   const aVat=allSoldOwned.reduce((s,c)=>s+getOwnedVehicleVat(c),0)
   const aOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend').reduce((s,t)=>s+getExpenseNetAmount(t),0)
   const nbt=aRev+allMileageRefund-aBuy-aDirect-aVat-aOverhead
-  // Corp tax: 20% of profit from sold cars + SOR fees only (not overhead/mileage)
-  const vehicleProfit=aRev-aBuy-aDirect-aVat
-  const corpTaxReserve=vehicleProfit>0?vehicleProfit*0.20:0
+  // Corp tax: 20% of net profit (after overhead & mileage)
+  const corpTaxReserve=nbt>0?nbt*0.20:0
 
   // Calculate total bank balances
   const totalBankBalance=bankAccounts.reduce((s,b)=>s+Number(b.current_balance||0),0)
