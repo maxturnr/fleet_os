@@ -6206,8 +6206,10 @@ function renderDashboard(){
   const allTimeVat = allSoldOwned.reduce((sum, car) => sum + getOwnedVehicleVat(car), 0)
   const allTimeOverhead = transactions.filter(t => !t.stock_id && t.type !== 'Dividend').reduce((sum, t) => sum + getExpenseNetAmount(t), 0)
   const netBeforeTax = allTimeRevenue + allMileageRefund - allTimeBuyPrice - allTimeDirectCosts - allTimeVat - allTimeOverhead
-  // Corp tax: 20% of net profit (after overhead & mileage)
-  const corpTaxReserve = netBeforeTax > 0 ? netBeforeTax * 0.20 : 0
+  // Corp tax: 20% of car profit minus paid overhead only (credit lines excluded until paid)
+  const allTimePaidOverhead = transactions.filter(t => !t.stock_id && t.type !== 'Dividend' && getExpensePaymentStatus(t) === 'paid').reduce((sum, t) => sum + getExpenseNetAmount(t), 0)
+  const taxableProfit = allTimeRevenue - allTimeBuyPrice - allTimeDirectCosts - allTimeVat - allTimePaidOverhead
+  const corpTaxReserve = taxableProfit > 0 ? taxableProfit * 0.20 : 0
   const totalAssets = totalBankBalance + stockAdvertisedVal + num(balanceSheet.debtors) + allMileageRefund + vatReclaimAsset
   const totalLiabilities = num(balanceSheet.parts30) + num(balanceSheet.mech30) + unpaid + corpTaxReserve + vatLiability + num(balanceSheet.other_liab)
   const netWorth = totalAssets - totalLiabilities
@@ -7559,8 +7561,10 @@ function renderPnl(){
   const mileageRefund=getMileageRefundTotal(mileageInPeriod)
   
   const profitBeforeTax=netBeforeTax+mileageRefund
-  // Corp tax: 20% of net profit (after overhead & mileage)
-  const corpTax=profitBeforeTax>0?profitBeforeTax*0.20:0
+  // Corp tax: 20% of car profit minus paid overhead only (credit lines excluded until paid)
+  const paidOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&getExpensePaymentStatus(t)==='paid'&&(!from||t.date>=from)&&(!to||t.date<=to)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
+  const taxableProfit=totalGross-paidOverhead
+  const corpTax=taxableProfit>0?taxableProfit*0.20:0
   
   const netAfterTax=profitBeforeTax-corpTax
   
@@ -7689,8 +7693,10 @@ function renderBalance(){
   const aVat=allSoldOwned.reduce((s,c)=>s+getOwnedVehicleVat(c),0)
   const aOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend').reduce((s,t)=>s+getExpenseNetAmount(t),0)
   const nbt=aRev+allMileageRefund-aBuy-aDirect-aVat-aOverhead
-  // Corp tax: 20% of net profit (after overhead & mileage)
-  const corpTaxReserve=nbt>0?nbt*0.20:0
+  // Corp tax: 20% of car profit minus paid overhead only (credit lines excluded until paid)
+  const aPaidOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&getExpensePaymentStatus(t)==='paid').reduce((s,t)=>s+getExpenseNetAmount(t),0)
+  const taxableProfit=aRev-aBuy-aDirect-aVat-aPaidOverhead
+  const corpTaxReserve=taxableProfit>0?taxableProfit*0.20:0
 
   // Calculate total bank balances
   const totalBankBalance=bankAccounts.reduce((s,b)=>s+Number(b.current_balance||0),0)
