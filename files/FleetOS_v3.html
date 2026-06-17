@@ -2119,6 +2119,17 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
           <div class="uni-header-left"><div class="uni-title">Balance Sheet</div></div>
           <button class="uni-action-btn no-plus" onclick="openModal('edit-balance')">Update Balances</button>
         </div>
+        <div class="uni-controls">
+          <button class="uni-pill" onclick="setBalancePeriod('month')">This Month</button>
+          <button class="uni-pill" onclick="setBalancePeriod('last-month')">Last Month</button>
+          <button class="uni-pill" onclick="setBalancePeriod('quarter')">This Quarter</button>
+          <button class="uni-pill" onclick="setBalancePeriod('tax-year')">Tax Year</button>
+          <button class="uni-pill" onclick="setBalancePeriod('all')">All Time</button>
+          <div class="filter-sep"></div>
+          <input type="date" class="filter-input" id="bs-from" onchange="renderBalance()">
+          <span class="filter-label">to</span>
+          <input type="date" class="filter-input" id="bs-to" onchange="renderBalance()">
+        </div>
         <div class="uni-body" id="bs-content" style="padding:0;"></div>
       </div>
       </div>
@@ -7658,7 +7669,27 @@ function renderPnl(){
 // ══════════════════════════════════════════════
 // BALANCE SHEET
 // ══════════════════════════════════════════════
+function setBalancePeriod(p){
+  const now=new Date(); let from,to=today()
+  if(p==='month'){from=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0]}
+  if(p==='last-month'){from=new Date(now.getFullYear(),now.getMonth()-1,1).toISOString().split('T')[0];to=new Date(now.getFullYear(),now.getMonth(),0).toISOString().split('T')[0]}
+  if(p==='quarter'){const q=Math.floor(now.getMonth()/3);from=new Date(now.getFullYear(),q*3,1).toISOString().split('T')[0]}
+  if(p==='tax-year'){const yr=now.getMonth()>3||(now.getMonth()===3&&now.getDate()>=6)?now.getFullYear():now.getFullYear()-1;from=`${yr}-04-06`}
+  if(p==='all'){from=''}
+  document.getElementById('bs-from').value=from||''
+  document.getElementById('bs-to').value=to
+  renderBalance()
+}
+
 function renderBalance(){
+  const bsFrom=document.getElementById('bs-from')?.value||''
+  const bsTo=document.getElementById('bs-to')?.value||''
+  const bsInPeriod=c=>{
+    const completedDate=getOwnedCompletionDate(c)
+    return !bsFrom||!completedDate||completedDate>=bsFrom&&(!bsTo||completedDate<=bsTo)
+  }
+  const bsExpInPeriod=t=>(!bsFrom||t.date>=bsFrom)&&(!bsTo||t.date<=bsTo)
+
   const unsoldOwned=ownedCars.filter(isOwnedActiveStock)
   const stockVal=unsoldOwned.reduce((s,c)=>s+Number(c.paid||0),0)
   const stockCosts=unsoldOwned.reduce((s,c)=>s+getDirectCosts(c.id),0)
@@ -7671,40 +7702,41 @@ function renderBalance(){
   const unsoldSOR=sorCars.filter(c=>c.status!=='Sold'&&c.status!=='Returned')
   const sorPrepCosts=unsoldSOR.reduce((s,c)=>s+getDirectCosts(c.id),0)
 
-  // SOR fees earned (all-time, for reference)
+  // SOR fees earned (filtered by period)
   const allSoldSORForRef=sorCars.filter(c=>(getSorGrossRetainedFee(c)>0||getVehicleExtraIncomeNet(c.id)>0)&&(c.status==='Sold'||c.status==='Returned'))
   const sorFeesEarned=allSoldSORForRef.reduce((s,c)=>s+sorNetFee(c),0)
   const sorExtraEarned=allSoldSORForRef.reduce((s,c)=>s+getVehicleExtraIncomeNet(c.id),0)
-  const allTimeVatBreakdown = getVatBreakdown()
+  const vatBreakdown=getVatBreakdown(bsFrom,bsTo)
 
-  // Overhead costs (unassigned transactions - money spent but not on specific cars, excluding dividends)
-  const overheadCosts=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend').reduce((s,t)=>s+getExpenseNetAmount(t),0)
+  // Overhead costs (filtered by period)
+  const overheadCosts=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&bsExpInPeriod(t)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
 
-  // Corp tax from all-time P&L
-  const allSoldOwned=ownedCars.filter(c=>c.status==='Sold'&&c.paid&&getOwnedSalePrice(c))
+  // P&L figures filtered by period
+  const allSoldOwned=ownedCars.filter(c=>c.status==='Sold'&&c.paid&&getOwnedSalePrice(c)&&bsInPeriod(c))
   const allOwnedExtraNet=allSoldOwned.reduce((s,c)=>s+getVehicleExtraIncomeNet(c.id),0)
-  const allSoldSOR=sorCars.filter(c=>(getSorGrossRetainedFee(c)>0||getVehicleExtraIncomeNet(c.id)>0)&&(c.status==='Sold'||c.status==='Returned'))
+  const allSoldSOR=sorCars.filter(c=>(getSorGrossRetainedFee(c)>0||getVehicleExtraIncomeNet(c.id)>0)&&(c.status==='Sold'||c.status==='Returned')&&bsInPeriod(c))
   const allSorExtraNet=allSoldSOR.reduce((s,c)=>s+getVehicleExtraIncomeNet(c.id),0)
   const aRev=allSoldOwned.reduce((s,c)=>s+Number(c.sold),0)+allOwnedExtraNet+allSoldSOR.reduce((s,c)=>s+sorNetFee(c),0)+allSorExtraNet
-  const allMileageRefund=getMileageRefundTotal(mileageTrips)
+  const filteredMileage=mileageTrips.filter(t=>(!bsFrom||t.trip_date>=bsFrom)&&(!bsTo||t.trip_date<=bsTo))
+  const allMileageRefund=getMileageRefundTotal(filteredMileage)
   const vendorCreditLiabilities=getOutstandingCreditTotal()
   const aBuy=allSoldOwned.reduce((s,c)=>s+Number(c.paid),0)
   const aDirect=allSoldOwned.reduce((s,c)=>s+getDirectCosts(c.id),0)+allSoldSOR.reduce((s,c)=>s+getDirectCosts(c.id),0)
   const aVat=allSoldOwned.reduce((s,c)=>s+getOwnedVehicleVat(c),0)
-  const aOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend').reduce((s,t)=>s+getExpenseNetAmount(t),0)
+  const aOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&bsExpInPeriod(t)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
   const nbt=aRev+allMileageRefund-aBuy-aDirect-aVat-aOverhead
   // Corp tax: 20% of car profit minus paid overhead only (credit lines excluded until paid)
-  const aPaidOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&getExpensePaymentStatus(t)==='paid').reduce((s,t)=>s+getExpenseNetAmount(t),0)
+  const aPaidOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&getExpensePaymentStatus(t)==='paid'&&bsExpInPeriod(t)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
   const taxableProfit=aRev-aBuy-aDirect-aVat-aPaidOverhead
   const corpTaxReserve=taxableProfit>0?taxableProfit*0.20:0
 
-  // Calculate total bank balances
+  // Calculate total bank balances (always current)
   const totalBankBalance=bankAccounts.reduce((s,b)=>s+Number(b.current_balance||0),0)
 
   // Bank balances already reflect all spending (buy price, prep costs, overhead)
   // So we only add the advertised value of stock (what it's worth now)
-  const vatReclaimAsset = allTimeVatBreakdown.netVatDue < 0 ? Math.abs(allTimeVatBreakdown.netVatDue) : 0
-  const vatLiability = allTimeVatBreakdown.netVatDue > 0 ? allTimeVatBreakdown.netVatDue : 0
+  const vatReclaimAsset = vatBreakdown.netVatDue < 0 ? Math.abs(vatBreakdown.netVatDue) : 0
+  const vatLiability = vatBreakdown.netVatDue > 0 ? vatBreakdown.netVatDue : 0
   const totalAssets=totalBankBalance+stockAdvertisedVal+(balanceSheet.debtors||0)+allMileageRefund+vatReclaimAsset
   const totalLiab=(balanceSheet.parts30||0)+(balanceSheet.mech30||0)+vendorCreditLiabilities+corpTaxReserve+vatLiability+(balanceSheet.other_liab||0)
   const netWorth=totalAssets-totalLiab
