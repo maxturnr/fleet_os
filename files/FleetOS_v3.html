@@ -3706,7 +3706,7 @@ function getDirectCosts(stockId){
   let total=0
   
   // Exclude Vehicle Purchase from direct costs - it goes into the 'paid' column
-  transactions.filter(t=>t.stock_id===stockId && t.type!=='Vehicle Purchase').forEach(t=>{
+  transactions.filter(t=>t.stock_id===stockId && t.type!=='Vehicle Purchase' && t.type!=='purchase').forEach(t=>{
     total+=getExpenseNetAmount(t)
   })
   
@@ -6217,9 +6217,8 @@ function renderDashboard(){
   const allTimeVat = allSoldOwned.reduce((sum, car) => sum + getOwnedVehicleVat(car), 0)
   const allTimeOverhead = transactions.filter(t => !t.stock_id && t.type !== 'Dividend').reduce((sum, t) => sum + getExpenseNetAmount(t), 0)
   const netBeforeTax = allTimeRevenue + allMileageRefund - allTimeBuyPrice - allTimeDirectCosts - allTimeVat - allTimeOverhead
-  // Corp tax: 20% of car profit minus paid overhead only (credit lines excluded until paid)
-  const allTimePaidOverhead = transactions.filter(t => !t.stock_id && t.type !== 'Dividend' && getExpensePaymentStatus(t) === 'paid').reduce((sum, t) => sum + getExpenseNetAmount(t), 0)
-  const taxableProfit = allTimeRevenue - allTimeBuyPrice - allTimeDirectCosts - allTimeVat - allTimePaidOverhead
+  // Corp tax: 20% of net car profit only — owned: (sold - paid - costs), SOR: (fee - costs)
+  const taxableProfit = allSoldOwned.reduce((sum, car) => sum + num(car.sold) - num(car.paid) - getDirectCosts(car.id), 0) + allSoldSORForNetWorth.reduce((sum, car) => sum + num(car.fee) - getDirectCosts(car.id), 0)
   const corpTaxReserve = taxableProfit > 0 ? taxableProfit * 0.20 : 0
   const totalAssets = totalBankBalance + stockAdvertisedVal + num(balanceSheet.debtors) + allMileageRefund + vatReclaimAsset
   const totalLiabilities = num(balanceSheet.parts30) + num(balanceSheet.mech30) + unpaid + corpTaxReserve + vatLiability + num(balanceSheet.other_liab)
@@ -7572,9 +7571,8 @@ function renderPnl(){
   const mileageRefund=getMileageRefundTotal(mileageInPeriod)
   
   const profitBeforeTax=netBeforeTax+mileageRefund
-  // Corp tax: 20% of car profit minus paid overhead only (credit lines excluded until paid)
-  const paidOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&getExpensePaymentStatus(t)==='paid'&&(!from||t.date>=from)&&(!to||t.date<=to)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
-  const taxableProfit=totalGross-paidOverhead
+  // Corp tax: 20% of net car profit only — owned: (sold - paid - costs), SOR: (fee - costs)
+  const taxableProfit=soldOwned.reduce((s,c)=>s+Number(c.sold)-Number(c.paid)-getDirectCosts(c.id),0)+soldSOR.reduce((s,c)=>s+Number(c.fee)-getDirectCosts(c.id),0)
   const corpTax=taxableProfit>0?taxableProfit*0.20:0
   
   const netAfterTax=profitBeforeTax-corpTax
@@ -7725,9 +7723,8 @@ function renderBalance(){
   const aVat=allSoldOwned.reduce((s,c)=>s+getOwnedVehicleVat(c),0)
   const aOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&bsExpInPeriod(t)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
   const nbt=aRev+allMileageRefund-aBuy-aDirect-aVat-aOverhead
-  // Corp tax: 20% of car profit minus paid overhead only (credit lines excluded until paid)
-  const aPaidOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&getExpensePaymentStatus(t)==='paid'&&bsExpInPeriod(t)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
-  const taxableProfit=aRev-aBuy-aDirect-aVat-aPaidOverhead
+  // Corp tax: 20% of net car profit only — owned: (sold - paid - costs), SOR: (fee - costs)
+  const taxableProfit=allSoldOwned.reduce((s,c)=>s+Number(c.sold)-Number(c.paid)-getDirectCosts(c.id),0)+allSoldSOR.reduce((s,c)=>s+Number(c.fee)-getDirectCosts(c.id),0)
   const corpTaxReserve=taxableProfit>0?taxableProfit*0.20:0
 
   // Calculate total bank balances (always current)
