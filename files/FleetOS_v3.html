@@ -2274,7 +2274,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
           <select class="uni-quick-filter" id="income-type-filter" onchange="renderIncome()">
             <option value="">Type is</option>
             <option value="deposit">Deposit</option><option value="purchase">Vehicle Sale</option><option value="delivery">Delivery</option><option value="upsell_warranty">Warranty</option><option value="upsell_service">Service</option>
-            <option value="upsell_accessories">Accessories</option><option value="upsell_other">Other Upsell</option><option value="finance_commission">Finance Commission</option><option value="other">Other</option>
+            <option value="upsell_accessories">Accessories</option><option value="upsell_other">Other Upsell</option><option value="finance_commission">Finance Commission</option><option value="part_exchange">Part Exchange</option><option value="other">Other</option>
           </select>
           <select class="uni-quick-filter" id="income-vehicle-filter" onchange="renderIncome()">
             <option value="">Vehicle is</option>
@@ -3058,6 +3058,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
           <select class="form-control" id="income-type" onchange="handleIncomeTypeChange()">
             <option value="deposit">Deposit</option>
             <option value="purchase">Vehicle Sale</option>
+            <option value="part_exchange">Part Exchange (PX allowance)</option>
             <option value="delivery">Delivery</option>
             <option value="upsell_warranty">Warranty</option>
             <option value="upsell_service">Service</option>
@@ -3895,7 +3896,8 @@ function getOwnedCompletionDate(car){
 }
 
 function isVehicleSaleIncomeType(type){
-  return type === 'deposit' || type === 'purchase'
+  // part_exchange = PX allowance: part of the sale price, no cash movement
+  return type === 'deposit' || type === 'purchase' || type === 'part_exchange'
 }
 
 function isOwnedActiveStock(car){
@@ -9273,7 +9275,7 @@ function getTransactionDrawerFields(source, record){
       {key:'id', label:'Transaction ID', type:'text', value:record?.id || '', editable:false},
       {key:'user', label:'User', type:'text', value:'-', editable:false},
       {key:'type', label:'Type', type:'select', value:record?.type || 'other', editable:true, options:[
-        ['deposit','Deposit'],['purchase','Vehicle Sale'],['delivery','Delivery'],['upsell_warranty','Warranty'],
+        ['deposit','Deposit'],['purchase','Vehicle Sale'],['part_exchange','Part Exchange'],['delivery','Delivery'],['upsell_warranty','Warranty'],
         ['upsell_service','Service'],['upsell_accessories','Accessories'],['upsell_other','Other Upsell'],
         ['finance_commission','Finance Commission'],['other','Other']
       ]},
@@ -11326,6 +11328,7 @@ function incomeTypeOptions(selectedType='deposit'){
   return [
     ['deposit','Deposit'],
     ['purchase','Vehicle Sale'],
+    ['part_exchange','Part Exchange'],
     ['delivery','Delivery'],
     ['upsell_warranty','Warranty'],
     ['upsell_service','Service'],
@@ -11494,8 +11497,20 @@ function handleIncomeTypeChange(){
   const shouldShowSOR = type === 'purchase' && (car?.type === 'sor' || !!car?.is_sale_or_return)
 
   document.getElementById('income-sor-section').style.display = shouldShowSOR ? 'block' : 'none'
+
+  // Part exchange allowance: no cash moves, so no bank account / payment method
+  const isPX = type === 'part_exchange'
+  const bankSelect = document.getElementById('income-bank-account')
+  const methodSelect = document.getElementById('income-payment-method')
+  if(isPX){
+    bankSelect.value = ''
+    methodSelect.value = 'other'
+  }
+  bankSelect.disabled = isPX
+  methodSelect.disabled = isPX
+
   if(!document.getElementById('income-id').value){
-    document.getElementById('income-vat-status').value = getSuggestedIncomeVatStatus()
+    document.getElementById('income-vat-status').value = isPX ? 'no-vat' : getSuggestedIncomeVatStatus()
     calculateIncomeVAT()
   }
   calculateIncomeCommission()
@@ -11669,8 +11684,8 @@ async function saveIncome(){
     vat_status: vatStatus,
     stock_id: stockId || null,
     is_general: !stockId,
-    bank_account_id: normalizeBankAccountId(document.getElementById('income-bank-account').value),
-    payment_method: document.getElementById('income-payment-method').value || null,
+    bank_account_id: type === 'part_exchange' ? null : normalizeBankAccountId(document.getElementById('income-bank-account').value),
+    payment_method: type === 'part_exchange' ? 'part_exchange' : (document.getElementById('income-payment-method').value || null),
     date: document.getElementById('income-date').value || today(),
     reference: document.getElementById('income-reference').value || null,
     description: document.getElementById('income-description').value || null,
