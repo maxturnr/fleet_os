@@ -3250,14 +3250,16 @@ function getVatComponents(amount, vatStatus){
 function normalizeOwnedPurchaseVatType(value, purchaseDate=''){
   const normalized = String(value || '').toLowerCase()
   if(normalized === 'standard' || normalized === 'plus-vat' || normalized === 'plus_vat' || normalized === 'plusvat') return 'standard'
+  if(normalized === 'none' || normalized === 'no-vat' || normalized === 'no_vat' || normalized === 'novat') return 'none'
   if(normalized === 'margin' || normalized === 'vat-margin' || normalized === 'vat_margin') return 'margin'
-  return isVatActiveOn(purchaseDate || today()) ? 'margin' : 'margin'
+  return 'margin'
 }
 
 function ownedPurchaseVatOptions(selectedValue='margin'){
   const normalized = normalizeOwnedPurchaseVatType(selectedValue)
   return [
-    ['margin', 'VAT Margin'],
+    ['none', 'No VAT'],
+    ['margin', 'VAT Margin (1/6 of markup)'],
     ['standard', 'Plus VAT (20%)']
   ].map(([value, label]) => `<option value="${value}" ${normalized===value?'selected':''}>${label}</option>`).join('')
 }
@@ -3375,19 +3377,15 @@ function handleExpenseTypeChange(){
 
 function normalizeSorFeeVat(value){
   if(value === 'exclusive') return 'additional'
-  if(vatRegistered){
-    return value === 'additional' ? 'additional' : 'inclusive'
-  }
   if(value === 'inclusive' || value === 'additional' || value === 'none') return value
+  // unset: default to inclusive once VAT-registered, otherwise none
   return vatRegistered ? 'inclusive' : 'none'
 }
 
 function sorFeeVatOptions(selectedValue='none'){
   const normalized = normalizeSorFeeVat(selectedValue)
-  const options = vatRegistered
-    ? [['inclusive','Fee Includes VAT (÷1.2)'], ['additional','Fee + VAT (×1.2)']]
-    : [['none','No VAT'], ['inclusive','Fee Includes VAT (÷1.2)'], ['additional','Fee + VAT (×1.2)']]
-  const fallback = vatRegistered && normalized === 'none' ? 'inclusive' : normalized
+  const options = [['none','No VAT'], ['inclusive','Fee Includes VAT (÷1.2)'], ['additional','Fee + VAT (×1.2)']]
+  const fallback = normalized
   return options.map(([value, label]) => `<option value="${value}" ${fallback===value?'selected':''}>${label}</option>`).join('')
 }
 
@@ -3742,12 +3740,15 @@ function getVehicleExtraIncomeNet(stockId){
 function getOwnedVehicleVat(car){
   if(!car) return 0
   const completionDate = getOwnedCompletionDate(car)
-  if(!completionDate || !isVatActiveOn(car.purchase_date || completionDate)) return 0
+  // VAT applies when the SALE completes after the registration date -
+  // the per-car VAT type decides whether any VAT is due at all
+  if(!completionDate || !isVatActiveOn(completionDate)) return 0
+
+  const vatType = getOwnedSaleVatType(car)
+  if(vatType === 'none') return 0
 
   const salePrice = getOwnedSalePrice(car)
   if(!salePrice) return 0
-
-  const vatType = getOwnedSaleVatType(car)
   if(vatType === 'standard'){
     const vehicleSaleIncomeRows = income.filter(row => String(row.stock_id) === String(car.id) && isVehicleSaleIncomeType(row.type))
     const standardVatFromIncome = vehicleSaleIncomeRows
