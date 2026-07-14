@@ -1947,7 +1947,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
                   <th>Advertised</th>
                   <th>Sold For</th>
                   <th>Direct Costs</th>
-                  <th>VAT</th>
+                  <th>VAT Margin</th>
                   <th>Pre-Tax Profit</th>
                   <th>Status</th>
                 </tr></thead>
@@ -3280,8 +3280,9 @@ function getOwnedSaleVatType(car){
 
 function isOwnedVatApplicable(car){
   if(!car || !vatRegistered) return false
-  if(!vatEffectiveDate) return true
-  return !!car.purchase_date && car.purchase_date >= vatEffectiveDate
+  // VAT treatment follows the car's selected VAT type; individual costs
+  // are still date-gated by isVatActiveOn inside the breakdown
+  return getOwnedPurchaseVatType(car) !== 'none'
 }
 
 function getOwnedDirectCostBreakdown(car){
@@ -3835,6 +3836,28 @@ function sorProfit(car){
   const net = netFee + extraIncomeNet - costs
   const tax = net>0?net*0.20:0
   return {cashCollected:getVehicleSaleIncomeTotal(car?.id),grossFee,netFee,extraIncomeGross,extraIncomeNet,costs,net,tax,afterTax:net-tax}
+}
+
+/**
+ * VAT margin owed on a car: 1/6 of (sell - buy) minus the VAT on the
+ * costs assigned to that car. For unsold (In Stock / Deposited) margin
+ * cars it projects using the advertised price.
+ */
+function getOwnedVatMarginOwed(car){
+  if(!car || !vatRegistered) return null
+  if(getOwnedPurchaseVatType(car) !== 'margin') return null
+  const buy = num(car.paid)
+  if(!buy) return null
+  const deposit = getOwnedDepositAmount(car)
+  const soldPrice = getOwnedSalePrice(car)
+  // deposited cars auto-sync car.sold to the deposit total - only trust it
+  // as a sale price when it exceeds the deposit
+  const trustedSold = soldPrice > deposit ? soldPrice : 0
+  const sell = trustedSold || num(car.advertised)
+  if(!sell) return null
+  const marginVat = Math.max(0, sell - buy) / 6
+  const costVat = getOwnedDirectCostBreakdown(car).vatReclaimable
+  return marginVat - costVat
 }
 
 function ownedProfit(car){
@@ -6967,7 +6990,7 @@ function renderOwned(){
       <td class="cell-amount">${c.advertised ? fmt(c.advertised) : '—'}</td>
       <td class="cell-amount">${getOwnedSalePrice(c) ? fmt(getOwnedSalePrice(c)) : '—'}</td>
       <td class="cell-amount">${costs ? fmt(costs) : '—'}</td>
-      <td class="cell-amount">${vatRegistered && p && p.netVat ? fmt(p.netVat) : '—'}</td>
+      <td class="cell-amount">${(() => { const vm = getOwnedVatMarginOwed(c); return vm != null ? fmt(vm) : '—' })()}</td>
       <td class="cell-amount ${p && p.gross > 0 ? 'positive' : ''}" style="color:${p ? pc(p.gross) : '#14130f'}">${p ? fmt(p.gross) : '—'}</td>
       <td>${renderStockStatusText(c.status)}</td>
     </tr>`
