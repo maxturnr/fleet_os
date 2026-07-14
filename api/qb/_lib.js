@@ -15,8 +15,8 @@ const API_BASE = 'https://quickbooks.api.intuit.com/v3/company'
 const MINOR_VERSION = 75
 
 export function admin() {
-  const key = process.env.FLEET_SUPABASE_SERVICE_KEY
-  if (!key) throw new Error('FLEET_SUPABASE_SERVICE_KEY not configured')
+  const key = process.env.FLEET_SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY
+  if (!key) throw new Error('Supabase service key not configured')
   return createClient(SUPABASE_URL, key, { auth: { persistSession: false } })
 }
 

@@ -17,8 +17,8 @@ export default async function handler(req, res) {
   if (req.method === 'GET') return res.status(200).json({ ok: true }) // Intuit endpoint validation
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const verifier = process.env.QB_WEBHOOK_VERIFIER
-  if (!verifier) return res.status(500).json({ error: 'QB_WEBHOOK_VERIFIER not configured' })
+  const verifier = process.env.QB_WEBHOOK_VERIFIER || process.env.QB_WEBHOOK_TOKEN
+  if (!verifier) return res.status(500).json({ error: 'webhook verifier not configured' })
 
   const raw = await readRawBody(req)
   const signature = req.headers['intuit-signature']
