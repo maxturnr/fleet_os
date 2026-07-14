@@ -2388,6 +2388,11 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
                     <input class="form-control" type="date" id="vat-effective-date">
                     <div style="font-size:10px;color:#958f82;margin-top:4px">Optional. VAT reporting only applies from this date onward.</div>
                   </div>
+                  <div class="form-group span2">
+                    <label class="form-label">VAT Reclaims From</label>
+                    <input class="form-control" type="date" id="vat-reclaim-from">
+                    <div style="font-size:10px;color:#958f82;margin-top:4px">Input VAT on costs only counts from this date. Defaults to the effective date.</div>
+                  </div>
                 </div>
                 <div class="form-note" style="margin-top:16px">VAT types in income and expenses are now: <strong>Standard (20%)</strong>, <strong>VAT Margin</strong>, and <strong>No VAT</strong>.</div>
                 <div style="margin-top:16px;display:flex;gap:8px">
@@ -3194,6 +3199,7 @@ let mileageTrips = []
 let dealershipUsers = []
 let vatRegistered = false
 let vatEffectiveDate = null
+let vatReclaimFrom = null  // input VAT (reclaims on costs) only counts from this date
 let qbConnected = false
 let currentTab = 'dashboard'
 let activeStockTab = 'owned'
@@ -3238,6 +3244,13 @@ function isVatActiveOn(date){
   return !vatEffectiveDate || date >= vatEffectiveDate
 }
 
+function isVatReclaimActiveOn(date){
+  if(!vatRegistered) return false
+  const from = vatReclaimFrom || vatEffectiveDate
+  if(!date) return !from
+  return !from || date >= from
+}
+
 function getVatComponents(amount, vatStatus){
   const normalizedStatus = normalizeVatStatus(vatStatus)
   if(normalizedStatus === 'standard'){
@@ -3269,7 +3282,7 @@ function getOwnedPurchaseVatType(car){
 }
 
 function getOwnedPurchaseVatReclaim(car){
-  if(!car || !isVatActiveOn(car.purchase_date)) return 0
+  if(!car || !isVatReclaimActiveOn(car.purchase_date)) return 0
   if(getOwnedPurchaseVatType(car) !== 'standard') return 0
   return getVatComponents(num(car.paid), 'standard').vatAmount
 }
@@ -3294,7 +3307,7 @@ function getOwnedDirectCostBreakdown(car){
     .filter(t => t.stock_id === car?.id && t.type !== 'Vehicle Purchase')
     .forEach(t => {
       const grossAmount = getExpenseNetAmount(t)
-      if(vatApplicable && normalizeVatStatus(t.vat_status) === 'standard' && isVatActiveOn(t.date)){
+      if(vatApplicable && normalizeVatStatus(t.vat_status) === 'standard' && isVatReclaimActiveOn(t.date)){
         const vatAmount = getVatComponents(grossAmount, 'standard').vatAmount
         directCosts += grossAmount - vatAmount
         vatReclaimable += vatAmount
@@ -3801,7 +3814,7 @@ function getVatBreakdown(from='', to=''){
 
   const expenseVatReclaim = transactions
     .filter(row => row.type !== 'purchase')
-    .filter(row => normalizeVatStatus(row.vat_status) === 'standard' && row.date && inRange(row.date) && isVatActiveOn(row.date))
+    .filter(row => normalizeVatStatus(row.vat_status) === 'standard' && row.date && inRange(row.date) && isVatReclaimActiveOn(row.date))
     .reduce((sum, row) => sum + num(row.vat_amount), 0)
 
   const totalVatReclaim = ownedPurchaseVatReclaim + expenseVatReclaim
@@ -4258,6 +4271,8 @@ async function loadAll(){
       if(v){vatRegistered=v.value==='true';updateVatBadge()}
       const vd=settingsRes.data.find(s=>s.key==='vat_effective_date')
       vatEffectiveDate = vd?.value || null
+      const vr=settingsRes.data.find(s=>s.key==='vat_reclaim_from')
+      vatReclaimFrom = vr?.value || null
       const q=settingsRes.data.find(s=>s.key==='qb_connected')
       if(q){qbConnected=q.value==='true';updateQBBadge()}
     }
@@ -4460,11 +4475,13 @@ function openVatSettings(){
 async function saveVatSettings(){
   vatRegistered = document.getElementById('vat-registered-setting').value === 'true'
   vatEffectiveDate = document.getElementById('vat-effective-date').value || null
+  vatReclaimFrom = document.getElementById('vat-reclaim-from').value || null
   updateVatBadge()
 
   await Promise.all([
     sb.from('settings').upsert({account_id: accountId, key:'vat_registered', value:String(vatRegistered)},{onConflict:'key'}),
-    sb.from('settings').upsert({account_id: accountId, key:'vat_effective_date', value:vatEffectiveDate || ''},{onConflict:'key'})
+    sb.from('settings').upsert({account_id: accountId, key:'vat_effective_date', value:vatEffectiveDate || ''},{onConflict:'key'}),
+    sb.from('settings').upsert({account_id: accountId, key:'vat_reclaim_from', value:vatReclaimFrom || ''},{onConflict:'key'})
   ])
 
   renderCurrentTab()
@@ -8372,6 +8389,7 @@ function renderSettings(){
   document.getElementById('profile-role').value = (currentUser.role || 'user').toUpperCase()
   document.getElementById('vat-registered-setting').value = String(vatRegistered)
   document.getElementById('vat-effective-date').value = vatEffectiveDate || ''
+  document.getElementById('vat-reclaim-from').value = vatReclaimFrom || ''
   
   // Show dealership tab only for admins
   if(userRole === 'admin'){
