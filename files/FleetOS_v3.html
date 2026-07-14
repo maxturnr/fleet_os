@@ -3178,8 +3178,6 @@ const sb = createClient(
 )
 
 // QuickBooks Client ID (secret stored server-side only)
-const QB_CLIENT_ID = 'ABcPoVXTxYiF0DTS1XHFuh9NJMYamffDlLGFPIq155E5ZdPIXZ'
-const QB_REDIRECT = window.location.origin + window.location.pathname
 
 // ══════════════════════════════════════════════
 // STATE
@@ -4159,50 +4157,34 @@ checkAuth()
 // QUICKBOOKS OAUTH
 // ══════════════════════════════════════════════
 function connectQB(){
-  if(qbConnected){toast('QuickBooks already connected');return}
-  const state = Math.random().toString(36).substring(2)
-  safeSessionStorage.setItem('qb_state',state)
-  const params = new URLSearchParams({
-    client_id: QB_CLIENT_ID,
-    scope: 'com.intuit.quickbooks.accounting',
-    redirect_uri: QB_REDIRECT,
-    response_type: 'code',
-    state,
-    access_type: 'offline'
-  })
-  window.location.href = `https://appcenter.intuit.com/connect/oauth2?${params}`
+  if(qbConnected){ syncQBNow(); return }
+  if(!confirm('Connect QuickBooks? You will be redirected to Intuit to sign in.')) return
+  window.location.href = '/api/qb/connect'
+}
+
+async function syncQBNow(){
+  toast('Syncing QuickBooks...')
+  try {
+    const res = await fetch('/api/qb/sync',{method:'POST'})
+    const data = await res.json()
+    if(!res.ok || data.error){ toast(data.error||'QuickBooks sync failed',true); return }
+    if(data.connected===false){ qbConnected=false; updateQBBadge(); toast('QuickBooks not connected',true); return }
+    const added = (data.purchases_new||0)+(data.deposits_new||0)
+    toast(added ? `QuickBooks: ${added} new transaction${added===1?'':'s'} imported` : 'QuickBooks: up to date')
+    if(added) await loadAll()
+  } catch(e){ toast('QuickBooks sync failed',true) }
 }
 
 function checkQBCallback(){
   const params = new URLSearchParams(window.location.search)
-  if(params.get('code')&&params.get('state')){
-    const saved = safeSessionStorage.getItem('qb_state')
-    if(params.get('state')===saved){
-      // Exchange code for token via Supabase Edge Function
-      const code = params.get('code')
-      exchangeQBCode(code)
-      window.history.replaceState({},'',window.location.pathname)
-    }
-  }
-}
-
-async function exchangeQBCode(code){
-  toast('Connecting QuickBooks...')
-  try {
-    const res = await fetch(`https://hnypmigzwfavwcwarmnk.supabase.co/functions/v1/qb-auth`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhueXBtaWd6d2Zhdndjd2FybW5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMDU3MjcsImV4cCI6MjA5MjY4MTcyN30.uRC82cHVPLmDmUe-QKDyEPF8pfpnaMwSNXwfwO-qFBQ`},
-      body: JSON.stringify({code, redirect_uri: QB_REDIRECT})
-    })
-    if(res.ok){
-      qbConnected=true; updateQBBadge()
-      toast('QuickBooks connected!')
-      await sb.from('settings').upsert({key:'qb_connected',value:'true'},{onConflict:'key'})
-    } else {
-      toast('QB connection failed — edge function not deployed yet',true)
-    }
-  } catch(e){
-    toast('QB edge function not deployed yet — see setup guide',true)
+  const qb = params.get('qb')
+  if(!qb) return
+  window.history.replaceState({},'',window.location.pathname)
+  if(qb==='connected'){
+    qbConnected = true; updateQBBadge()
+    toast('QuickBooks connected! Transactions are syncing.')
+  } else {
+    toast('QuickBooks connection failed - please try again',true)
   }
 }
 
