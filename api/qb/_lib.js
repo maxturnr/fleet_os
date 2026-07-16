@@ -233,7 +233,7 @@ export async function syncBankBalances(sb, conn) {
       const qb = accounts.find(a => String(a.id) === String(fa.qb_account_id))
       if (!qb) continue
       const { error } = await sb.from('bank_accounts')
-        .update({ balance: qb.balance, qb_balance: qb.balance, qb_balance_at: new Date().toISOString() })
+        .update({ current_balance: qb.balance, qb_balance: qb.balance, qb_balance_at: new Date().toISOString() })
         .eq('id', fa.id)
       if (!error) updated++
     }

@@ -4320,7 +4320,7 @@ function renderReconBankCard(){
     <div style="display:flex;flex-wrap:wrap;gap:18px">
       ${bankAccounts.map(b => `
         <div style="min-width:220px">
-          <div style="font-size:12px;color:var(--muted2,#8a857d)">${escapeHtml(b.account_name)} — ${fmt(num(b.balance))}</div>
+          <div style="font-size:12px;color:var(--muted2,#8a857d)">${escapeHtml(b.account_name)} — ${fmt(num(b.current_balance))}</div>
           <select class="filter-input" style="margin-top:4px;width:100%" onchange="setQbAccountMap(${b.id}, this.value)">
             <option value="">Not linked to QuickBooks</option>
             ${qbBankAccounts.accounts.map(a => `<option value="${a.id}" ${String(b.qb_account_id)===String(a.id)?'selected':''}>${escapeHtml(a.name)} (${fmt(a.balance)})</option>`).join('')}
@@ -4333,7 +4333,7 @@ function renderReconBankCard(){
 async function setQbAccountMap(fleetId, qbId){
   const qb = qbBankAccounts?.accounts?.find(a => String(a.id) === String(qbId))
   const patch = { qb_account_id: qbId || null }
-  if(qb){ patch.balance = qb.balance; patch.qb_balance = qb.balance; patch.qb_balance_at = new Date().toISOString() }
+  if(qb){ patch.current_balance = qb.balance; patch.qb_balance = qb.balance; patch.qb_balance_at = new Date().toISOString() }
   const {error} = await sb.from('bank_accounts').update(patch).eq('id', fleetId)
   if(error){ toast('Could not link account: '+error.message, true); return }
   toast(qb ? 'Linked — balance now follows QuickBooks' : 'Unlinked from QuickBooks')
