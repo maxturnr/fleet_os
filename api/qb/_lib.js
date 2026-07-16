@@ -140,10 +140,8 @@ export async function syncConnection(sb, conn) {
     : new Date('2000-01-01') // first sync: full history
   const sinceIso = since.toISOString()
 
-  const [purchases, deposits] = await Promise.all([
-    fetchAllSince(conn, 'Purchase', sinceIso),
-    fetchAllSince(conn, 'Deposit', sinceIso),
-  ])
+  const purchases = await fetchAllSince(conn, 'Purchase', sinceIso)
+  const deposits = await fetchAllSince(conn, 'Deposit', sinceIso)
 
   const counts = { new: 0, updated: 0, skipped: 0, balances_updated: 0 }
   const rows = []
