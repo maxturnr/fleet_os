@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 
 export const ACCOUNT_ID = 1
+export const SYNC_ENTITIES = ['Purchase', 'Deposit', 'Transfer', 'BillPayment', 'Payment', 'SalesReceipt', 'CreditCardPaymentTxn', 'CreditCardPayment']
 export const SUPABASE_URL = 'https://hnypmigzwfavwcwarmnk.supabase.co'
 export const BASE_URL = process.env.QB_REDIRECT_BASE || 'https://www.pierfront.co'
 export const REDIRECT_URI = `${BASE_URL}/api/qb/callback`
@@ -140,45 +141,88 @@ export async function syncConnection(sb, conn) {
     : new Date('2000-01-01') // first sync: full history
   const sinceIso = since.toISOString()
 
-  const purchases = await fetchAllSince(conn, 'Purchase', sinceIso)
-  const deposits = await fetchAllSince(conn, 'Deposit', sinceIso)
+  // Bank account ids let us skip Payments/SalesReceipts that went to
+  // Undeposited Funds (those arrive later inside a Deposit - avoids duplicates)
+  let bankIds = new Set()
+  try {
+    const accData = await qbQuery(conn, "select Id from Account where AccountType = 'Bank'")
+    bankIds = new Set((accData?.QueryResponse?.Account || []).map(a => String(a.Id)))
+  } catch (e) { console.error('[qb-sync] bank id fetch failed:', e.message) }
 
   const counts = { new: 0, updated: 0, skipped: 0, balances_updated: 0 }
   const rows = []
+  const push = (entity, t, fields) => rows.push({
+    account_id: ACCOUNT_ID,
+    qb_id: `${entity.toLowerCase()}:${t.Id}`,
+    qb_type: entity,
+    txn_date: t.TxnDate,
+    amount: Number(t.TotalAmt ?? t.Amount) || 0,
+    memo: t.PrivateNote || null,
+    raw: t,
+    ...fields,
+  })
 
-  for (const p of purchases) {
-    const amount = Number(p.TotalAmt) || 0
-    if (amount <= 0) { counts.skipped++; continue }
-    rows.push({
-      account_id: ACCOUNT_ID,
-      qb_id: `purchase:${p.Id}`,
-      qb_type: 'Purchase',
-      direction: p.Credit === true ? 'in' : 'out', // supplier refunds come back in
-      txn_date: p.TxnDate,
-      amount,
-      payee: p.EntityRef?.name || null,
-      memo: p.PrivateNote || null,
-      qb_account_name: p.AccountRef?.name || null,
-      payment_type: p.PaymentType || null,
-      raw: p,
-    })
-  }
-  for (const d of deposits) {
-    const amount = Number(d.TotalAmt) || 0
-    if (amount <= 0) { counts.skipped++; continue }
-    rows.push({
-      account_id: ACCOUNT_ID,
-      qb_id: `deposit:${d.Id}`,
-      qb_type: 'Deposit',
-      direction: 'in',
-      txn_date: d.TxnDate,
-      amount,
-      payee: depositDescription(d),
-      memo: d.PrivateNote || null,
-      qb_account_name: d.DepositToAccountRef?.name || null,
-      payment_type: null,
-      raw: d,
-    })
+  for (const entity of SYNC_ENTITIES) {
+    let items = []
+    try {
+      items = await fetchAllSince(conn, entity, sinceIso)
+    } catch (e) {
+      console.error(`[qb-sync] ${entity} fetch failed:`, e.message)
+      continue
+    }
+    for (const t of items) {
+      const amount = Number(t.TotalAmt ?? t.Amount) || 0
+      if (amount <= 0) { counts.skipped++; continue }
+      if (entity === 'Purchase') {
+        push(entity, t, {
+          direction: t.Credit === true ? 'in' : 'out',
+          payee: t.EntityRef?.name || null,
+          qb_account_name: t.AccountRef?.name || null,
+          payment_type: t.PaymentType || null,
+        })
+      } else if (entity === 'Deposit') {
+        push(entity, t, {
+          direction: 'in',
+          payee: depositDescription(t),
+          qb_account_name: t.DepositToAccountRef?.name || null,
+        })
+      } else if (entity === 'Transfer') {
+        push(entity, t, {
+          direction: 'out',
+          payee: `Transfer: ${t.FromAccountRef?.name || '?'} → ${t.ToAccountRef?.name || '?'}`,
+          qb_account_name: t.FromAccountRef?.name || null,
+        })
+      } else if (entity === 'BillPayment') {
+        push(entity, t, {
+          direction: 'out',
+          payee: t.VendorRef?.name || null,
+          qb_account_name: t.CheckPayment?.BankAccountRef?.name || t.CreditCardPayment?.CCAccountRef?.name || null,
+          payment_type: t.PayType || null,
+        })
+      } else if (entity === 'Payment') {
+        const depTo = String(t.DepositToAccountRef?.value || '')
+        if (!bankIds.has(depTo)) { counts.skipped++; continue } // undeposited funds → covered by Deposit
+        push(entity, t, {
+          direction: 'in',
+          payee: t.CustomerRef?.name || null,
+          qb_account_name: t.DepositToAccountRef?.name || null,
+        })
+      } else if (entity === 'SalesReceipt') {
+        const depTo = String(t.DepositToAccountRef?.value || '')
+        if (!bankIds.has(depTo)) { counts.skipped++; continue }
+        push(entity, t, {
+          direction: 'in',
+          payee: t.CustomerRef?.name || null,
+          qb_account_name: t.DepositToAccountRef?.name || null,
+        })
+      } else if (entity === 'CreditCardPaymentTxn' || entity === 'CreditCardPayment') {
+        push(entity, t, {
+          direction: 'out',
+          payee: `Card payment: ${t.CreditCardAccountRef?.name || '?'}`,
+          qb_account_name: t.BankAccountRef?.name || null,
+        })
+      }
+    }
   }
 
   if (rows.length) {
@@ -247,7 +291,7 @@ export async function syncBankBalances(sb, conn) {
 export async function handleDeletes(sb, entities) {
   for (const e of entities) {
     if (e.operation !== 'Delete') continue
-    if (e.name !== 'Purchase' && e.name !== 'Deposit') continue
+    if (!SYNC_ENTITIES.includes(e.name)) continue
     const qbId = `${e.name.toLowerCase()}:${e.id}`
     // only drop rows still awaiting reconciliation; matched/added rows stay
     await sb.from('qb_transactions').delete()

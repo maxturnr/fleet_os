@@ -2142,6 +2142,10 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
           </select>
           <input type="text" class="filter-input" id="recon-search" placeholder="Search payee / memo / amount" oninput="reconSearch=this.value;renderRecon()" style="min-width:220px">
           <div class="filter-sep"></div>
+          <button class="uni-pill" onclick="autoMatchAllRecon()">Auto-match all suggested</button>
+          <input type="date" class="filter-input" id="recon-dismiss-before" title="Dismiss everything before this date">
+          <button class="uni-pill" onclick="dismissReconBefore()">Dismiss before date</button>
+          <div class="filter-sep"></div>
           <span class="filter-label" id="recon-count-label"></span>
         </div>
         <div class="uni-body" style="padding:12px 16px;overflow:auto">
@@ -4255,6 +4259,31 @@ let reconDirectionFilter = ''
 let reconSearch = ''
 let reconOpenFinder = null
 
+let reconRefreshTimer = null
+function subscribeReconRealtime(){
+  try {
+    sb.channel('qb-recon-live')
+      .on('postgres_changes', {event:'*', schema:'public', table:'qb_transactions'}, () => {
+        // coalesce bursts (a sync inserts many rows at once)
+        clearTimeout(reconRefreshTimer)
+        reconRefreshTimer = setTimeout(refreshReconData, 800)
+      })
+      .subscribe()
+  } catch(e){ console.error('recon realtime failed', e) }
+  // safety net: refresh when the app regains focus
+  document.addEventListener('visibilitychange', () => {
+    if(!document.hidden) refreshReconData()
+  })
+}
+
+async function refreshReconData(){
+  const r = await sb.from('qb_transactions').select('*').eq('account_id', accountId).order('txn_date', {ascending:false})
+  if(r.error) return
+  qbTransactions = r.data || []
+  updateReconBadge()
+  if(currentTab === 'recon') renderRecon()
+}
+
 function reconPendingCount(){
   return qbTransactions.filter(r => r.status === 'pending').length
 }
@@ -4395,6 +4424,53 @@ function renderRecon(){
       <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap">${actions}</td>
     </tr>`
   }).join('')
+}
+
+async function autoMatchAllRecon(){
+  const pending = qbTransactions.filter(r => r.status === 'pending')
+  const jobs = []
+  const usedTargets = new Set()
+  for(const r of pending){
+    const sug = reconCandidates(r, true)[0]
+    if(!sug) continue
+    const key = sug.kind + ':' + sug.id
+    if(usedTargets.has(key)) continue // never match two QB rows to one record
+    usedTargets.add(key)
+    jobs.push({row: r, sug})
+  }
+  if(!jobs.length){ toast('No confident matches found'); return }
+  if(!confirm(`Auto-match ${jobs.length} transaction${jobs.length===1?'':'s'} to existing Fleet records? (exact amount within 7 days)`)) return
+  loading(true, 'Matching...')
+  let done = 0
+  for(const {row, sug} of jobs){
+    const patch = { status:'matched', updated_at:new Date().toISOString() }
+    if(sug.kind === 'expense') patch.matched_expense_id = sug.id
+    else patch.matched_income_id = sug.id
+    const {error} = await sb.from('qb_transactions').update(patch).eq('id', row.id).eq('status','pending')
+    if(!error){
+      if(sug.kind === 'expense') await sb.from('expenses').update({qb_id: row.qb_id, qb_type: row.qb_type}).eq('id', sug.id)
+      done++
+    }
+  }
+  loading(false)
+  toast(`Auto-matched ${done} transaction${done===1?'':'s'}`)
+  await loadAll()
+}
+
+async function dismissReconBefore(){
+  const cutoff = document.getElementById('recon-dismiss-before').value
+  if(!cutoff){ toast('Pick a cutoff date first', true); return }
+  const targets = qbTransactions.filter(r => r.status === 'pending' && r.txn_date && r.txn_date < cutoff)
+  if(!targets.length){ toast('Nothing pending before that date'); return }
+  if(!confirm(`Dismiss ${targets.length} pending transaction${targets.length===1?'':'s'} dated before ${cutoff}? (They stay in the Dismissed filter and can be undone.)`)) return
+  loading(true, 'Dismissing...')
+  const {error} = await sb.from('qb_transactions')
+    .update({status:'dismissed', updated_at:new Date().toISOString()})
+    .eq('status','pending').lt('txn_date', cutoff)
+  loading(false)
+  if(error){ toast('Failed: '+error.message, true); return }
+  toast(`Dismissed ${targets.length}`)
+  await loadAll()
 }
 
 async function matchRecon(rowId, kind, targetId){
@@ -4557,6 +4633,7 @@ async function initApp(){
   applySidebarState()
   checkQBCallback()
   await loadAll()
+  subscribeReconRealtime()
   
   // Restore last active tab
   const savedTab = safeLocalStorage.getItem('fleet_current_tab')

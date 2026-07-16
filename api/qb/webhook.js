@@ -1,6 +1,6 @@
 // POST /api/qb/webhook — Intuit webhook receiver (signature-verified)
 import crypto from 'crypto'
-import { admin, getValidConnection, handleDeletes, syncConnection } from './_lib.js'
+import { admin, getValidConnection, handleDeletes, syncConnection, SYNC_ENTITIES } from './_lib.js'
 
 export const config = { api: { bodyParser: false } }
 
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     for (const n of payload.eventNotifications || []) {
       if (String(n.realmId) !== String(conn.realm_id)) continue
       const entities = n.dataChangeEvent?.entities || []
-      const mine = entities.filter(e => e.name === 'Purchase' || e.name === 'Deposit')
+      const mine = entities.filter(e => SYNC_ENTITIES.includes(e.name))
       if (!mine.length) continue
       relevant = true
       await handleDeletes(sb, mine)
