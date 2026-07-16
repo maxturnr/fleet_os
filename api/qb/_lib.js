@@ -131,12 +131,13 @@ function depositDescription(d) {
   return names.length ? names.join(', ') : 'QuickBooks deposit'
 }
 
-// ── Main sync: QBO Purchases → fleet expenses (unassigned), Deposits → fleet income ──
+// ── Main sync: QBO Purchases + Deposits → qb_transactions staging (reconciliation
+// inbox in Fleet), plus bank account balances for mapped fleet accounts ──
 export async function syncConnection(sb, conn) {
   const syncStartedAt = new Date().toISOString()
   const since = conn.last_synced_at
     ? new Date(new Date(conn.last_synced_at).getTime() - 10 * 60 * 1000) // 10 min overlap
-    : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) // first sync: last 90 days
+    : new Date('2000-01-01') // first sync: full history
   const sinceIso = since.toISOString()
 
   const [purchases, deposits] = await Promise.all([
@@ -144,120 +145,114 @@ export async function syncConnection(sb, conn) {
     fetchAllSince(conn, 'Deposit', sinceIso),
   ])
 
-  const counts = { purchases_new: 0, purchases_updated: 0, purchases_skipped: 0, deposits_new: 0, deposits_skipped: 0 }
+  const counts = { new: 0, updated: 0, skipped: 0, balances_updated: 0 }
+  const rows = []
 
-  // Purchases → expenses
-  if (purchases.length) {
-    const qbIds = purchases.map(p => `purchase:${p.Id}`)
-    const { data: existing } = await sb
-      .from('expenses')
-      .select('id, qb_id, assigned')
-      .eq('account_id', ACCOUNT_ID)
-      .in('qb_id', qbIds)
-    const byQbId = new Map((existing || []).map(r => [r.qb_id, r]))
-    const inserts = []
-    for (const p of purchases) {
-      if (p.Credit === true) { counts.purchases_skipped++; continue } // supplier refunds: handle manually
-      const amount = Number(p.TotalAmt) || 0
-      if (amount <= 0) { counts.purchases_skipped++; continue }
-      const qbId = `purchase:${p.Id}`
-      const supplier = p.EntityRef?.name || p.AccountRef?.name || 'QuickBooks'
-      const prev = byQbId.get(qbId)
-      const fields = {
-        date: p.TxnDate,
-        supplier,
-        amount,
-        memo: p.PrivateNote || null,
-        method: mapPaymentType(p.PaymentType),
-        raw_data: p,
-      }
-      if (prev) {
-        if (!prev.assigned) {
-          await sb.from('expenses').update(fields).eq('id', prev.id)
-          counts.purchases_updated++
-        } else counts.purchases_skipped++
-      } else {
-        inserts.push({
-          account_id: ACCOUNT_ID,
-          ...fields,
-          type: 'other',
-          status: 'Paid',
-          payment_status: 'paid',
-          paid_date: p.TxnDate,
-          thirty_day: 'no',
-          source: 'quickbooks',
-          assigned: false,
-          qb_id: qbId,
-          qb_type: 'Purchase',
-          vat_status: 'no-vat',
-          net_amount: amount,
-          vat_amount: 0,
-          is_overhead: false,
-          notes: 'Imported from QuickBooks',
-        })
-      }
-    }
-    if (inserts.length) {
-      const { error } = await sb.from('expenses').insert(inserts)
-      if (error) throw error
-      counts.purchases_new = inserts.length
-    }
+  for (const p of purchases) {
+    const amount = Number(p.TotalAmt) || 0
+    if (amount <= 0) { counts.skipped++; continue }
+    rows.push({
+      account_id: ACCOUNT_ID,
+      qb_id: `purchase:${p.Id}`,
+      qb_type: 'Purchase',
+      direction: p.Credit === true ? 'in' : 'out', // supplier refunds come back in
+      txn_date: p.TxnDate,
+      amount,
+      payee: p.EntityRef?.name || null,
+      memo: p.PrivateNote || null,
+      qb_account_name: p.AccountRef?.name || null,
+      payment_type: p.PaymentType || null,
+      raw: p,
+    })
+  }
+  for (const d of deposits) {
+    const amount = Number(d.TotalAmt) || 0
+    if (amount <= 0) { counts.skipped++; continue }
+    rows.push({
+      account_id: ACCOUNT_ID,
+      qb_id: `deposit:${d.Id}`,
+      qb_type: 'Deposit',
+      direction: 'in',
+      txn_date: d.TxnDate,
+      amount,
+      payee: depositDescription(d),
+      memo: d.PrivateNote || null,
+      qb_account_name: d.DepositToAccountRef?.name || null,
+      payment_type: null,
+      raw: d,
+    })
   }
 
-  // Deposits → income
-  if (deposits.length) {
-    const refs = deposits.map(d => `qb:deposit:${d.Id}`)
+  if (rows.length) {
+    // Never regress rows the user already handled: only update pending ones
     const { data: existing } = await sb
-      .from('income')
-      .select('reference')
-      .eq('account_id', ACCOUNT_ID)
-      .in('reference', refs)
-    const seen = new Set((existing || []).map(r => r.reference))
-    const inserts = []
-    for (const d of deposits) {
-      const ref = `qb:deposit:${d.Id}`
-      const amount = Number(d.TotalAmt) || 0
-      if (seen.has(ref) || amount <= 0) { counts.deposits_skipped++; continue }
-      inserts.push({
-        account_id: ACCOUNT_ID,
-        type: 'other',
-        amount,
-        net_amount: amount,
-        vat_amount: 0,
-        vat_status: 'no-vat',
-        is_general: true,
-        stock_id: null,
-        bank_account_id: null,
-        payment_method: 'bank_transfer',
-        reference: ref,
-        date: d.TxnDate,
-        description: depositDescription(d),
-        notes: 'Imported from QuickBooks',
-      })
-    }
+      .from('qb_transactions')
+      .select('qb_id, status')
+      .in('qb_id', rows.map(r => r.qb_id))
+    const byId = new Map((existing || []).map(r => [r.qb_id, r.status]))
+    const inserts = rows.filter(r => !byId.has(r.qb_id))
+    const updates = rows.filter(r => byId.get(r.qb_id) === 'pending')
     if (inserts.length) {
-      const { error } = await sb.from('income').insert(inserts)
+      const { error } = await sb.from('qb_transactions').insert(inserts)
       if (error) throw error
-      counts.deposits_new = inserts.length
+      counts.new = inserts.length
     }
+    for (const r of updates) {
+      await sb.from('qb_transactions')
+        .update({ txn_date: r.txn_date, amount: r.amount, payee: r.payee, memo: r.memo,
+                  qb_account_name: r.qb_account_name, direction: r.direction, raw: r.raw,
+                  updated_at: new Date().toISOString() })
+        .eq('qb_id', r.qb_id)
+    }
+    counts.updated = updates.length
   }
+
+  counts.balances_updated = await syncBankBalances(sb, conn)
 
   await sb.from('quickbooks_connections').update({ last_synced_at: syncStartedAt }).eq('id', conn.id)
   return counts
+}
+
+// Pull QBO bank accounts, snapshot them for the UI, and update the balance of
+// any fleet bank account mapped via bank_accounts.qb_account_id
+export async function syncBankBalances(sb, conn) {
+  let updated = 0
+  try {
+    const data = await qbQuery(conn, "select * from Account where AccountType = 'Bank'")
+    const accounts = (data?.QueryResponse?.Account || []).map(a => ({
+      id: a.Id, name: a.Name, balance: Number(a.CurrentBalance) || 0,
+    }))
+    if (!accounts.length) return 0
+    await sb.from('settings').upsert(
+      { key: 'qb_bank_accounts', value: JSON.stringify({ at: new Date().toISOString(), accounts }) },
+      { onConflict: 'key' },
+    )
+    const { data: fleetAccounts } = await sb
+      .from('bank_accounts')
+      .select('id, qb_account_id')
+      .not('qb_account_id', 'is', null)
+    for (const fa of fleetAccounts || []) {
+      const qb = accounts.find(a => String(a.id) === String(fa.qb_account_id))
+      if (!qb) continue
+      const { error } = await sb.from('bank_accounts')
+        .update({ balance: qb.balance, qb_balance: qb.balance, qb_balance_at: new Date().toISOString() })
+        .eq('id', fa.id)
+      if (!error) updated++
+    }
+  } catch (e) {
+    console.error('[qb-sync] bank balances failed:', e.message)
+  }
+  return updated
 }
 
 // Webhook Delete events: remove unassigned imported rows that were deleted in QBO
 export async function handleDeletes(sb, entities) {
   for (const e of entities) {
     if (e.operation !== 'Delete') continue
-    if (e.name === 'Purchase') {
-      await sb.from('expenses').delete()
-        .eq('account_id', ACCOUNT_ID).eq('qb_id', `purchase:${e.id}`)
-        .eq('source', 'quickbooks').eq('assigned', false)
-    } else if (e.name === 'Deposit') {
-      await sb.from('income').delete()
-        .eq('account_id', ACCOUNT_ID).eq('reference', `qb:deposit:${e.id}`)
-        .eq('type', 'other').eq('is_general', true)
-    }
+    if (e.name !== 'Purchase' && e.name !== 'Deposit') continue
+    const qbId = `${e.name.toLowerCase()}:${e.id}`
+    // only drop rows still awaiting reconciliation; matched/added rows stay
+    await sb.from('qb_transactions').delete()
+      .eq('account_id', ACCOUNT_ID).eq('qb_id', qbId).eq('status', 'pending')
   }
 }
