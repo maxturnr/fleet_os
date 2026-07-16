@@ -222,7 +222,7 @@ export async function syncBankBalances(sb, conn) {
     }))
     if (!accounts.length) return 0
     await sb.from('settings').upsert(
-      { key: 'qb_bank_accounts', value: JSON.stringify({ at: new Date().toISOString(), accounts }) },
+      { key: 'qb_bank_accounts', account_id: ACCOUNT_ID, value: JSON.stringify({ at: new Date().toISOString(), accounts }) },
       { onConflict: 'key' },
     )
     const { data: fleetAccounts } = await sb
