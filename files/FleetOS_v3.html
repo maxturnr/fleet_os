@@ -3309,7 +3309,7 @@ function getOwnedDirectCostBreakdown(car){
     .filter(t => t.stock_id === car?.id && t.type !== 'Vehicle Purchase' && t.type !== 'purchase')
     .forEach(t => {
       const grossAmount = getExpenseNetAmount(t)
-      if(vatApplicable && normalizeVatStatus(t.vat_status) === 'standard' && isVatReclaimActiveOn(t.date)){
+      if(vatApplicable && normalizeVatStatus(t.vat_status) === 'standard'){
         const vatAmount = getVatComponents(grossAmount, 'standard').vatAmount
         directCosts += grossAmount - vatAmount
         vatReclaimable += vatAmount
