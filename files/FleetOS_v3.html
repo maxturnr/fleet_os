@@ -7,6 +7,13 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>FleetOS v2.1</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#14130f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FleetOS">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11948,6 +11955,14 @@ document.addEventListener('click', event => {
   const periodMenu = document.getElementById('dashboard-period-menu')
   if(periodMenu && !periodMenu.contains(event.target) && !event.target.closest('.dashboard-period-trigger')) closeDashPeriodMenu()
 })
+
+
+// PWA: service worker for installable app + offline shell
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(e => console.error('SW registration failed', e))
+  })
+}
 
 </script>
 </body>
