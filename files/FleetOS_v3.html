@@ -6900,23 +6900,21 @@ function updateStockMetaSummary(){
 }
 
 function ownedDirectCostLabel(){
-  return vatRegistered ? 'Direct Costs (Ex VAT)' : 'Direct Costs'
+  return vatRegistered ? 'Direct Costs (inc VAT)' : 'Direct Costs'
 }
 
 function ownedRelatedCostsLabel(){
-  return vatRegistered ? 'RELATED TRANSACTIONS (DIRECT COSTS EX VAT)' : 'RELATED TRANSACTIONS (DIRECT COSTS)'
+  return vatRegistered ? 'RELATED TRANSACTIONS (DIRECT COSTS INC VAT)' : 'RELATED TRANSACTIONS (DIRECT COSTS)'
 }
 
 function ownedTotalCostsLabel(){
-  return vatRegistered ? 'Total Direct Costs (Ex VAT):' : 'Total Direct Costs:'
+  return vatRegistered ? 'Total Direct Costs (inc VAT):' : 'Total Direct Costs:'
 }
 
 // ══════════════════════════════════════════════
 // OWNED STOCK
 // ══════════════════════════════════════════════
 function renderOwned(){
-  const ownedHeaderCells = document.querySelectorAll('#stock-subpanel-owned thead th')
-  if(ownedHeaderCells[5]) ownedHeaderCells[5].textContent = ownedDirectCostLabel()
   const statusF=document.getElementById('owned-status-filter').value
   const makeF=document.getElementById('owned-make-filter').value
   const dateFrom=document.getElementById('owned-date-from').value
