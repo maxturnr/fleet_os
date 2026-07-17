@@ -1,0 +1,18 @@
+{
+	"appId": "co.pierfront.fleetos",
+	"appName": "Fleet OS",
+	"webDir": "www",
+	"server": {
+		"url": "https://www.pierfront.co",
+		"allowNavigation": [
+			"pierfront.co",
+			"www.pierfront.co",
+			"*.supabase.co"
+		]
+	},
+	"ios": {
+		"contentInset": "automatic",
+		"backgroundColor": "#f4f1ec"
+	},
+	"packageClassList": []
+}
