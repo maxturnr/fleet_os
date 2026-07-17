@@ -3312,7 +3312,7 @@ function getOwnedDirectCostBreakdown(car){
     .filter(t => t.stock_id === car?.id && t.type !== 'Vehicle Purchase')
     .forEach(t => {
       const grossAmount = getExpenseNetAmount(t)
-      if(vatApplicable && normalizeVatStatus(t.vat_status) === 'standard' && isVatReclaimActiveOn(t.date)){
+      if(vatApplicable && normalizeVatStatus(t.vat_status) === 'standard'){
         const vatAmount = getVatComponents(grossAmount, 'standard').vatAmount
         directCosts += grossAmount - vatAmount
         vatReclaimable += vatAmount
@@ -3891,15 +3891,15 @@ function ownedProfit(car){
   const salePrice = getOwnedSalePrice(car)
   if(!car.paid||!salePrice) return null
   const costBreakdown = getOwnedDirectCostBreakdown(car)
-  const costs = costBreakdown.directCosts
+  const costs = costBreakdown.grossCosts
   const extraIncomeGross = getVehicleExtraIncomeGross(car.id)
   const extraIncomeNet = getVehicleExtraIncomeNet(car.id)
   const saleVat = getOwnedVehicleVat(car)
   const vatReclaimable = costBreakdown.vatReclaimable
   const netVat = saleVat - vatReclaimable
-  // costs are already ex-VAT (reclaim credited there), so the full sale VAT
-  // is deducted - subtracting netVat here would credit the reclaim twice
-  const gross = salePrice + extraIncomeNet - Number(car.paid) - costs - saleVat
+  // costs shown GROSS (inc VAT); the reclaim comes back via net VAT
+  // (sale VAT minus VAT on costs), so profit = sale - buy - gross costs - net VAT
+  const gross = salePrice + extraIncomeNet - Number(car.paid) - costs - netVat
   const netProfit = gross
   const tax = netProfit > 0 ? netProfit * 0.20 : 0
   return {
@@ -6945,7 +6945,7 @@ function renderOwned(){
   tbody.innerHTML=filtered.map(c=>{
     const costBreakdown = getOwnedDirectCostBreakdown(c)
     const p = ownedProfit(c)
-    const costs = costBreakdown.directCosts
+    const costs = costBreakdown.grossCosts
     const gainPct = ownedNetGainPct(c)
     const depositAmount = getOwnedDepositAmount(c)
     const extraIncomeGross = num(p?.extraIncomeGross)
