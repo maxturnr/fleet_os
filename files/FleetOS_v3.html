@@ -122,13 +122,12 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 .sidebar-footer{padding:14px;border-top:none;display:flex;flex-direction:column;gap:8px;}
 .footer-label{display:inline;}
 .footer-short{display:none;}
-.vat-badge,.qb-btn,.logout-btn{display:none;}
+.vat-badge,.logout-btn{display:none;}
 .ask-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;background:#e0e0e0;border:1px solid rgba(20,19,15,0.05);border-radius:12px;font-size:13px;color:#000;width:100%;transition:background .15s;}
 .ask-btn:hover{background:#d8d8d8;}
 .ask-spark{width:14px;height:14px;color:#1f3eb8;}
 .vat-badge.active{border-color:rgba(47,126,217,0.28);color:var(--blue);background:var(--blue-dim);}
-.qb-btn.connected{border-color:rgba(34,152,102,0.28);color:var(--green);background:var(--green-dim);}
-.logout-btn:hover,.vat-badge:hover,.qb-btn:hover{color:#111;border-color:#d6cec2;background:#faf7f2;}
+.logout-btn:hover,.vat-badge:hover{color:#111;border-color:#d6cec2;background:#faf7f2;}
 
 /* MAIN CONTENT */
 .main-content{margin-left:248px;min-height:100vh;background:#f5f5f5;transition:none;}
@@ -146,7 +145,6 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 .sidebar-collapsed .nav-badge{right:10px;top:6px;}
 .sidebar-collapsed .sidebar-footer{padding:16px 10px;align-items:stretch;}
 .sidebar-collapsed .vat-badge,
-.sidebar-collapsed .qb-btn,
 .sidebar-collapsed .logout-btn{padding:8px 6px;font-size:9px;}
 .content{padding:8px 28px 36px;}
 .tab-panel{display:none;animation:fadeUp 0.3s ease both;}
@@ -1726,7 +1724,6 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
       <button class="nav-btn" onclick="showTab('stock',this)" title="Stock"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M2 8h12" stroke="currentColor" stroke-width="1.4"/></svg></span><span class="nav-label">Stock</span><span class="nav-short">ST</span></button>
       <button class="nav-btn" onclick="showTab('expenses',this)" title="Transactions"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 12L13 4M13 4H7M13 4v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Transactions</span><span class="nav-short">TX</span></button>
       <button class="nav-btn" onclick="showTab('credit-lines',this)" title="Credit Lines"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Credit Lines</span><span class="nav-short">CL</span></button>
-      <button class="nav-btn" onclick="showTab('recon',this)" title="Reconcile" id="nav-recon"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 5.5h9m0 0L8.5 3m2.5 2.5L8.5 8M14 10.5H5m0 0L7.5 8M5 10.5 7.5 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Reconcile</span><span class="nav-short">RC</span></button>
       <button class="nav-btn" onclick="showTab('income',this)" title="Income"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4L13 12M3 12V6M3 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Income</span><span class="nav-short">IN</span></button>
 
 
@@ -1794,10 +1791,6 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
       <button class="mobile-menu-item" onclick="mobileShowTab('pnl')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M7.5 17V12M12 17V8M16.5 17V14" stroke-linecap="round"/></svg>
         <span class="mobile-menu-label">Profit &amp; Loss</span>
-      </button>
-      <button class="mobile-menu-item" onclick="mobileShowTab('recon')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h13m0 0-3.5-3.5M16 8l-3.5 3.5M21 16H8m0 0 3.5-3.5M8 16l3.5 3.5"/></svg>
-        <span class="mobile-menu-label">Reconcile</span>
       </button>
       <button class="mobile-menu-item" onclick="mobileShowTab('balance')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l5.5 3.5" stroke-linecap="round"/></svg>
@@ -2052,7 +2045,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
       <div class="page-header">
         <div>
           <div class="page-title"><span>Transactions</span></div>
-          <div class="page-sub">Log costs manually or receive from QuickBooks. Assign each to a stock record.</div>
+          <div class="page-sub">Log costs and assign each to a stock record.</div>
         </div>
         <button class="btn-primary" onclick="openModal('add-tx')">+ Log Cost</button>
       </div>
@@ -2115,47 +2108,6 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
           <input type="date" class="filter-input" id="pnl-to" onchange="renderPnl()">
         </div>
         <div class="uni-body" id="pnl-content" style="padding:0;"></div>
-      </div>
-      </div>
-    </div>
-
-    <!-- RECONCILE -->
-    <div class="tab-panel" id="tab-recon">
-      <div class="uni-shell">
-      <div class="uni-surface">
-        <div class="uni-header">
-          <div class="uni-header-left"><div class="uni-title">Reconcile</div></div>
-          <button class="uni-action-btn no-plus" onclick="syncQBNow()">Sync QuickBooks</button>
-        </div>
-        <div class="uni-controls">
-          <select class="filter-input" id="recon-status" onchange="reconStatusFilter=this.value;renderRecon()">
-            <option value="pending">Pending</option>
-            <option value="matched">Matched</option>
-            <option value="added">Added</option>
-            <option value="dismissed">Dismissed</option>
-            <option value="all">All</option>
-          </select>
-          <select class="filter-input" id="recon-direction" onchange="reconDirectionFilter=this.value;renderRecon()">
-            <option value="">In &amp; Out</option>
-            <option value="out">Money Out</option>
-            <option value="in">Money In</option>
-          </select>
-          <input type="text" class="filter-input" id="recon-search" placeholder="Search payee / memo / amount" oninput="reconSearch=this.value;renderRecon()" style="min-width:220px">
-          <div class="filter-sep"></div>
-          <button class="uni-pill" onclick="autoMatchAllRecon()">Auto-match all suggested</button>
-          <input type="date" class="filter-input" id="recon-dismiss-before" title="Dismiss everything before this date">
-          <button class="uni-pill" onclick="dismissReconBefore()">Dismiss before date</button>
-          <div class="filter-sep"></div>
-          <span class="filter-label" id="recon-count-label"></span>
-        </div>
-        <div class="uni-body" style="padding:12px 16px;overflow:auto">
-          <div id="recon-bank-card"></div>
-          <div class="stock-table-wrap"><table class="stock-table" style="min-width:900px">
-            <colgroup><col style="width:9%"><col style="width:26%"><col style="width:12%"><col style="width:10%"><col style="width:28%"><col style="width:15%"></colgroup>
-            <thead><tr><th>Date</th><th>Details</th><th>QB Account</th><th>Amount</th><th>Match</th><th>Actions</th></tr></thead>
-            <tbody id="recon-tbody"></tbody>
-          </table></div>
-        </div>
       </div>
       </div>
     </div>
@@ -3247,7 +3199,6 @@ let dealershipUsers = []
 let vatRegistered = false
 let vatEffectiveDate = null
 let vatReclaimFrom = null  // input VAT (reclaims on costs) only counts from this date
-let qbConnected = false
 let currentTab = 'dashboard'
 let activeStockTab = 'owned'
 let assigningTxId = null
@@ -4213,335 +4164,6 @@ async function checkAuth(){
 }
 checkAuth()
 
-// ══════════════════════════════════════════════
-// QUICKBOOKS OAUTH
-// ══════════════════════════════════════════════
-function connectQB(){
-  if(qbConnected){ syncQBNow(); return }
-  if(!confirm('Connect QuickBooks? You will be redirected to Intuit to sign in.')) return
-  window.location.href = '/api/qb/connect'
-}
-
-async function syncQBNow(){
-  toast('Syncing QuickBooks...')
-  try {
-    const res = await fetch('/api/qb/sync',{method:'POST'})
-    const data = await res.json()
-    if(!res.ok || data.error){ toast(data.error||'QuickBooks sync failed',true); return }
-    if(data.connected===false){ qbConnected=false; updateQBBadge(); toast('QuickBooks not connected',true); return }
-    const added = data.new || 0
-    toast(added ? `QuickBooks: ${added} new transaction${added===1?'':'s'} to reconcile` : 'QuickBooks: up to date')
-    if(added || data.balances_updated) await loadAll()
-  } catch(e){ toast('QuickBooks sync failed',true) }
-}
-
-function checkQBCallback(){
-  const params = new URLSearchParams(window.location.search)
-  const qb = params.get('qb')
-  if(!qb) return
-  window.history.replaceState({},'',window.location.pathname)
-  if(qb==='connected'){
-    qbConnected = true; updateQBBadge()
-    toast('QuickBooks connected! Transactions are syncing.')
-  } else {
-    toast('QuickBooks connection failed - please try again',true)
-  }
-}
-
-// ══════════════════════════════════════════════
-// QUICKBOOKS RECONCILIATION
-// ══════════════════════════════════════════════
-let qbTransactions = []
-let qbBankAccounts = null
-let reconcilingQbRowId = null
-let reconStatusFilter = 'pending'
-let reconDirectionFilter = ''
-let reconSearch = ''
-let reconOpenFinder = null
-
-let reconRefreshTimer = null
-function subscribeReconRealtime(){
-  try {
-    sb.channel('qb-recon-live')
-      .on('postgres_changes', {event:'*', schema:'public', table:'qb_transactions'}, () => {
-        // coalesce bursts (a sync inserts many rows at once)
-        clearTimeout(reconRefreshTimer)
-        reconRefreshTimer = setTimeout(refreshReconData, 800)
-      })
-      .subscribe()
-  } catch(e){ console.error('recon realtime failed', e) }
-  // safety net: refresh when the app regains focus
-  document.addEventListener('visibilitychange', () => {
-    if(!document.hidden) refreshReconData()
-  })
-}
-
-async function refreshReconData(){
-  const r = await sb.from('qb_transactions').select('*').eq('account_id', accountId).order('txn_date', {ascending:false})
-  if(r.error) return
-  qbTransactions = r.data || []
-  updateReconBadge()
-  if(currentTab === 'recon') renderRecon()
-}
-
-function reconPendingCount(){
-  return qbTransactions.filter(r => r.status === 'pending').length
-}
-
-function updateReconBadge(){
-  const btn = document.getElementById('nav-recon')
-  if(!btn) return
-  const existing = btn.querySelector('.nav-badge')
-  if(existing) existing.remove()
-  const n = reconPendingCount()
-  if(n > 0){
-    const b = document.createElement('span')
-    b.className = 'nav-badge'; b.textContent = n
-    btn.appendChild(b)
-  }
-}
-
-function reconMatchedExpenseIds(){
-  return new Set(qbTransactions.filter(r => r.matched_expense_id).map(r => r.matched_expense_id))
-}
-function reconMatchedIncomeIds(){
-  return new Set(qbTransactions.filter(r => r.matched_income_id).map(r => r.matched_income_id))
-}
-
-function reconDayDiff(a, b){
-  if(!a || !b) return 9999
-  return Math.abs((new Date(a) - new Date(b)) / 86400000)
-}
-
-// Candidate fleet records for a QB row. exact=true → same amount within 1p and 7 days.
-function reconCandidates(row, exact){
-  const amt = num(row.amount)
-  const maxAmountDiff = exact ? 0.01 : 5
-  const maxDays = exact ? 7 : 60
-  let list
-  if(row.direction === 'out'){
-    const taken = reconMatchedExpenseIds()
-    list = transactions
-      .filter(t => !t.isRefund && !taken.has(t.id) && !t.qb_id)
-      .map(t => ({kind:'expense', id:t.id, date:t.date, label:`${t.supplier||'—'} · ${t.type||''}${t.car_reg?' · '+t.car_reg:''}`, amount:num(t.amount)}))
-  } else {
-    const taken = reconMatchedIncomeIds()
-    list = income
-      .filter(i => !taken.has(i.id))
-      .map(i => ({kind:'income', id:i.id, date:i.date, label:`${i.description||i.type||'Income'}${i.reference?' · '+i.reference:''}`, amount:num(i.amount)}))
-  }
-  return list
-    .filter(c => Math.abs(c.amount - amt) <= maxAmountDiff && reconDayDiff(c.date, row.txn_date) <= maxDays)
-    .sort((a,b) => (Math.abs(a.amount-amt) - Math.abs(b.amount-amt)) || (reconDayDiff(a.date,row.txn_date) - reconDayDiff(b.date,row.txn_date)))
-    .slice(0, exact ? 1 : 8)
-}
-
-function renderReconBankCard(){
-  const el = document.getElementById('recon-bank-card')
-  if(!el) return
-  if(!qbBankAccounts?.accounts?.length){ el.innerHTML=''; return }
-  const at = qbBankAccounts.at ? new Date(qbBankAccounts.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : ''
-  el.innerHTML = `<div style="border:1px solid var(--border,#e5e2dc);border-radius:10px;padding:14px 16px;margin-bottom:14px;background:var(--surface2,#faf9f7)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-weight:600;font-size:13px">QuickBooks bank balances</div>
-      <div style="font-size:11px;color:var(--muted2,#8a857d)">as of ${at} · updates on every sync</div>
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:18px">
-      ${bankAccounts.map(b => `
-        <div style="min-width:220px">
-          <div style="font-size:12px;color:var(--muted2,#8a857d)">${escapeHtml(b.account_name)} — ${fmt(num(b.current_balance))}</div>
-          <select class="filter-input" style="margin-top:4px;width:100%" onchange="setQbAccountMap(${b.id}, this.value)">
-            <option value="">Not linked to QuickBooks</option>
-            ${qbBankAccounts.accounts.map(a => `<option value="${a.id}" ${String(b.qb_account_id)===String(a.id)?'selected':''}>${escapeHtml(a.name)} (${fmt(a.balance)})</option>`).join('')}
-          </select>
-        </div>`).join('')}
-    </div>
-  </div>`
-}
-
-async function setQbAccountMap(fleetId, qbId){
-  const qb = qbBankAccounts?.accounts?.find(a => String(a.id) === String(qbId))
-  const patch = { qb_account_id: qbId || null }
-  if(qb){ patch.current_balance = qb.balance; patch.qb_balance = qb.balance; patch.qb_balance_at = new Date().toISOString() }
-  const {error} = await sb.from('bank_accounts').update(patch).eq('id', fleetId)
-  if(error){ toast('Could not link account: '+error.message, true); return }
-  toast(qb ? 'Linked — balance now follows QuickBooks' : 'Unlinked from QuickBooks')
-  await loadAll()
-}
-
-function renderRecon(){
-  renderReconBankCard()
-  const tbody = document.getElementById('recon-tbody')
-  if(!tbody) return
-  const q = reconSearch.trim().toLowerCase()
-  const rows = qbTransactions.filter(r => {
-    if(reconStatusFilter !== 'all' && r.status !== reconStatusFilter) return false
-    if(reconDirectionFilter && r.direction !== reconDirectionFilter) return false
-    if(q && !`${r.payee||''} ${r.memo||''} ${r.amount}`.toLowerCase().includes(q)) return false
-    return true
-  })
-  const label = document.getElementById('recon-count-label')
-  if(label) label.textContent = `${rows.length} shown · ${reconPendingCount()} pending`
-  if(!rows.length){
-    tbody.innerHTML = `<tr><td colspan="6"><div class="stock-empty-state"><div class="stock-empty-icon">✅</div><div class="stock-empty-text">${reconStatusFilter==='pending'?'Nothing to reconcile':'No matching items'}</div></div></td></tr>`
-    return
-  }
-  tbody.innerHTML = rows.map(r => {
-    const isOut = r.direction === 'out'
-    const amountHtml = `<span style="color:${isOut?'var(--red,#c0392b)':'var(--green,#1e8e3e)'};font-weight:600">${isOut?'−':'+'}${fmt(num(r.amount))}</span>`
-    let matchCell = ''
-    let actions = ''
-    if(r.status === 'pending'){
-      const sug = reconCandidates(r, true)[0]
-      if(reconOpenFinder === r.id){
-        const cands = reconCandidates(r, false)
-        matchCell = cands.length
-          ? cands.map(c => `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px dashed var(--border,#e5e2dc)">
-              <span style="font-size:11px">${escapeHtml(c.label)} · ${c.date||''} · ${fmt(c.amount)}</span>
-              <button class="uni-pill" style="flex-shrink:0" onclick="event.stopPropagation();matchRecon(${r.id},'${c.kind}',${c.id})">Link</button>
-            </div>`).join('') + `<div style="margin-top:4px"><button class="uni-pill" onclick="event.stopPropagation();reconOpenFinder=null;renderRecon()">Close</button></div>`
-          : `<span style="font-size:11px;color:var(--muted2,#8a857d)">No nearby ${isOut?'expenses':'income'} found</span> <button class="uni-pill" onclick="event.stopPropagation();reconOpenFinder=null;renderRecon()">Close</button>`
-      } else if(sug){
-        matchCell = `<span style="font-size:11px">Suggested: ${escapeHtml(sug.label)} · ${sug.date||''}</span>
-          <button class="uni-pill" style="margin-left:6px" onclick="event.stopPropagation();matchRecon(${r.id},'${sug.kind}',${sug.id})">Confirm</button>`
-      } else {
-        matchCell = `<span style="font-size:11px;color:var(--muted2,#8a857d)">No automatic match</span>`
-      }
-      actions = `<button class="uni-pill" onclick="event.stopPropagation();reconOpenFinder=${r.id};renderRecon()">Find</button>
-        <button class="uni-pill" onclick="event.stopPropagation();addReconAsRecord(${r.id})">Add</button>
-        <button class="uni-pill" onclick="event.stopPropagation();dismissRecon(${r.id})">Dismiss</button>`
-    } else {
-      const what = r.status === 'matched' ? 'Matched to existing record' : r.status === 'added' ? 'Added to Fleet' : 'Dismissed'
-      matchCell = `<span style="font-size:11px;color:var(--muted2,#8a857d)">${what}</span>`
-      actions = `<button class="uni-pill" onclick="event.stopPropagation();undoRecon(${r.id})">Undo</button>`
-    }
-    return `<tr>
-      <td style="white-space:nowrap">${r.txn_date ? new Date(r.txn_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—'}</td>
-      <td><div style="font-weight:500">${escapeHtml(r.payee || '(no payee)')}</div>${r.memo?`<div style="font-size:11px;color:var(--muted2,#8a857d)">${escapeHtml(r.memo)}</div>`:''}</td>
-      <td style="font-size:11px;color:var(--muted2,#8a857d)">${escapeHtml(r.qb_account_name || '—')}</td>
-      <td class="cell-amount">${amountHtml}</td>
-      <td>${matchCell}</td>
-      <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap">${actions}</td>
-    </tr>`
-  }).join('')
-}
-
-async function autoMatchAllRecon(){
-  const pending = qbTransactions.filter(r => r.status === 'pending')
-  const jobs = []
-  const usedTargets = new Set()
-  for(const r of pending){
-    const sug = reconCandidates(r, true)[0]
-    if(!sug) continue
-    const key = sug.kind + ':' + sug.id
-    if(usedTargets.has(key)) continue // never match two QB rows to one record
-    usedTargets.add(key)
-    jobs.push({row: r, sug})
-  }
-  if(!jobs.length){ toast('No confident matches found'); return }
-  if(!confirm(`Auto-match ${jobs.length} transaction${jobs.length===1?'':'s'} to existing Fleet records? (exact amount within 7 days)`)) return
-  loading(true, 'Matching...')
-  let done = 0
-  for(const {row, sug} of jobs){
-    const patch = { status:'matched', updated_at:new Date().toISOString() }
-    if(sug.kind === 'expense') patch.matched_expense_id = sug.id
-    else patch.matched_income_id = sug.id
-    const {error} = await sb.from('qb_transactions').update(patch).eq('id', row.id).eq('status','pending')
-    if(!error){
-      if(sug.kind === 'expense') await sb.from('expenses').update({qb_id: row.qb_id, qb_type: row.qb_type}).eq('id', sug.id)
-      done++
-    }
-  }
-  loading(false)
-  toast(`Auto-matched ${done} transaction${done===1?'':'s'}`)
-  await loadAll()
-}
-
-async function dismissReconBefore(){
-  const cutoff = document.getElementById('recon-dismiss-before').value
-  if(!cutoff){ toast('Pick a cutoff date first', true); return }
-  const targets = qbTransactions.filter(r => r.status === 'pending' && r.txn_date && r.txn_date < cutoff)
-  if(!targets.length){ toast('Nothing pending before that date'); return }
-  if(!confirm(`Dismiss ${targets.length} pending transaction${targets.length===1?'':'s'} dated before ${cutoff}? (They stay in the Dismissed filter and can be undone.)`)) return
-  loading(true, 'Dismissing...')
-  const {error} = await sb.from('qb_transactions')
-    .update({status:'dismissed', updated_at:new Date().toISOString()})
-    .eq('status','pending').lt('txn_date', cutoff)
-  loading(false)
-  if(error){ toast('Failed: '+error.message, true); return }
-  toast(`Dismissed ${targets.length}`)
-  await loadAll()
-}
-
-async function matchRecon(rowId, kind, targetId){
-  const row = qbTransactions.find(r => r.id === rowId)
-  if(!row) return
-  const patch = { status:'matched', updated_at: new Date().toISOString() }
-  if(kind === 'expense') patch.matched_expense_id = targetId
-  else patch.matched_income_id = targetId
-  const {error} = await sb.from('qb_transactions').update(patch).eq('id', rowId)
-  if(error){ toast('Match failed: '+error.message, true); return }
-  if(kind === 'expense') await sb.from('expenses').update({qb_id: row.qb_id, qb_type: row.qb_type}).eq('id', targetId)
-  toast('Matched')
-  await loadAll()
-}
-
-async function dismissRecon(rowId){
-  const {error} = await sb.from('qb_transactions').update({status:'dismissed', updated_at:new Date().toISOString()}).eq('id', rowId)
-  if(error){ toast('Failed: '+error.message, true); return }
-  await loadAll()
-}
-
-async function undoRecon(rowId){
-  const row = qbTransactions.find(r => r.id === rowId)
-  if(!row) return
-  if(row.matched_expense_id) await sb.from('expenses').update({qb_id:null, qb_type:null}).eq('id', row.matched_expense_id)
-  const {error} = await sb.from('qb_transactions').update({status:'pending', matched_expense_id:null, matched_income_id:null, created_expense_id:null, created_income_id:null, updated_at:new Date().toISOString()}).eq('id', rowId)
-  if(error){ toast('Failed: '+error.message, true); return }
-  toast('Back to pending')
-  await loadAll()
-}
-
-function addReconAsRecord(rowId){
-  const row = qbTransactions.find(r => r.id === rowId)
-  if(!row) return
-  reconcilingQbRowId = rowId
-  if(row.direction === 'out'){
-    openModal('add-expense')
-    document.getElementById('expense-date').value = row.txn_date || today()
-    document.getElementById('expense-amount').value = num(row.amount)
-    document.getElementById('expense-supplier').value = row.payee || ''
-    document.getElementById('expense-notes').value = row.memo || ''
-  } else {
-    openModal('add-income')
-    document.getElementById('income-date').value = row.txn_date || today()
-    document.getElementById('income-amount').value = num(row.amount)
-    document.getElementById('income-description').value = row.payee || ''
-    document.getElementById('income-notes').value = row.memo || ''
-    if(typeof calculateIncomeVAT === 'function') calculateIncomeVAT()
-  }
-}
-
-async function completeReconAfterSave(kind, newId){
-  if(!reconcilingQbRowId || !newId) return
-  const rowId = reconcilingQbRowId
-  reconcilingQbRowId = null
-  const row = qbTransactions.find(r => r.id === rowId)
-  const patch = { status:'added', updated_at:new Date().toISOString() }
-  if(kind === 'expense') patch.created_expense_id = newId
-  else patch.created_income_id = newId
-  await sb.from('qb_transactions').update(patch).eq('id', rowId)
-  if(kind === 'expense' && row) await sb.from('expenses').update({qb_id: row.qb_id, qb_type: row.qb_type, source:'quickbooks', assigned:true}).eq('id', newId)
-}
-
-function updateQBBadge(){
-  const b=document.getElementById('qb-btn')
-  const label=b?.querySelector('.footer-label')
-  if(label) label.textContent=qbConnected?'QB: ON':'QB: OFF'
-  if(b) b.classList.toggle('connected',qbConnected)
-  const menuItem=document.getElementById('dashboard-menu-qb')
-  if(menuItem) menuItem.textContent=qbConnected?'QB: ON':'QB: OFF'
-}
 
 
 // ══════════════════════════════════════════════
@@ -4554,7 +4176,7 @@ async function loadAll(){
   }
   loading(true,'Syncing...')
   try {
-    const [ownedRes,sorRes,txRes,refundsRes,incomeRes,splitsRes,bankRes,bankTxnRes,bankSplitsRes,reconRes,bsRes,settingsRes,docsRes,mileageRes,usersRes,qbTxRes] = await Promise.all([
+    const [ownedRes,sorRes,txRes,refundsRes,incomeRes,splitsRes,bankRes,bankTxnRes,bankSplitsRes,reconRes,bsRes,settingsRes,docsRes,mileageRes,usersRes] = await Promise.all([
       sb.from('cars').select('*').eq('type','owned').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('cars').select('*').eq('type','sor').eq('account_id',accountId).order('created_at',{ascending:false}),
       sb.from('expenses').select('*').eq('account_id',accountId).order('date',{ascending:false}),
@@ -4569,8 +4191,7 @@ async function loadAll(){
       sb.from('settings').select('*').eq('account_id',accountId),
       sb.from('transaction_documents').select('*').order('uploaded_at',{ascending:false}),
       sb.from('mileage_trips').select('*').eq('account_id',accountId).order('trip_date',{ascending:false}),
-      sb.rpc('get_dealership_users', {p_dealership_id: accountId}),
-      sb.from('qb_transactions').select('*').eq('account_id',accountId).order('txn_date',{ascending:false})
+      sb.rpc('get_dealership_users', {p_dealership_id: accountId})
     ])
     if(ownedRes.data) ownedCars=ownedRes.data
     if(sorRes.data) sorCars=sorRes.data
@@ -4593,7 +4214,6 @@ async function loadAll(){
     console.log('Users RPC Response:', usersRes)
     if(usersRes.error) console.error('Users RPC Error:', usersRes.error)
     dealershipUsers = usersRes.data || []
-    qbTransactions = qbTxRes?.data || []
     console.log('Dealership Users Loaded:', dealershipUsers)
     
     if(settingsRes.data){
@@ -4603,15 +4223,11 @@ async function loadAll(){
       vatEffectiveDate = vd?.value || null
       const vr=settingsRes.data.find(s=>s.key==='vat_reclaim_from')
       vatReclaimFrom = vr?.value || null
-      const q=settingsRes.data.find(s=>s.key==='qb_connected')
-      if(q){qbConnected=q.value==='true';updateQBBadge()}
-      const qba=settingsRes.data.find(s=>s.key==='qb_bank_accounts')
-      try { qbBankAccounts = qba ? JSON.parse(qba.value) : null } catch(e){ qbBankAccounts = null }
+
     }
     populateFilters()
     renderCurrentTab()
     updateUnassignedBadge()
-    updateReconBadge()
     loading(false)
   } catch(e){
     loading(false)
@@ -4631,9 +4247,7 @@ async function initApp(){
   const savedStockTab = safeSessionStorage.getItem('fleet_stock_subtab')
   if(savedStockTab === 'owned' || savedStockTab === 'sor' || savedStockTab === 'all') activeStockTab = savedStockTab
   applySidebarState()
-  checkQBCallback()
   await loadAll()
-  subscribeReconRealtime()
   
   // Restore last active tab
   const savedTab = safeLocalStorage.getItem('fleet_current_tab')
@@ -4744,7 +4358,6 @@ function renderCurrentTab(){
   else if(currentTab==='expenses') renderExpenses()
   else if(currentTab==='credit-lines') renderCreditLines()
   else if(currentTab==='income') renderIncome()
-  else if(currentTab==='recon') renderRecon()
 
   else if(currentTab==='pnl') renderPnl()
   else if(currentTab==='balance') renderBalance()
@@ -4936,7 +4549,6 @@ function openModal(name){
 }
 function closeModal(name){
   document.getElementById('modal-'+name).classList.remove('open')
-  if(name==='add-expense'||name==='add-income') reconcilingQbRowId = null
   if(name==='split-tx') splittingTxId=null
   if(name==='add-mileage-trip') window.mileageSaveAllowed=false
   if(name==='add-expense'){
@@ -11511,7 +11123,6 @@ async function saveExpense(){
     }
   }
   
-  if(!expenseId) await completeReconAfterSave('expense', newExpenseId)
   btn.disabled = false
   btn.textContent = 'Save Expense'
   closeModal('add-expense')
@@ -12114,7 +11725,6 @@ async function saveIncome(){
   }
 
   const savedIncomeId = incomeId || result.data?.[0]?.id
-  if(!incomeId) await completeReconAfterSave('income', savedIncomeId)
   const fileInput = document.getElementById('income-document')
   if(fileInput.files.length > 0 && savedIncomeId){
     const file = fileInput.files[0]

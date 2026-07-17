@@ -10,16 +10,5 @@
       "source": "/(.*)",
       "destination": "/FleetOS_v3.html"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/qb/sync",
-      "schedule": "0 6 * * *"
-    }
-  ],
-  "functions": {
-    "api/qb/*.js": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }
