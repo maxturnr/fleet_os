@@ -3309,7 +3309,7 @@ function getOwnedDirectCostBreakdown(car){
   let vatReclaimable = 0
 
   transactions
-    .filter(t => t.stock_id === car?.id && t.type !== 'Vehicle Purchase')
+    .filter(t => t.stock_id === car?.id && t.type !== 'Vehicle Purchase' && t.type !== 'purchase')
     .forEach(t => {
       const grossAmount = getExpenseNetAmount(t)
       if(vatApplicable && normalizeVatStatus(t.vat_status) === 'standard'){
@@ -6792,7 +6792,7 @@ function renderOwnedStockDrawerContent(car){
         : activeTransactionDrawerTab === 'expenses'
           ? renderStockDrawerExpenseTable(
               'Expenses',
-              transactions.filter(t => t.stock_id === car.id && t.type !== 'Vehicle Purchase'),
+              transactions.filter(t => t.stock_id === car.id && t.type !== 'Vehicle Purchase' && t.type !== 'purchase'),
               'No direct costs for this car',
               'Total Expenses',
               costs
@@ -6954,7 +6954,7 @@ function renderOwned(){
     const daysToDeposit = daysBetweenDates(c.advertised_date || c.purchase_date, c.deposit_date)
     const handoverDate = getOwnedCompletionDate(c)
     const daysToHandover = daysBetweenDates(c.purchase_date, handoverDate)
-    const relatedCosts = transactions.filter(t => t.stock_id === c.id && t.type !== 'Vehicle Purchase')
+    const relatedCosts = transactions.filter(t => t.stock_id === c.id && t.type !== 'Vehicle Purchase' && t.type !== 'purchase')
 
     const mainRow = `<tr class="stock-row-main row-expandable" id="stock-main-owned-${c.id}" onclick="openStockDrawer('owned', ${c.id})">
       <td>${renderStockVehicleCell(c)}</td>
