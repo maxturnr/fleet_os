@@ -10463,8 +10463,9 @@ function renderCreditLines(){
                   <div class="credit-line-sub">Due</div>
                 </div>
                 <div class="credit-line-amount">${fmt(getExpenseNetAmount(expense))}</div>
-                <div>
+                <div style="display:flex;gap:6px">
                   <button class="btn-ghost" onclick="openPayCreditExpenseModal(${expense.id})">Mark Paid</button>
+                  <button class="btn-ghost" style="color:var(--red)" onclick="deleteExpense(${expense.id})">Delete</button>
                 </div>
               </div>
             `).join('')}
