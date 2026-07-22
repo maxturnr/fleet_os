@@ -3720,8 +3720,9 @@ function toast(msg,isError=false){
 function getDirectCosts(stockId){
   let total=0
   
-  // Exclude Vehicle Purchase from direct costs - it goes into the 'paid' column
-  transactions.filter(t=>t.stock_id===stockId && t.type!=='Vehicle Purchase').forEach(t=>{
+  // Exclude the car purchase from direct costs - the buy price lives in 'paid'.
+  // Matches getOwnedDirectCostBreakdown: both 'Vehicle Purchase' and 'purchase'.
+  transactions.filter(t=>t.stock_id===stockId && t.type!=='Vehicle Purchase' && t.type!=='purchase').forEach(t=>{
     total+=getExpenseNetAmount(t)
   })
   
