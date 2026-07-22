@@ -1412,8 +1412,6 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
   .stock-redesign .stock-table td:nth-child(5),
   .stock-redesign .stock-table th:nth-child(6),
   .stock-redesign .stock-table td:nth-child(6){display:none;}
-  .stock-redesign #stock-subpanel-owned .stock-table th:nth-child(7),
-  .stock-redesign #stock-subpanel-owned .stock-table td:nth-child(7){display:none;}
   .stock-redesign .stock-table th,
   .stock-redesign .stock-table td{padding:10px 12px !important;font-size:12px;}
 
@@ -1947,16 +1945,15 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
             <div class="stock-subpanel-label">Owned Stock</div>
             <div class="stock-table-wrap">
               <table class="stock-table">
-                <colgroup><col style="width:21%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:10%"><col style="width:9%"><col style="width:9%"><col style="width:12%"><col style="width:12%"></colgroup>
+                <colgroup><col style="width:22%"><col style="width:10%"><col style="width:12%"><col style="width:11%"><col style="width:10%"><col style="width:10%"><col style="width:13%"><col style="width:12%"></colgroup>
                 <thead><tr>
                   <th>Vehicle</th>
-                  <th>Paid</th>
-                  <th>Advertised</th>
-                  <th>Sold For</th>
-                  <th>Direct Costs</th>
+                  <th>Buy Price</th>
+                  <th>Advertised/Sold</th>
+                  <th>Costs (inc VAT)</th>
                   <th>VAT Margin</th>
-                  <th>Net VAT</th>
-                  <th>Pre-Tax Profit</th>
+                  <th>VAT Reclaim</th>
+                  <th>Net Profit</th>
                   <th>Status</th>
                 </tr></thead>
                 <tbody id="owned-tbody"></tbody>
@@ -3309,10 +3306,10 @@ function getOwnedDirectCostBreakdown(car){
   let vatReclaimable = 0
 
   transactions
-    .filter(t => t.stock_id === car?.id && t.type !== 'Vehicle Purchase')
+    .filter(t => t.stock_id === car?.id && t.type !== 'Vehicle Purchase' && t.type !== 'purchase')
     .forEach(t => {
       const grossAmount = getExpenseNetAmount(t)
-      if(vatApplicable && normalizeVatStatus(t.vat_status) === 'standard' && isVatReclaimActiveOn(t.date)){
+      if(vatApplicable && normalizeVatStatus(t.vat_status) === 'standard'){
         const vatAmount = getVatComponents(grossAmount, 'standard').vatAmount
         directCosts += grossAmount - vatAmount
         vatReclaimable += vatAmount
@@ -3891,15 +3888,15 @@ function ownedProfit(car){
   const salePrice = getOwnedSalePrice(car)
   if(!car.paid||!salePrice) return null
   const costBreakdown = getOwnedDirectCostBreakdown(car)
-  const costs = costBreakdown.directCosts
+  const costs = costBreakdown.grossCosts
   const extraIncomeGross = getVehicleExtraIncomeGross(car.id)
   const extraIncomeNet = getVehicleExtraIncomeNet(car.id)
   const saleVat = getOwnedVehicleVat(car)
   const vatReclaimable = costBreakdown.vatReclaimable
   const netVat = saleVat - vatReclaimable
-  // costs are already ex-VAT (reclaim credited there), so the full sale VAT
-  // is deducted - subtracting netVat here would credit the reclaim twice
-  const gross = salePrice + extraIncomeNet - Number(car.paid) - costs - saleVat
+  // costs shown GROSS (inc VAT); the reclaim comes back via net VAT
+  // (sale VAT minus VAT on costs), so profit = sale - buy - gross costs - net VAT
+  const gross = salePrice + extraIncomeNet - Number(car.paid) - costs - netVat
   const netProfit = gross
   const tax = netProfit > 0 ? netProfit * 0.20 : 0
   return {
@@ -6792,7 +6789,7 @@ function renderOwnedStockDrawerContent(car){
         : activeTransactionDrawerTab === 'expenses'
           ? renderStockDrawerExpenseTable(
               'Expenses',
-              transactions.filter(t => t.stock_id === car.id && t.type !== 'Vehicle Purchase'),
+              transactions.filter(t => t.stock_id === car.id && t.type !== 'Vehicle Purchase' && t.type !== 'purchase'),
               'No direct costs for this car',
               'Total Expenses',
               costs
@@ -6903,23 +6900,21 @@ function updateStockMetaSummary(){
 }
 
 function ownedDirectCostLabel(){
-  return vatRegistered ? 'Direct Costs (Ex VAT)' : 'Direct Costs'
+  return vatRegistered ? 'Direct Costs (inc VAT)' : 'Direct Costs'
 }
 
 function ownedRelatedCostsLabel(){
-  return vatRegistered ? 'RELATED TRANSACTIONS (DIRECT COSTS EX VAT)' : 'RELATED TRANSACTIONS (DIRECT COSTS)'
+  return vatRegistered ? 'RELATED TRANSACTIONS (DIRECT COSTS INC VAT)' : 'RELATED TRANSACTIONS (DIRECT COSTS)'
 }
 
 function ownedTotalCostsLabel(){
-  return vatRegistered ? 'Total Direct Costs (Ex VAT):' : 'Total Direct Costs:'
+  return vatRegistered ? 'Total Direct Costs (inc VAT):' : 'Total Direct Costs:'
 }
 
 // ══════════════════════════════════════════════
 // OWNED STOCK
 // ══════════════════════════════════════════════
 function renderOwned(){
-  const ownedHeaderCells = document.querySelectorAll('#stock-subpanel-owned thead th')
-  if(ownedHeaderCells[5]) ownedHeaderCells[5].textContent = ownedDirectCostLabel()
   const statusF=document.getElementById('owned-status-filter').value
   const makeF=document.getElementById('owned-make-filter').value
   const dateFrom=document.getElementById('owned-date-from').value
@@ -6941,11 +6936,11 @@ function renderOwned(){
     return numA - numB
   })
   const tbody=document.getElementById('owned-tbody')
-  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="9"><div class="stock-empty-state"><div class="stock-empty-icon">🚗</div><div class="stock-empty-text">No cars match filters</div></div></td></tr>`;return}
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="8"><div class="stock-empty-state"><div class="stock-empty-icon">🚗</div><div class="stock-empty-text">No cars match filters</div></div></td></tr>`;return}
   tbody.innerHTML=filtered.map(c=>{
     const costBreakdown = getOwnedDirectCostBreakdown(c)
     const p = ownedProfit(c)
-    const costs = costBreakdown.directCosts
+    const costs = costBreakdown.grossCosts
     const gainPct = ownedNetGainPct(c)
     const depositAmount = getOwnedDepositAmount(c)
     const extraIncomeGross = num(p?.extraIncomeGross)
@@ -6954,17 +6949,24 @@ function renderOwned(){
     const daysToDeposit = daysBetweenDates(c.advertised_date || c.purchase_date, c.deposit_date)
     const handoverDate = getOwnedCompletionDate(c)
     const daysToHandover = daysBetweenDates(c.purchase_date, handoverDate)
-    const relatedCosts = transactions.filter(t => t.stock_id === c.id && t.type !== 'Vehicle Purchase')
+    const relatedCosts = transactions.filter(t => t.stock_id === c.id && t.type !== 'Vehicle Purchase' && t.type !== 'purchase')
 
     const mainRow = `<tr class="stock-row-main row-expandable" id="stock-main-owned-${c.id}" onclick="openStockDrawer('owned', ${c.id})">
       <td>${renderStockVehicleCell(c)}</td>
       <td class="cell-amount">${c.paid ? fmt(c.paid) : '—'}</td>
-      <td class="cell-amount">${c.advertised ? fmt(c.advertised) : '—'}</td>
-      <td class="cell-amount">${getOwnedSalePrice(c) ? fmt(getOwnedSalePrice(c)) : '—'}</td>
+      <td class="cell-amount">${(() => { const sold = getOwnedSalePrice(c); const dep = getOwnedDepositAmount(c); const sell = sold > dep ? sold : num(c.advertised); return sell ? fmt(sell) : '—' })()}</td>
       <td class="cell-amount">${costs ? fmt(costs) : '—'}</td>
       <td class="cell-amount">${(() => { const vm = getOwnedVatMargin(c); return vm != null ? fmt(vm) : '—' })()}</td>
-      <td class="cell-amount">${(() => { const nv = getOwnedVatMarginOwed(c); return nv != null ? fmt(nv) : '—' })()}</td>
-      <td class="cell-amount ${p && p.gross > 0 ? 'positive' : ''}" style="color:${p ? pc(p.gross) : '#14130f'}">${p ? fmt(p.gross) : '—'}</td>
+      <td class="cell-amount">${(() => { const vr = isOwnedVatApplicable(c) ? costBreakdown.vatReclaimable : null; return vr != null && vr > 0 ? fmt(vr) : '—' })()}</td>
+      <td class="cell-amount">${(() => {
+        const sold = getOwnedSalePrice(c); const dep = getOwnedDepositAmount(c)
+        const sell = sold > dep ? sold : num(c.advertised)
+        if(!sell || !c.paid) return '—'
+        const margin = getOwnedVatMargin(c) || 0
+        const reclaim = isOwnedVatApplicable(c) ? costBreakdown.vatReclaimable : 0
+        const net = sell - num(c.paid) - costBreakdown.grossCosts - margin + reclaim
+        return `<span style="color:${pc(net)}">${fmt(net)}</span>`
+      })()}</td>
       <td>${renderStockStatusText(c.status)}</td>
     </tr>`
     return mainRow
@@ -10478,8 +10480,9 @@ function renderCreditLines(){
                   <div class="credit-line-sub">Due</div>
                 </div>
                 <div class="credit-line-amount">${fmt(getExpenseNetAmount(expense))}</div>
-                <div>
+                <div style="display:flex;gap:6px">
                   <button class="btn-ghost" onclick="openPayCreditExpenseModal(${expense.id})">Mark Paid</button>
+                  <button class="btn-ghost" style="color:var(--red)" onclick="deleteExpense(${expense.id})">Delete</button>
                 </div>
               </div>
             `).join('')}

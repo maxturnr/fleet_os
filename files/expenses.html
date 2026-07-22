@@ -54,7 +54,7 @@
 
     <!-- Filters -->
     <div class="bg-white p-6 rounded-lg shadow mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
           <select id="filterType" onchange="loadExpenses()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
@@ -77,6 +77,13 @@
             <option value="">All</option>
             <option value="vehicle">Vehicle Expenses</option>
             <option value="overhead">Overhead</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Vehicle</label>
+          <select id="filterVehicle" onchange="loadExpenses()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <option value="">All Vehicles</option>
+            <option value="unassigned">⚠ Unassigned (no vehicle)</option>
           </select>
         </div>
         <div>
@@ -254,8 +261,11 @@
         vehicles = data;
         
         const select = document.getElementById('expenseVehicle');
+        const filterSelect = document.getElementById('filterVehicle');
         data.forEach(v => {
-          select.innerHTML += `<option value="${v.id}">${v.stock_number || 'N/A'} - ${v.make} ${v.model} ${v.reg || ''}</option>`;
+          const label = `${v.stock_number || 'N/A'} - ${v.make} ${v.model} ${v.reg || ''}`;
+          select.innerHTML += `<option value="${v.id}">${label}</option>`;
+          filterSelect.innerHTML += `<option value="${v.id}">${label}</option>`;
         });
       }
     }
@@ -264,6 +274,7 @@
     async function loadExpenses() {
       const type = document.getElementById('filterType').value;
       const assignment = document.getElementById('filterAssignment').value;
+      const vehicle = document.getElementById('filterVehicle').value;
       const dateRange = document.getElementById('filterDate').value;
       const search = document.getElementById('searchInput').value.toLowerCase();
 
@@ -275,6 +286,13 @@
       if (type) query = query.eq('type', type);
       if (assignment === 'overhead') query = query.eq('is_overhead', true);
       else if (assignment === 'vehicle') query = query.eq('is_overhead', false);
+
+      // Vehicle filter: specific car, or unassigned (no vehicle and not overhead)
+      if (vehicle === 'unassigned') {
+        query = query.is('stock_id', null).eq('is_overhead', false);
+      } else if (vehicle) {
+        query = query.eq('stock_id', vehicle);
+      }
 
       // Date filtering
       if (dateRange !== 'all') {
