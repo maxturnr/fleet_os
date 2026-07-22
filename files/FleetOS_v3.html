@@ -7739,6 +7739,17 @@ function renderBalance(){
   const totalAssets=totalBankBalance+stockAdvertisedVal+(balanceSheet.debtors||0)+allMileageRefund+vatReclaimAsset
   const totalLiab=(balanceSheet.parts30||0)+(balanceSheet.mech30||0)+vendorCreditLiabilities+corpTaxReserve+vatLiability+(balanceSheet.other_liab||0)
   const netWorth=totalAssets-totalLiab
+  // Cost-based view: value unsold stock at buy price + prep costs (what your
+  // accountant uses) instead of advertised price. Deposited cars net off the
+  // deposit already collected, mirroring the advertised calc. The gap between
+  // the two net-worth figures is unrealised profit still sitting in stock.
+  const costStockValue=unsoldOwned.reduce((s,c)=>{
+    const base=Number(c.paid||0)+getDirectCosts(c.id)
+    return s+(c.status==='Deposited'?Math.max(0,base-getOwnedDepositAmount(c)):base)
+  },0)
+  const totalAssetsCost=totalBankBalance+costStockValue+(balanceSheet.debtors||0)+allMileageRefund+vatReclaimAsset
+  const netWorthCost=totalAssetsCost-totalLiab
+  const unrealisedStockProfit=netWorth-netWorthCost
 
   const brow=(label,val,color='var(--white)',indent=false,bold=false)=>`
     <div class="pnl-row${indent?' indent':''}${bold?' total':''}">
@@ -7788,7 +7799,11 @@ function renderBalance(){
 
       <div class="pnl-section">
         <div class="pnl-section-title">Net Worth</div>
-        ${brow('NET WORTH OF BUSINESS',netWorth,netWorth>=0?'var(--green)':'var(--red)',false,true)}
+        ${brow('NET WORTH — AT ADVERTISED',netWorth,netWorth>=0?'var(--green)':'var(--red)',false,true)}
+        <div class="pnl-row indent"><span class="pnl-row-label" style="font-style:italic;font-size:11px">Stock valued at advertised price — includes the profit you expect to make when it sells.</span></div>
+        ${brow('NET WORTH — AT COST',netWorthCost,netWorthCost>=0?'var(--green)':'var(--red)',false,true)}
+        <div class="pnl-row indent"><span class="pnl-row-label" style="font-style:italic;font-size:11px">Stock valued at buy price + prep costs — the figure your accountant uses.</span></div>
+        ${unrealisedStockProfit!==0?brow('Unrealised Profit in Stock',unrealisedStockProfit,'var(--blue)',true):''}
         <div class="pnl-row" style="background:${netWorth>=0?'var(--green-dim)':'var(--red-dim)'}">
           <span style="font-size:11px;color:var(--muted2);font-style:italic;font-family:'DM Mono',monospace">Total Assets minus Total Liabilities</span>
         </div>
