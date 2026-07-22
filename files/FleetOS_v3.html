@@ -7737,8 +7737,11 @@ function renderBalance(){
 
   // Bank balances already reflect all spending (buy price, prep costs, overhead)
   // So we only add the advertised value of stock (what it's worth now)
-  const vatReclaimAsset = vatBreakdown.netVatDue < 0 ? Math.abs(vatBreakdown.netVatDue) : 0
-  const vatLiability = vatBreakdown.netVatDue > 0 ? vatBreakdown.netVatDue : 0
+  // Show VAT gross as two separate lines so the net bill can be read off directly:
+  // reclaim sits in assets, total VAT owed sits in liabilities. Net worth is
+  // unchanged (asset - liability == the old single net figure).
+  const vatReclaimAsset = vatBreakdown.expenseVatReclaim
+  const vatLiability = vatBreakdown.incomeVatDue
   const totalAssets=totalBankBalance+stockAdvertisedVal+(balanceSheet.debtors||0)+allMileageRefund+vatReclaimAsset
   const totalLiab=(balanceSheet.parts30||0)+(balanceSheet.mech30||0)+vendorCreditLiabilities+corpTaxReserve+vatLiability+(balanceSheet.other_liab||0)
   const netWorth=totalAssets-totalLiab
