@@ -4157,6 +4157,33 @@ async function doLogout(){
 let bankRecRows = []
 let bankRecLoaded = false
 let bankRecActiveRowId = null
+let bankRecFinderRowId = null
+let bankRecFinderQuery = ''
+
+// amount of the fleet record a bank row is linked to
+function bankRecTargetAmount(kind, id){
+  if(kind==='expense'){ const t = transactions.find(x=>x.id===id); return t ? num(t.amount) : null }
+  if(kind==='income'){ const i = income.find(x=>x.id===id); return i ? num(i.amount) : null }
+  if(kind==='car_purchase'){ const c = ownedCars.find(x=>x.id===id); return c ? num(c.paid) : null }
+  return null
+}
+function bankRecTargetLabel(kind, id){
+  if(kind==='expense'){ const t = transactions.find(x=>x.id===id); return t ? `${t.supplier||'Expense'} · ${t.type||''}${t.car_reg?' · '+t.car_reg:''}` : 'expense #'+id }
+  if(kind==='income'){ const i = income.find(x=>x.id===id); return i ? `Income · ${i.description||i.type||''}` : 'income #'+id }
+  if(kind==='car_purchase'){ const c = ownedCars.find(x=>x.id===id); return c ? `Car buy price · ${c.reg}` : 'car #'+id }
+  return kind+' #'+id
+}
+// sum of ALL bank rows linked to the same fleet record (multi-link support)
+function bankRecLinkedSum(kind, id){
+  return bankRecRows.filter(r=>r.matched_kind===kind && r.matched_id===id).reduce((s,r)=>s+num(r.amount),0)
+}
+function bankRecLinkStatus(kind, id){
+  const target = bankRecTargetAmount(kind, id)
+  if(target == null) return ''
+  const linked = Math.round(bankRecLinkedSum(kind, id)*100)/100
+  if(Math.abs(linked-target) < 0.01) return ` · ${fmt(target)} fully covered ✓`
+  return ` · ${fmt(linked)} of ${fmt(target)} linked (${fmt(target-linked)} to go)`
+}
 
 function bankRecSuggest(r){
   const d = (r.descr||'').toUpperCase()
@@ -4206,13 +4233,19 @@ async function renderBankRec(){
     const amountHtml = `<span style="color:${isOut?'var(--red,#c0392b)':'var(--green,#1e8e3e)'};font-weight:600">${isOut?'−':'+'}${fmt(num(r.amount))}</span>`
     let actions
     if(r.matched_kind){
-      actions = `<span style="font-size:11px;color:var(--muted2,#8a857d)">${escapeHtml(r.matched_kind==='manual' ? (r.matched_label||'categorised') : (r.matched_kind + (r.matched_label? ' · '+r.matched_label : '')))}</span>
-        ${r.matched_kind==='manual'||r.matched_kind==='added' ? `<button class="uni-pill" onclick="event.stopPropagation();bankRecUndo(${r.id})">Undo</button>` : ''}`
+      let statusText
+      if(r.matched_kind==='manual') statusText = r.matched_label||'categorised'
+      else if(['expense','income','car_purchase'].includes(r.matched_kind) && r.matched_id)
+        statusText = 'linked: ' + bankRecTargetLabel(r.matched_kind, r.matched_id) + bankRecLinkStatus(r.matched_kind, r.matched_id)
+      else statusText = r.matched_kind + (r.matched_label? ' · '+r.matched_label : '')
+      actions = `<span style="font-size:11px;color:var(--muted2,#8a857d)">${escapeHtml(statusText)}</span>
+        ${r.matched_kind!=='internal transfer' ? `<button class="uni-pill" onclick="event.stopPropagation();bankRecUndo(${r.id})">Undo</button>` : ''}`
     } else {
       const addBtn = isOut
         ? `<button class="uni-pill" onclick="event.stopPropagation();bankRecAdd(${r.id},'expense')">+ Expense</button>`
         : `<button class="uni-pill" onclick="event.stopPropagation();bankRecAdd(${r.id},'income')">+ Income</button>`
       actions = `${addBtn}
+        <button class="uni-pill" onclick="event.stopPropagation();bankRecOpenFinder(${r.id})">Link</button>
         <select class="filter-input" style="font-size:11px;padding:2px 4px" onchange="if(this.value){bankRecCategorise(${r.id}, this.value)}">
           <option value="">Categorise…</option>
           <option>Loan (liability)</option>
@@ -4223,7 +4256,7 @@ async function renderBankRec(){
           <option>Ignore</option>
         </select>`
     }
-    return `<tr>
+    let html = `<tr>
       <td style="white-space:nowrap">${r.txn_date ? new Date(r.txn_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—'}</td>
       <td style="font-size:11px">${acctNames[r.acct]||r.acct}</td>
       <td style="font-size:12px">${escapeHtml(r.descr || '(no description)')}</td>
@@ -4231,7 +4264,76 @@ async function renderBankRec(){
       <td style="font-size:11px;color:var(--muted2,#8a857d)">${r.matched_kind ? '' : escapeHtml(bankRecSuggest(r))}</td>
       <td style="white-space:nowrap;display:flex;gap:4px;align-items:center">${actions}</td>
     </tr>`
+    if(bankRecFinderRowId === r.id && !r.matched_kind){
+      html += `<tr><td colspan="6" style="background:var(--surface2,#faf9f7);padding:10px 14px">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+          <input type="text" class="filter-input" id="bankrec-finder-input" placeholder="Search supplier / reg / amount…" value="${escapeHtml(bankRecFinderQuery)}" oninput="bankRecFinderQuery=this.value;renderBankRec()" style="min-width:260px">
+          <button class="uni-pill" onclick="bankRecFinderRowId=null;bankRecFinderQuery='';renderBankRec()">Close</button>
+        </div>
+        ${bankRecFinderResults(r).map(c=>`
+          <div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px dashed var(--border,#e5e2dc)">
+            <span style="font-size:12px">${escapeHtml(c.label)} · ${c.date||''} · ${fmt(c.amount)}${escapeHtml(c.linkedNote)}</span>
+            <button class="uni-pill" style="flex-shrink:0" onclick="bankRecAttach(${r.id},'${c.kind}',${c.id})">Attach</button>
+          </div>`).join('') || '<div style="font-size:12px;color:var(--muted2)">No matches - try a different search</div>'}
+      </td></tr>`
+    }
+    return html
   }).join('')
+  // keep finder input focused while typing
+  const fi = document.getElementById('bankrec-finder-input')
+  if(fi && bankRecFinderQuery){ fi.focus(); fi.setSelectionRange(fi.value.length, fi.value.length) }
+}
+
+function bankRecOpenFinder(rowId){
+  bankRecFinderRowId = rowId
+  bankRecFinderQuery = ''
+  renderBankRec()
+}
+
+function bankRecFinderResults(r){
+  const q = bankRecFinderQuery.trim().toLowerCase()
+  const amt = num(r.amount)
+  let cands = []
+  if(r.direction === 'out'){
+    cands = transactions.filter(t=>!t.isRefund).map(t=>({kind:'expense', id:t.id, date:t.date,
+      label:`${t.supplier||'—'} · ${t.type||''}${t.car_reg?' · '+t.car_reg:''}`, amount:num(t.amount)}))
+      .concat(ownedCars.filter(c=>num(c.paid)>0).map(c=>({kind:'car_purchase', id:c.id, date:c.purchase_date,
+      label:`Car buy price · ${c.reg} ${c.make||''}`, amount:num(c.paid)})))
+  } else {
+    cands = income.map(i=>({kind:'income', id:i.id, date:i.date,
+      label:`Income · ${i.description||i.type||''}${(()=>{const c=ownedCars.find(x=>x.id===i.stock_id);return c?' · '+c.reg:''})()}`, amount:num(i.amount)}))
+  }
+  cands.forEach(c=>{
+    const linked = bankRecLinkedSum(c.kind, c.id)
+    c.linkedNote = linked > 0 ? ` (${fmt(linked)} of ${fmt(c.amount)} already linked)` : ''
+  })
+  if(q){
+    cands = cands.filter(c=>`${c.label} ${c.amount}`.toLowerCase().includes(q))
+  }
+  // closest amount first (remaining-to-cover closeness), then date closeness
+  cands.sort((a,b)=>{
+    const ra = Math.abs((a.amount - bankRecLinkedSum(a.kind,a.id)) - amt)
+    const rb = Math.abs((b.amount - bankRecLinkedSum(b.kind,b.id)) - amt)
+    return ra - rb
+  })
+  return cands.slice(0, 8)
+}
+
+async function bankRecAttach(rowId, kind, targetId){
+  const {error} = await sb.from('recon_bank').update({matched_kind:kind, matched_id:targetId, matched_label:'linked manually'}).eq('id', rowId)
+  if(error){ toast('Failed: '+error.message, true); return }
+  const r = bankRecRows.find(x=>x.id===rowId)
+  if(r){ r.matched_kind=kind; r.matched_id=targetId; r.matched_label='linked manually' }
+  bankRecFinderRowId = null
+  bankRecFinderQuery = ''
+  const target = bankRecTargetAmount(kind, targetId)
+  const linked = bankRecLinkedSum(kind, targetId)
+  if(target != null && Math.abs(linked-target) >= 0.01){
+    toast(`Linked - ${fmt(linked)} of ${fmt(target)} covered, ${fmt(target-linked)} still to link`)
+  } else {
+    toast('Linked - amounts stack ✓')
+  }
+  renderBankRec()
 }
 
 function bankRecCleanSupplier(descr){
