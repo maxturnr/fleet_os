@@ -3777,7 +3777,10 @@ function getOwnedVehicleVat(car){
       .filter(row => normalizeVatStatus(row.vat_status) === 'standard' && isVatActiveOn(row.date || completionDate))
       .reduce((sum, row) => sum + num(row.vat_amount), 0)
     if(standardVatFromIncome > 0) return standardVatFromIncome
-    return salePrice * 0.20
+    // Retail prices are VAT-inclusive, so the VAT is the 1/6 already inside the
+    // sale price — not 20% on top of it. This matches the income-row path above,
+    // which derives vat_amount via getVatComponents (gross / 1.20).
+    return getVatComponents(salePrice, 'standard').vatAmount
   }
 
   return Math.max(0, salePrice - num(car.paid)) / 6
@@ -3972,6 +3975,67 @@ function getOwnedBalanceSheetValue(car){
     return Math.max(0, salePrice - depositReceived)
   }
   return num(car.advertised)
+}
+
+// The gross price we expect a car to fetch, before any deposit is netted off.
+// getOwnedBalanceSheetValue returns the balance still to collect; VAT and tax
+// are due on the whole sale, so those calcs need the full figure.
+function getOwnedExpectedSalePrice(car){
+  if(!car) return 0
+  if(car.status === 'Deposited'){
+    const depositReceived = getOwnedDepositAmount(car)
+    const trustedSold = num(car.sold) > depositReceived ? num(car.sold) : 0
+    return trustedSold || num(car.advertised) || num(car.paid)
+  }
+  return num(car.advertised)
+}
+
+// Mirror of getOwnedVehicleVat for stock that has NOT sold yet: keyed off the
+// advertised price and today's date instead of sale price and completion date.
+// Deliberately matches getOwnedVehicleVat's arithmetic line for line so a car's
+// VAT figure doesn't jump the moment it moves from stock to sold.
+function getExpectedStockVat(car){
+  if(!car || !isVatActiveOn(today())) return 0
+
+  const vatType = getOwnedSaleVatType(car)
+  if(vatType === 'none') return 0
+
+  const salePrice = getOwnedExpectedSalePrice(car)
+  if(!salePrice) return 0
+  if(vatType === 'standard') return getVatComponents(salePrice, 'standard').vatAmount
+
+  return Math.max(0, salePrice - num(car.paid)) / 6
+}
+
+// Unsold stock valued at buy price + prep costs. Deposited cars net off the
+// deposit already banked, mirroring getOwnedBalanceSheetValue.
+function getOwnedStockCostValue(cars){
+  return cars.reduce((sum, car) => {
+    const base = num(car.paid) + getDirectCosts(car.id)
+    return sum + (car.status === 'Deposited' ? Math.max(0, base - getOwnedDepositAmount(car)) : base)
+  }, 0)
+}
+
+// Net realisable value of unsold stock: advertised price is VAT-inclusive and
+// the margin over cost will be taxed, so neither slice is ours to keep. We take
+// both off the asset rather than provisioning on the liability side — there's no
+// obligation until the car actually sells, so nothing is "owed" yet, but stock
+// carried at net realisable value is the standard treatment.
+function getStockRealisableBreakdown(cars){
+  const advertised = cars.reduce((sum, car) => sum + getOwnedBalanceSheetValue(car), 0)
+  const expectedVat = cars.reduce((sum, car) => sum + getExpectedStockVat(car), 0)
+  const costValue = getOwnedStockCostValue(cars)
+  const advertisedNet = advertised - expectedVat
+  const unrealisedMargin = advertisedNet - costValue
+  const expectedTax = unrealisedMargin > 0 ? unrealisedMargin * 0.20 : 0
+  return {
+    advertised,
+    expectedVat,
+    costValue,
+    advertisedNet,
+    expectedTax,
+    realisable: advertisedNet - expectedTax
+  }
 }
 
 function daysInStock(car){
@@ -6202,7 +6266,8 @@ function renderDashboard(){
   const spendTriggerLabel = dashPeriodDays ? `Spent · ${getDashPeriodLabel()}` : 'Spent · All time'
 
   const unsoldOwned = ownedCars.filter(isOwnedActiveStock)
-  const stockAdvertisedVal = unsoldOwned.reduce((sum, car) => sum + getOwnedBalanceSheetValue(car), 0)
+  // Stock carried at net realisable value, matching the balance sheet
+  const stockRealisableVal = getStockRealisableBreakdown(unsoldOwned).realisable
   const allTimeVatBreakdown = getVatBreakdown()
   const allSoldOwned = ownedCars.filter(c => c.status === 'Sold' && c.paid && getOwnedSalePrice(c))
   const allOwnedExtraNet = allSoldOwned.reduce((sum, car) => sum + getVehicleExtraIncomeNet(car.id), 0)
@@ -6223,7 +6288,7 @@ function renderDashboard(){
   const allTimePaidOverhead = transactions.filter(t => !t.stock_id && t.type !== 'Dividend' && getExpensePaymentStatus(t) === 'paid').reduce((sum, t) => sum + getExpenseNetAmount(t), 0)
   const taxableProfit = allTimeRevenue - allTimeBuyPrice - allTimeDirectCosts - allTimeVat - allTimePaidOverhead
   const corpTaxReserve = taxableProfit > 0 ? taxableProfit * 0.20 : 0
-  const totalAssets = totalBankBalance + stockAdvertisedVal + num(balanceSheet.debtors) + allMileageRefund + vatReclaimAsset
+  const totalAssets = totalBankBalance + stockRealisableVal + num(balanceSheet.debtors) + allMileageRefund + vatReclaimAsset
   const totalLiabilities = num(balanceSheet.parts30) + num(balanceSheet.mech30) + unpaid + corpTaxReserve + vatLiability + num(balanceSheet.other_liab)
   const netWorth = totalAssets - totalLiabilities
   const metricCohortLabel = getDashboardMetricCohortLabel()
@@ -7742,23 +7807,26 @@ function renderBalance(){
   const totalBankBalance=bankAccounts.reduce((s,b)=>s+Number(b.current_balance||0),0)
 
   // Bank balances already reflect all spending (buy price, prep costs, overhead)
-  // So we only add the advertised value of stock (what it's worth now)
+  // So we only add the value of unsold stock on top.
   // Show VAT gross as two separate lines so the net bill can be read off directly:
-  // reclaim sits in assets, total VAT owed sits in liabilities. Net worth is
-  // unchanged (asset - liability == the old single net figure).
+  // reclaim sits in assets, total VAT owed sits in liabilities.
   const vatReclaimAsset = vatBreakdown.expenseVatReclaim
   const vatLiability = vatBreakdown.incomeVatDue
-  const totalAssets=totalBankBalance+stockAdvertisedVal+(balanceSheet.debtors||0)+allMileageRefund+vatReclaimAsset
+  // Stock is carried at net realisable value — advertised less the VAT that will
+  // fall due on sale and 20% tax on the margin over cost. See
+  // getStockRealisableBreakdown for why this sits on the asset side rather than
+  // as a provision in liabilities.
+  const stockBreakdown=getStockRealisableBreakdown(unsoldOwned)
+  const expectedStockVat=stockBreakdown.expectedVat
+  const expectedStockTax=stockBreakdown.expectedTax
+  const stockRealisableVal=stockBreakdown.realisable
+  const costStockValue=stockBreakdown.costValue
+  const totalAssets=totalBankBalance+stockRealisableVal+(balanceSheet.debtors||0)+allMileageRefund+vatReclaimAsset
   const totalLiab=(balanceSheet.parts30||0)+(balanceSheet.mech30||0)+vendorCreditLiabilities+corpTaxReserve+vatLiability+(balanceSheet.other_liab||0)
   const netWorth=totalAssets-totalLiab
   // Cost-based view: value unsold stock at buy price + prep costs (what your
-  // accountant uses) instead of advertised price. Deposited cars net off the
-  // deposit already collected, mirroring the advertised calc. The gap between
-  // the two net-worth figures is unrealised profit still sitting in stock.
-  const costStockValue=unsoldOwned.reduce((s,c)=>{
-    const base=Number(c.paid||0)+getDirectCosts(c.id)
-    return s+(c.status==='Deposited'?Math.max(0,base-getOwnedDepositAmount(c)):base)
-  },0)
+  // accountant uses). The gap between the two net-worth figures is the profit
+  // still sitting in stock, after VAT and tax have been taken off.
   const totalAssetsCost=totalBankBalance+costStockValue+(balanceSheet.debtors||0)+allMileageRefund+vatReclaimAsset
   const netWorthCost=totalAssetsCost-totalLiab
   const unrealisedStockProfit=netWorth-netWorthCost
@@ -7778,10 +7846,13 @@ function renderBalance(){
         <div class="pnl-row" style="background:var(--surface3)"><span style="font-size:11px;color:var(--gold);font-family:'DM Mono',monospace;letter-spacing:0.05em">BANK ACCOUNTS</span></div>
         ${bankAccounts.map(b=>brow(b.account_name,b.current_balance||0,'var(--gold)',true)).join('')}
         <div class="pnl-row" style="background:var(--surface3);margin-top:4px"><span style="font-size:11px;color:var(--blue);font-family:'DM Mono',monospace;letter-spacing:0.05em">STOCK VALUE</span></div>
-        ${stockAdvertisedVal>0?brow('Current Stock Value',stockAdvertisedVal,'var(--blue)',true):''}
+        ${stockAdvertisedVal>0?brow('Stock at Advertised',stockAdvertisedVal,'var(--muted2)',true):''}
+        ${expectedStockVat>0?brow('Less VAT Expected on Sale',-expectedStockVat,'var(--red)',true):''}
+        ${expectedStockTax>0?brow('Less Tax on Unrealised Margin',-expectedStockTax,'var(--red)',true):''}
+        ${brow('Current Stock Value (Realisable)',stockRealisableVal,'var(--blue)',true)}
         ${depositedStockValue>0?brow('Deposited Cars Remaining Balance',depositedStockValue,'var(--blue)',true):''}
         ${depositsHeld>0?brow('Deposits Already Taken',depositsHeld,'var(--green)',true):''}
-        <div class="pnl-row indent"><span class="pnl-row-label" style="font-style:italic;font-size:11px">Deposited owned cars stay on the balance sheet at sale price less deposit received until they are marked sold.</span></div>
+        <div class="pnl-row indent"><span class="pnl-row-label" style="font-style:italic;font-size:11px">Stock is carried at advertised price less the VAT that falls due on sale and 20% tax on the margin — what the cars would actually leave in the bank. Deposited owned cars sit at sale price less deposit received until they are marked sold.</span></div>
         <div class="pnl-row" style="background:var(--surface3);margin-top:4px"><span style="font-size:11px;color:var(--muted2);font-family:'DM Mono',monospace;letter-spacing:0.05em">REFERENCE — STOCK COSTS</span></div>
         ${brow('Buy Price',stockVal,'var(--muted2)',true)}
         ${brow('Prep Costs',stockCosts,'var(--muted2)',true)}
@@ -7812,10 +7883,10 @@ function renderBalance(){
       <div class="pnl-section">
         <div class="pnl-section-title">Net Worth</div>
         ${brow('NET WORTH — AT ADVERTISED',netWorth,netWorth>=0?'var(--green)':'var(--red)',false,true)}
-        <div class="pnl-row indent"><span class="pnl-row-label" style="font-style:italic;font-size:11px">Stock valued at advertised price — includes the profit you expect to make when it sells.</span></div>
+        <div class="pnl-row indent"><span class="pnl-row-label" style="font-style:italic;font-size:11px">Stock valued at advertised price less expected VAT and tax — the profit you would actually keep when it sells.</span></div>
         ${brow('NET WORTH — AT COST',netWorthCost,netWorthCost>=0?'var(--green)':'var(--red)',false,true)}
         <div class="pnl-row indent"><span class="pnl-row-label" style="font-style:italic;font-size:11px">Stock valued at buy price + prep costs — the figure your accountant uses.</span></div>
-        ${unrealisedStockProfit!==0?brow('Unrealised Profit in Stock',unrealisedStockProfit,'var(--blue)',true):''}
+        ${unrealisedStockProfit!==0?brow('Unrealised Profit in Stock (after VAT & tax)',unrealisedStockProfit,'var(--blue)',true):''}
         <div class="pnl-row" style="background:${netWorth>=0?'var(--green-dim)':'var(--red-dim)'}">
           <span style="font-size:11px;color:var(--muted2);font-style:italic;font-family:'DM Mono',monospace">Total Assets minus Total Liabilities</span>
         </div>
