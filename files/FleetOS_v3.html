@@ -2073,10 +2073,17 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
           <option value="assigned">Assigned to Car</option>
           <option value="overhead">Overhead</option>
         </select>
+        <select class="filter-select" id="tx-car-filter" onchange="renderTransactions()">
+          <option value="">All Cars</option>
+        </select>
+        <select class="filter-select" id="tx-supplier-filter" onchange="renderTransactions()">
+          <option value="">All Suppliers</option>
+        </select>
         <select class="filter-select" id="tx-status-filter" onchange="renderTransactions()">
           <option value="">All Status</option>
           <option>Paid</option><option>Unpaid</option><option>Overdue</option>
         </select>
+        <input type="search" class="filter-input" id="tx-search" placeholder="Search supplier or notes" oninput="renderTransactions()" style="min-width:180px">
         <div class="filter-sep"></div>
         <input type="date" class="filter-input" id="tx-date-from" onchange="renderTransactions()">
         <span class="filter-label">to</span>
@@ -7125,30 +7132,147 @@ function clearSORFilters(){
 // ══════════════════════════════════════════════
 // TRANSACTIONS
 // ══════════════════════════════════════════════
+// ---- Transactions search -------------------------------------------------
+// Every searchable string for one transaction, lowercased. Dates go in twice
+// (ISO and UK format) so "2026-04-26", "26/04/2026" and "apr" all hit.
+function txHaystack(t, allStock){
+  const car=allStock.find(c=>c.id===t.stock_id)
+  const iso=t.date||''
+  const parts=[
+    t.supplier, t.vendor_name, t.type, t.notes, t.memo, t.status,
+    t.created_by_name, t.vat, t.method, t.car_reg,
+    car&&car.reg, car&&car.stock_number, car&&car.make, car&&car.model,
+    iso, fmtDate(iso),
+    iso?new Date(iso+'T12:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'}):'',
+    iso?new Date(iso+'T12:00:00').toLocaleDateString('en-GB',{month:'short'}):'',
+    t.amount!=null?String(t.amount):'',
+    t.amount!=null?Number(t.amount).toFixed(2):''
+  ]
+  return parts.filter(Boolean).join(' ').toLowerCase()
+}
+
+// A term is either an amount comparison or plain text.
+//   >500  <50  >=100  100-250  =89.99  £89.99
+function txMatchesTerm(t, term, hay){
+  const amt=Number(t.amount)
+  const num=s=>Number(String(s).replace(/[£,]/g,''))
+
+  let m=term.match(/^(>=|<=|>|<|=)\s*£?([\d.,]+)$/)
+  if(m&&!isNaN(num(m[2]))){
+    const v=num(m[2])
+    if(isNaN(amt)) return false
+    switch(m[1]){
+      case '>':  return amt>v
+      case '<':  return amt<v
+      case '>=': return amt>=v
+      case '<=': return amt<=v
+      case '=':  return Math.abs(amt-v)<0.005
+    }
+  }
+
+  m=term.match(/^£?([\d.,]+)\s*-\s*£?([\d.,]+)$/)
+  if(m&&!isNaN(num(m[1]))&&!isNaN(num(m[2]))){
+    if(isNaN(amt)) return false
+    return amt>=num(m[1])&&amt<=num(m[2])
+  }
+
+  // Bare "£550" means the amount, not text anywhere on the row.
+  if(/^£[\d.,]+$/.test(term)){
+    const v=num(term)
+    return !isNaN(amt)&&Math.abs(amt-v)<0.005
+  }
+
+  return hay.includes(term)
+}
+
+// Space-separated terms are ANDed, so "autotrader >100" works.
+// Quote a phrase to keep it together: "motor parts"
+function txMatchesSearch(t, query, allStock){
+  if(!query) return true
+  const terms=(query.toLowerCase().match(/"[^"]*"|\S+/g)||[])
+    .map(s=>s.replace(/^"|"$/g,'').trim()).filter(Boolean)
+  if(!terms.length) return true
+  const hay=txHaystack(t, allStock)
+  return terms.every(term=>txMatchesTerm(t, term, hay))
+}
+
+// How a transaction is attributed: to a car, to overhead, or to nothing yet.
+// A transaction counts as assigned to a car if it has a stock_id OR is split
+// across several cars.
+function txAssignment(t){
+  const hasSplits=transactionSplits.some(s=>s.transaction_id===t.id)
+  if(t.stock_id||hasSplits) return 'assigned'
+  if(t.is_overhead===true) return 'overhead'
+  return 'unassigned'
+}
+
+function populateTxFilterOptions(){
+  const carSel=document.getElementById('tx-car-filter')
+  const supSel=document.getElementById('tx-supplier-filter')
+  if(!carSel||!supSel) return
+
+  // Only list cars that actually have transactions against them.
+  const usedCarIds=new Set()
+  transactions.forEach(t=>{ if(t.stock_id) usedCarIds.add(String(t.stock_id)) })
+  transactionSplits.forEach(s=>{ if(s.car_id) usedCarIds.add(String(s.car_id)) })
+
+  const carOpts=[...ownedCars,...sorCars]
+    .filter(c=>usedCarIds.has(String(c.id)))
+    .sort((a,b)=>(a.stock_number||'').localeCompare(b.stock_number||'',undefined,{numeric:true}))
+    .map(c=>`<option value="${c.id}">${c.stock_number||'?'} — ${c.reg||''} ${c.make||''} ${c.model||''}</option>`)
+    .join('')
+  const carVal=carSel.value
+  carSel.innerHTML=`<option value="">All Cars</option>${carOpts}`
+  carSel.value=carVal
+
+  const suppliers=[...new Set(transactions.map(t=>(t.supplier||'').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,undefined,{sensitivity:'base'}))
+    .map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${s}</option>`)
+    .join('')
+  const supVal=supSel.value
+  supSel.innerHTML=`<option value="">All Suppliers</option>${suppliers}`
+  supSel.value=supVal
+}
+
 function renderTransactions(){
-  const unassignedQB=transactions.filter(t=>!t.assigned&&t.source==='quickbooks')
+  populateTxFilterOptions()
+
+  const needsAssigning=transactions.filter(t=>txAssignment(t)==='unassigned')
   const alertEl=document.getElementById('unassigned-alert')
-  if(unassignedQB.length>0){
+  if(needsAssigning.length>0){
+    const total=needsAssigning.reduce((s,t)=>s+(Number(t.amount)||0),0)
     alertEl.innerHTML=`<div class="unassigned-bar">
-      <span class="unassigned-bar-text">⚠ ${unassignedQB.length} QuickBooks transaction${unassignedQB.length>1?'s':''} need assigning</span>
+      <span class="unassigned-bar-text">⚠ ${needsAssigning.length} transaction${needsAssigning.length>1?'s':''} (${fmt(total)}) not assigned to a car or overhead</span>
       <button class="unassigned-bar-btn" onclick="document.getElementById('tx-assign-filter').value='unassigned';renderTransactions()">View Unassigned</button>
     </div>`
   } else { alertEl.innerHTML='' }
 
   const typeF=document.getElementById('tx-type-filter').value
   const assignF=document.getElementById('tx-assign-filter').value
+  const carF=document.getElementById('tx-car-filter').value
+  const supplierF=document.getElementById('tx-supplier-filter').value
   const statusF=document.getElementById('tx-status-filter').value
   const dateFrom=document.getElementById('tx-date-from').value
   const dateTo=document.getElementById('tx-date-to').value
+  const searchF=(document.getElementById('tx-search').value||'').trim().toLowerCase()
+  const allStock=[...ownedCars,...sorCars]
 
   let filtered=transactions.filter(t=>{
     if(typeF&&t.type!==typeF) return false
-    if(assignF==='unassigned'&&(t.assigned||t.source!=='quickbooks')) return false
-    if(assignF==='assigned'&&!t.stock_id) return false
-    if(assignF==='overhead'&&t.stock_id) return false
+    if(assignF&&txAssignment(t)!==assignF) return false
+    if(carF){
+      const onCar=String(t.stock_id||'')===String(carF)
+        ||transactionSplits.some(s=>s.transaction_id===t.id&&String(s.car_id)===String(carF))
+      if(!onCar) return false
+    }
+    if(supplierF&&(t.supplier||'').trim()!==supplierF) return false
     if(statusF&&t.status!==statusF) return false
     if(dateFrom&&t.date<dateFrom) return false
     if(dateTo&&t.date>dateTo) return false
+    if(searchF){
+      const hay=`${t.supplier||''} ${t.notes||''} ${t.memo||''} ${t.car_reg||''} ${t.type||''}`.toLowerCase()
+      if(!hay.includes(searchF)) return false
+    }
     return true
   })
 
@@ -7171,8 +7295,9 @@ function renderTransactions(){
       <td>
         ${hasSplits?`<span class="badge badge-blue">SPLIT</span>`
         :linked?`<span class="reg-badge ${linked.type==='sor'?'sor':''}">${linked.stock_number}</span> <span class="muted-text" style="font-size:11px">${linked.reg}</span>`
-        :t.stock_id?'<span class="muted-text">Unknown</span>'
-        :'<span class="muted-text" style="font-size:11px">overhead</span>'}
+        :t.stock_id?'<span class="muted-text">Unknown car</span>'
+        :t.is_overhead===true?'<span class="muted-text" style="font-size:11px">overhead</span>'
+        :'<span class="badge" style="background:rgba(231,76,60,0.12);color:#c0392b">unassigned</span>'}
       </td>
       <td class="num" style="${isRefund?'color:#27ae60;font-weight:600':''}">${isRefund?'-':''}${fmt(t.amount)}</td>
       <td class="muted-text" style="text-align:center;font-family:'DM Mono',monospace;font-size:11px">${t.vat}</td>
@@ -7472,7 +7597,8 @@ async function deleteDocument(docId, txId){
 }
 
 function clearTxFilters(){
-  ['tx-type-filter','tx-assign-filter','tx-status-filter','tx-date-from','tx-date-to'].forEach(id=>document.getElementById(id).value='')
+  ['tx-type-filter','tx-assign-filter','tx-car-filter','tx-supplier-filter','tx-status-filter','tx-date-from','tx-date-to','tx-search']
+    .forEach(id=>{const el=document.getElementById(id); if(el) el.value=''})
   renderTransactions()
 }
 
