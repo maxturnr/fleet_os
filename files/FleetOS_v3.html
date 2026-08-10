@@ -2185,25 +2185,31 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
 
           <div class="expenses-controls">
             <div class="expenses-controls-left">
+              <input type="search" class="expenses-quick-filter" id="expense-search"
+                     placeholder="Search vendor, amount, date, car…"
+                     oninput="applyExpenseFilters()"
+                     autocomplete="off" spellcheck="false"
+                     style="min-width:230px;flex:1 1 230px"
+                     title="Search vendor, car, reg, account, user, notes or date.&#10;Amounts: £550   &gt;100   &lt;50   100-250&#10;Terms combine, e.g. autotrader &gt;100&#10;Quote a phrase: &quot;motor parts&quot;">
               <button class="expenses-filter-btn" id="expense-filter-toggle" type="button" onclick="toggleExpenseFilters()" aria-label="Open filters">▽ Filters</button>
-              <select class="expenses-quick-filter" id="expense-account-filter" onchange="renderExpenses()">
+              <select class="expenses-quick-filter" id="expense-account-filter" onchange="applyExpenseFilters()">
                 <option value="">Account is</option>
               </select>
-              <select class="expenses-quick-filter" id="expense-type-filter" onchange="renderExpenses()">
+              <select class="expenses-quick-filter" id="expense-type-filter" onchange="applyExpenseFilters()">
                 <option value="">Type is</option>
                 <option value="income">Income</option>
                 <option value="expense">Expense</option>
                 <option value="credit">Credit Line</option>
                 <option value="bank">Bank Feed</option>
               </select>
-              <select class="expenses-quick-filter" id="expense-reconciled-filter" onchange="renderExpenses()">
+              <select class="expenses-quick-filter" id="expense-reconciled-filter" onchange="applyExpenseFilters()">
                 <option value="">All statuses</option>
                 <option value="unreconciled">Unreconciled</option>
                 <option value="reconciled">Reconciled</option>
               </select>
             </div>
             <div class="expenses-controls-right">
-              <select class="expenses-quick-filter" id="expense-sort" onchange="renderExpenses()">
+              <select class="expenses-quick-filter" id="expense-sort" onchange="applyExpenseFilters()">
                 <option value="recent">Sort by: Most recent</option>
                 <option value="oldest">Sort by: Oldest</option>
                 <option value="amount_desc">Sort by: Highest amount</option>
@@ -2240,13 +2246,13 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
           <div class="filter-drawer-body">
             <div class="filter-drawer-group">
               <label class="filter-drawer-label" for="expense-detail-filter">Transaction Detail</label>
-              <select class="filter-select" id="expense-detail-filter" onchange="renderExpenses()">
+              <select class="filter-select" id="expense-detail-filter" onchange="applyExpenseFilters()">
                 <option value="">All Details</option>
               </select>
             </div>
             <div class="filter-drawer-group">
               <label class="filter-drawer-label" for="expense-direction-filter">Direction</label>
-              <select class="filter-select" id="expense-direction-filter" onchange="renderExpenses()">
+              <select class="filter-select" id="expense-direction-filter" onchange="applyExpenseFilters()">
                 <option value="">All</option>
                 <option value="in">Money In</option>
                 <option value="out">Money Out</option>
@@ -2255,8 +2261,8 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
             <div class="filter-drawer-group">
               <div class="filter-drawer-label">Date Range</div>
               <div class="filter-drawer-row">
-                <input type="date" class="filter-input" id="expense-from" onchange="renderExpenses()">
-                <input type="date" class="filter-input" id="expense-to" onchange="renderExpenses()">
+                <input type="date" class="filter-input" id="expense-from" onchange="applyExpenseFilters()">
+                <input type="date" class="filter-input" id="expense-to" onchange="applyExpenseFilters()">
               </div>
             </div>
             <div class="filter-drawer-actions">
@@ -9330,14 +9336,14 @@ function toggleExpenseFilters(forceState){
 }
 
 function resetExpenseFilters(){
-  ;['expense-account-filter','expense-type-filter','expense-detail-filter','expense-direction-filter','expense-reconciled-filter','expense-from','expense-to'].forEach(id => {
+  ;['expense-account-filter','expense-type-filter','expense-detail-filter','expense-direction-filter','expense-reconciled-filter','expense-from','expense-to','expense-search'].forEach(id => {
     const element = document.getElementById(id)
     if(element) element.value = ''
   })
   const sort = document.getElementById('expense-sort')
   if(sort) sort.value = 'recent'
   toggleExpenseFilters(false)
-  renderExpenses()
+  applyExpenseFilters()
 }
 
 function sortExpenseRows(rows, sortBy){
@@ -10581,6 +10587,76 @@ function exportExpensesCsv(){
   setTimeout(() => URL.revokeObjectURL(link.href), 500)
 }
 
+// ---- Transactions search -------------------------------------------------
+// Everything on a row that a person might type, lowercased. Dates go in three
+// ways (ISO, the displayed label, and month name) so "2026-04", "26/04/2026"
+// and "april" all land.
+function expenseRowHaystack(row){
+  const iso = row.date || ''
+  let monthLong = '', monthShort = '', ukDate = ''
+  if(/^\d{4}-\d{2}-\d{2}$/.test(iso)){
+    const d = new Date(iso + 'T12:00:00')
+    if(!isNaN(d)){
+      monthLong  = d.toLocaleDateString('en-GB', {month:'long', year:'numeric'})
+      monthShort = d.toLocaleDateString('en-GB', {month:'short'})
+      ukDate     = d.toLocaleDateString('en-GB')
+    }
+  }
+  const amt = Number(row.amount)
+  return [
+    row.title, row.subtitle, row.accountName, row.accountMeta,
+    row.vehicleTitle, row.vehicleSubtitle, row.personName,
+    row.type, row.detailType, row.dateLabel,
+    iso, ukDate, monthLong, monthShort,
+    isNaN(amt) ? '' : String(Math.abs(amt)),
+    isNaN(amt) ? '' : Math.abs(amt).toFixed(2)
+  ].filter(Boolean).join(' ').toLowerCase()
+}
+
+// One term: an amount comparison, or plain text.
+//   >500   <50   >=100   100-250   =89.99   £89.99
+function expenseRowMatchesTerm(row, term, hay){
+  const amt = Math.abs(Number(row.amount))
+  const num = s => Number(String(s).replace(/[£,]/g, ''))
+
+  let m = term.match(/^(>=|<=|>|<|=)\s*£?([\d.,]+)$/)
+  if(m && !isNaN(num(m[2]))){
+    if(isNaN(amt)) return false
+    const v = num(m[2])
+    if(m[1] === '>')  return amt >  v
+    if(m[1] === '<')  return amt <  v
+    if(m[1] === '>=') return amt >= v
+    if(m[1] === '<=') return amt <= v
+    return Math.abs(amt - v) < 0.005
+  }
+
+  // Dates look like ranges (2026-08, 2026-08-06) — treat those as text.
+  const looksLikeDate = /^\d{4}-\d{1,2}(-\d{1,2})?$/.test(term)
+  m = looksLikeDate ? null : term.match(/^£?([\d.,]+)\s*-\s*£?([\d.,]+)$/)
+  if(m && !isNaN(num(m[1])) && !isNaN(num(m[2])) && num(m[1]) <= num(m[2])){
+    if(isNaN(amt)) return false
+    return amt >= num(m[1]) && amt <= num(m[2])
+  }
+
+  // A bare "£550" means the amount, not text sitting anywhere on the row.
+  if(/^£[\d.,]+$/.test(term)){
+    return !isNaN(amt) && Math.abs(amt - num(term)) < 0.005
+  }
+
+  return hay.includes(term)
+}
+
+// Space-separated terms are ANDed, so "autotrader >100" narrows twice.
+// Quote to keep a phrase together: "motor parts"
+function expenseRowMatchesSearch(row, query){
+  if(!query) return true
+  const terms = (query.toLowerCase().match(/"[^"]*"|\S+/g) || [])
+    .map(s => s.replace(/^"|"$/g, '').trim()).filter(Boolean)
+  if(!terms.length) return true
+  const hay = expenseRowHaystack(row)
+  return terms.every(term => expenseRowMatchesTerm(row, term, hay))
+}
+
 async function renderExpenses(){
   const [expensesRes, refundsRes, incomeRes] = await Promise.all([
     sb.from('expenses').select('*, cars(stock_number, make, model, reg)').eq('account_id', accountId).order('date', {ascending: false}),
@@ -10597,7 +10673,13 @@ async function renderExpenses(){
   income = incomeRes.data || []
   expenseUnifiedRows = buildUnifiedExpenseRows(expenses, income)
   populateExpenseFilterOptions(expenseUnifiedRows)
+  applyExpenseFilters()
+}
 
+// Filter + sort + paint, using the rows already in memory.
+// renderExpenses() refetches from Supabase, so the search box calls this
+// instead — it runs on every keystroke with no network round-trip.
+function applyExpenseFilters(){
   const accountFilter = document.getElementById('expense-account-filter')?.value || ''
   const typeFilter = document.getElementById('expense-type-filter')?.value || ''
   const detailFilter = document.getElementById('expense-detail-filter')?.value || ''
@@ -10606,8 +10688,9 @@ async function renderExpenses(){
   const fromDate = document.getElementById('expense-from')?.value || ''
   const toDate = document.getElementById('expense-to')?.value || ''
   const sortBy = document.getElementById('expense-sort')?.value || 'recent'
+  const searchQuery = (document.getElementById('expense-search')?.value || '').trim().toLowerCase()
 
-  let filtered = expenseUnifiedRows.filter(row => {
+  let filtered = (expenseUnifiedRows || []).filter(row => {
     if(accountFilter && row.accountName !== accountFilter) return false
     if(typeFilter && row.type !== typeFilter) return false
     if(detailFilter && row.detailType !== detailFilter) return false
@@ -10619,6 +10702,7 @@ async function renderExpenses(){
     }
     if(fromDate && row.date < fromDate) return false
     if(toDate && row.date > toDate) return false
+    if(!expenseRowMatchesSearch(row, searchQuery)) return false
     return true
   })
 
@@ -10630,7 +10714,10 @@ async function renderExpenses(){
   if(!tbody) return
 
   if(!filtered.length){
-    tbody.innerHTML = `<tr><td colspan="6"><div class="expenses-empty-state"><div class="expenses-empty-title">No transactions found</div><div class="expenses-empty-text">Try adjusting your quick filters or date range to bring transactions into view.</div></div></td></tr>`
+    const emptyHint = searchQuery
+      ? `Nothing matches “${stripHtml(searchQuery)}”. Try fewer words, or clear the search.`
+      : 'Try adjusting your quick filters or date range to bring transactions into view.'
+    tbody.innerHTML = `<tr><td colspan="6"><div class="expenses-empty-state"><div class="expenses-empty-title">No transactions found</div><div class="expenses-empty-text">${emptyHint}</div></div></td></tr>`
     if(activeTransactionDrawer) renderTransactionDrawer()
     return
   }
