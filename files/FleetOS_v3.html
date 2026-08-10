@@ -2083,7 +2083,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
           <option value="">All Status</option>
           <option>Paid</option><option>Unpaid</option><option>Overdue</option>
         </select>
-        <input type="search" class="filter-input" id="tx-search" placeholder="Search supplier or notes" oninput="renderTransactions()" style="min-width:180px">
+        <input type="search" class="filter-input" id="tx-search" placeholder="Search — vendor, £amount, &gt;100, date…" oninput="renderTransactions()" style="min-width:230px" title="Search vendor, type, notes, reg, stock number or date.&#10;Amounts: £550  &gt;100  &lt;50  100-250&#10;Several terms are combined, e.g. autotrader &gt;100&#10;Use quotes for a phrase: &quot;motor parts&quot;">
         <div class="filter-sep"></div>
         <input type="date" class="filter-input" id="tx-date-from" onchange="renderTransactions()">
         <span class="filter-label">to</span>
@@ -2094,6 +2094,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
         <button class="btn-ghost" onclick="setTxPeriod('last-month')">Last Month</button>
         <button class="btn-ghost" onclick="clearTxFilters()">Clear</button>
       </div>
+      <div id="tx-result-count" class="muted-text" style="font-size:12px;padding:2px 2px 10px"></div>
       <div class="table-wrap">
         <table class="data-table">
           <thead><tr>
@@ -7170,8 +7171,10 @@ function txMatchesTerm(t, term, hay){
     }
   }
 
-  m=term.match(/^£?([\d.,]+)\s*-\s*£?([\d.,]+)$/)
-  if(m&&!isNaN(num(m[1]))&&!isNaN(num(m[2]))){
+  // Dates look like ranges (2026-08, 2026-08-06) — treat them as text.
+  const looksLikeDate=/^\d{4}-\d{1,2}(-\d{1,2})?$/.test(term)
+  m=looksLikeDate?null:term.match(/^£?([\d.,]+)\s*-\s*£?([\d.,]+)$/)
+  if(m&&!isNaN(num(m[1]))&&!isNaN(num(m[2]))&&num(m[1])<=num(m[2])){
     if(isNaN(amt)) return false
     return amt>=num(m[1])&&amt<=num(m[2])
   }
@@ -7194,6 +7197,16 @@ function txMatchesSearch(t, query, allStock){
   if(!terms.length) return true
   const hay=txHaystack(t, allStock)
   return terms.every(term=>txMatchesTerm(t, term, hay))
+}
+
+// Shows how many rows matched and what they add up to — so a search
+// doubles as a quick "how much have I spent with this vendor".
+function renderTxResultCount(rows, query){
+  const el=document.getElementById('tx-result-count')
+  if(!el) return
+  const total=rows.reduce((s,t)=>s+(t.type==='Refund'?-1:1)*(Number(t.amount)||0),0)
+  if(!rows.length){ el.textContent=''; return }
+  el.textContent=`${rows.length} transaction${rows.length>1?'s':''} · ${fmt(total)}${query?' matching “'+query+'”':''}`
 }
 
 // How a transaction is attributed: to a car, to overhead, or to nothing yet.
