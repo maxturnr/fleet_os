@@ -2161,7 +2161,10 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
             <div class="expenses-header-copy">
               <div class="expenses-page-title">Transactions</div>
             </div>
-            <button class="expenses-add-btn" type="button" onclick="openTransactionTypePicker()">Add transaction</button>
+            <div style="display:flex;gap:10px;align-items:center">
+              <button class="expenses-filter-btn" type="button" onclick="openCsvImport()">↑ Import CSV</button>
+              <button class="expenses-add-btn" type="button" onclick="openTransactionTypePicker()">Add transaction</button>
+            </div>
           </div>
 
           <div class="expenses-summary">
@@ -2742,6 +2745,99 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
       </div>
     </div>
     <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('add-bank-account')">Cancel</button><button class="btn-primary" id="save-bank-account-btn" onclick="saveBankAccount()">Save Account</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Import bank statement CSV -->
+<div class="modal-overlay" id="modal-import-csv">
+  <div class="modal" style="max-width:960px">
+    <div class="modal-header">
+      <div class="modal-title">Import bank statement</div>
+      <button class="modal-close" onclick="closeModal('import-csv')">×</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Step 1: choose a file -->
+      <div id="csv-step-file">
+        <div id="csv-dropzone"
+             style="border:2px dashed #e6e0d7;border-radius:14px;padding:34px 20px;text-align:center;cursor:pointer;background:#fbfaf7;transition:border-color .15s,background .15s"
+             onclick="document.getElementById('csv-file-input').click()">
+          <div style="font-size:15px;color:#1b1a18;margin-bottom:6px">Drop your CSV here, or click to choose</div>
+          <div class="muted-text" style="font-size:12px">Export from your bank as CSV. Lloyds, Barclays, HSBC, Monzo and Starling layouts are detected automatically.</div>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none" onchange="handleCsvFile(this.files[0])">
+        <div id="csv-file-error" style="display:none;margin-top:12px;color:#c0392b;font-size:13px"></div>
+      </div>
+
+      <!-- Step 2: map the columns -->
+      <div id="csv-step-map" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div><div style="font-size:14px;color:#1b1a18" id="csv-file-name"></div>
+               <div class="muted-text" style="font-size:12px" id="csv-row-summary"></div></div>
+          <button class="btn-ghost" onclick="resetCsvImport()">Choose a different file</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Date column</label>
+            <select class="form-control" id="csv-map-date" onchange="renderCsvPreview()"></select></div>
+          <div class="form-group"><label class="form-label">Description column</label>
+            <select class="form-control" id="csv-map-desc" onchange="renderCsvPreview()"></select></div>
+          <div class="form-group"><label class="form-label">Amount style</label>
+            <select class="form-control" id="csv-map-style" onchange="onCsvAmountStyleChange()">
+              <option value="single">One amount column (minus = money out)</option>
+              <option value="split">Separate money in / money out columns</option>
+            </select></div>
+          <div class="form-group" id="csv-group-amount"><label class="form-label">Amount column</label>
+            <select class="form-control" id="csv-map-amount" onchange="renderCsvPreview()"></select></div>
+          <div class="form-group" id="csv-group-out" style="display:none"><label class="form-label">Money out column</label>
+            <select class="form-control" id="csv-map-out" onchange="renderCsvPreview()"></select></div>
+          <div class="form-group" id="csv-group-in" style="display:none"><label class="form-label">Money in column</label>
+            <select class="form-control" id="csv-map-in" onchange="renderCsvPreview()"></select></div>
+          <div class="form-group"><label class="form-label">Date format</label>
+            <select class="form-control" id="csv-map-dateformat" onchange="renderCsvPreview()">
+              <option value="auto">Detect automatically</option>
+              <option value="dmy">Day first — 26/04/2026</option>
+              <option value="mdy">Month first — 04/26/2026</option>
+              <option value="ymd">Year first — 2026-04-26</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Bank account these belong to</label>
+            <select class="form-control" id="csv-map-bank"></select></div>
+          <div class="form-group"><label class="form-label">Default type for money out</label>
+            <select class="form-control" id="csv-map-type">
+              <option value="other">Other</option><option value="parts">Parts</option>
+              <option value="mechanics">Mechanics</option><option value="fuel">Fuel</option>
+              <option value="advertising">Advertising</option><option value="mot">MOT</option>
+              <option value="transport">Transport</option><option value="valeting">Valeting</option>
+            </select></div>
+        </div>
+        <div id="csv-map-error" style="display:none;margin:10px 0;color:#c0392b;font-size:13px"></div>
+
+        <div style="display:flex;gap:14px;align-items:center;margin:16px 0 10px;flex-wrap:wrap">
+          <div style="font-size:13px;color:#1b1a18" id="csv-preview-stats"></div>
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="csv-skip-duplicates" checked onchange="renderCsvPreview()">
+            Skip rows already in fleet
+          </label>
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer">
+            <input type="checkbox" id="csv-skip-transfers" checked onchange="renderCsvPreview()">
+            Skip transfers between your own accounts
+          </label>
+        </div>
+
+        <div style="max-height:340px;overflow:auto;border:1px solid #ece6dd;border-radius:12px">
+          <table class="data-table" style="min-width:0">
+            <thead><tr>
+              <th style="width:38px"><input type="checkbox" id="csv-check-all" checked onchange="toggleAllCsvRows(this.checked)"></th>
+              <th>Date</th><th>Description</th><th>Amount</th><th>Goes in as</th>
+            </tr></thead>
+            <tbody id="csv-preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('import-csv')">Cancel</button>
+      <button class="btn-primary" id="csv-import-btn" onclick="runCsvImport()" style="display:none">Import</button>
+    </div>
   </div>
 </div>
 
@@ -10592,6 +10688,380 @@ function exportExpensesCsv(){
 // ways (ISO, the displayed label, and month name) so "2026-04", "26/04/2026"
 // and "april" all land.
 function expenseRowHaystack(row){
+  return expenseRowHaystackImpl(row)
+}
+
+// ---- Bank statement CSV import -------------------------------------------
+let csvImportState = {rows: [], headers: [], fileName: '', prepared: [], excluded: new Set()}
+
+// Proper CSV parse: quoted fields, embedded commas, "" escapes, \n and \r\n.
+// Banks quote descriptions containing commas, so a naive split(',') mangles
+// roughly every third Lloyds row.
+function parseCsv(text){
+  const rows = []
+  let row = [], field = '', inQuotes = false
+  text = String(text).replace(/^﻿/, '')
+  for(let i = 0; i < text.length; i++){
+    const c = text[i]
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++ }
+        else inQuotes = false
+      } else field += c
+    }
+    else if(c === '"'){ inQuotes = true }
+    else if(c === ','){ row.push(field); field = '' }
+    else if(c === '\n'){ row.push(field); rows.push(row); row = []; field = '' }
+    else if(c === '\r'){ /* handled with \n */ }
+    else field += c
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row) }
+  return rows.filter(r => r.some(v => String(v).trim() !== ''))
+}
+
+// Guess which column is which from the header names.
+function guessCsvColumn(headers, candidates){
+  const norm = headers.map(h => String(h).toLowerCase().replace(/[^a-z]/g, ''))
+  for(const cand of candidates){
+    const i = norm.indexOf(cand)
+    if(i !== -1) return i
+  }
+  for(const cand of candidates){
+    const i = norm.findIndex(h => h && h.includes(cand))
+    if(i !== -1) return i
+  }
+  return -1
+}
+
+function parseCsvAmount(raw){
+  if(raw == null) return NaN
+  let s = String(raw).trim()
+  if(!s) return NaN
+  let negative = false
+  if(/^\(.*\)$/.test(s)){ negative = true; s = s.slice(1, -1) }
+  if(/^dr\b/i.test(s)){ negative = true; s = s.replace(/^dr\b/i, '') }
+  if(/dr$/i.test(s)){ negative = true; s = s.replace(/dr$/i, '') }
+  if(/cr$/i.test(s)){ s = s.replace(/cr$/i, '') }
+  s = s.replace(/[£$€,\s]/g, '')
+  if(s.startsWith('-')){ negative = true; s = s.slice(1) }
+  if(s.startsWith('+')) s = s.slice(1)
+  const n = Number(s)
+  if(isNaN(n)) return NaN
+  return negative ? -Math.abs(n) : n
+}
+
+// Returns ISO yyyy-mm-dd, or '' if unreadable.
+function parseCsvDate(raw, format){
+  if(!raw) return ''
+  const s = String(raw).trim()
+  let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/)
+  if(m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`
+
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/)
+  if(m){
+    let a = m[1], b = m[2], y = m[3]
+    if(y.length === 2) y = String(2000 + Number(y))
+    let day, month
+    if(format === 'mdy'){ month = a; day = b }
+    else if(format === 'dmy'){ day = a; month = b }
+    else if(Number(a) > 12){ day = a; month = b }
+    else if(Number(b) > 12){ month = a; day = b }
+    else { day = a; month = b }          // UK default
+    return `${y}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+  }
+
+  m = s.match(/^(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})/)
+  if(m){
+    const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
+    const mi = months.indexOf(m[2].slice(0,3).toLowerCase())
+    if(mi !== -1) return `${m[3]}-${String(mi+1).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`
+  }
+  const d = new Date(s)
+  return isNaN(d) ? '' : d.toISOString().slice(0, 10)
+}
+
+function initCsvDropzone(){
+  const zone = document.getElementById('csv-dropzone')
+  if(!zone || zone.dataset.wired) return
+  zone.dataset.wired = '1'
+  const stop = e => { e.preventDefault(); e.stopPropagation() }
+  ;['dragenter','dragover'].forEach(ev => zone.addEventListener(ev, e => {
+    stop(e); zone.style.borderColor = '#1b1a18'; zone.style.background = '#fff'
+  }))
+  ;['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => {
+    stop(e); zone.style.borderColor = '#e6e0d7'; zone.style.background = '#fbfaf7'
+  }))
+  zone.addEventListener('drop', e => {
+    const file = e.dataTransfer?.files?.[0]
+    if(file) handleCsvFile(file)
+  })
+}
+
+function openCsvImport(){
+  resetCsvImport()
+  initCsvDropzone()
+  const bankSel = document.getElementById('csv-map-bank')
+  if(bankSel){
+    bankSel.innerHTML = '<option value="">No account</option>' +
+      (bankAccounts || []).map(b => `<option value="${b.id}"${b.is_default ? ' selected' : ''}>${b.account_name}</option>`).join('')
+  }
+  openModal('import-csv')
+}
+
+function resetCsvImport(){
+  csvImportState = {rows: [], headers: [], fileName: '', prepared: [], excluded: new Set()}
+  const show = (id, on) => { const el = document.getElementById(id); if(el) el.style.display = on ? '' : 'none' }
+  show('csv-step-file', true); show('csv-step-map', false); show('csv-import-btn', false)
+  show('csv-file-error', false); show('csv-map-error', false)
+  const input = document.getElementById('csv-file-input'); if(input) input.value = ''
+}
+
+function csvError(id, msg){
+  const el = document.getElementById(id)
+  if(!el) return
+  el.textContent = msg
+  el.style.display = msg ? '' : 'none'
+}
+
+function handleCsvFile(file){
+  if(!file) return
+  if(!/\.csv$/i.test(file.name) && file.type !== 'text/csv'){
+    return csvError('csv-file-error', 'That is not a CSV. Export from your bank choosing CSV, not PDF or OFX.')
+  }
+  const reader = new FileReader()
+  reader.onerror = () => csvError('csv-file-error', 'Could not read that file.')
+  reader.onload = e => {
+    let rows
+    try { rows = parseCsv(e.target.result) }
+    catch(err){ return csvError('csv-file-error', 'Could not parse that CSV: ' + err.message) }
+    if(rows.length < 2) return csvError('csv-file-error', 'That file has no data rows in it.')
+
+    // Banks often prefix a few blurb lines before the real header. The header
+    // is the first row with the most columns.
+    let headerIdx = 0
+    for(let i = 0; i < Math.min(rows.length, 12); i++){
+      if(rows[i].length > rows[headerIdx].length) headerIdx = i
+    }
+    csvImportState.headers = rows[headerIdx].map(h => String(h).trim())
+    csvImportState.rows = rows.slice(headerIdx + 1).filter(r => r.length >= 2)
+    csvImportState.fileName = file.name
+    csvError('csv-file-error', '')
+
+    const h = csvImportState.headers
+    const opts = h.map((name, i) => `<option value="${i}">${name || '(column ' + (i+1) + ')'}</option>`).join('')
+    const setSel = (id, guess) => {
+      const el = document.getElementById(id)
+      if(!el) return
+      el.innerHTML = '<option value="-1">— none —</option>' + opts
+      el.value = String(guess)
+    }
+    setSel('csv-map-date',   guessCsvColumn(h, ['transactiondate','date','datposted','postingdate']))
+    setSel('csv-map-desc',   guessCsvColumn(h, ['transactiondescription','description','details','narrative','reference','payee','merchant','name']))
+    setSel('csv-map-amount', guessCsvColumn(h, ['amount','value','transactionamount']))
+    setSel('csv-map-out',    guessCsvColumn(h, ['debitamount','paidout','moneyout','withdrawal','debit','out']))
+    setSel('csv-map-in',     guessCsvColumn(h, ['creditamount','paidin','moneyin','deposit','credit','in']))
+
+    const hasSplit = Number(document.getElementById('csv-map-out').value) !== -1 &&
+                     Number(document.getElementById('csv-map-in').value) !== -1
+    document.getElementById('csv-map-style').value = hasSplit ? 'split' : 'single'
+    onCsvAmountStyleChange()
+
+    document.getElementById('csv-file-name').textContent = file.name
+    document.getElementById('csv-row-summary').textContent =
+      `${csvImportState.rows.length} rows · ${h.length} columns`
+    document.getElementById('csv-step-file').style.display = 'none'
+    document.getElementById('csv-step-map').style.display = ''
+    document.getElementById('csv-import-btn').style.display = ''
+    renderCsvPreview()
+  }
+  reader.readAsText(file)
+}
+
+function onCsvAmountStyleChange(){
+  const split = document.getElementById('csv-map-style').value === 'split'
+  document.getElementById('csv-group-amount').style.display = split ? 'none' : ''
+  document.getElementById('csv-group-out').style.display = split ? '' : 'none'
+  document.getElementById('csv-group-in').style.display = split ? '' : 'none'
+  renderCsvPreview()
+}
+
+// Turn the mapped columns into rows we could insert, flagging duplicates and
+// own-account transfers rather than silently dropping them.
+function prepareCsvRows(){
+  const col = id => Number(document.getElementById(id)?.value ?? -1)
+  const dateCol = col('csv-map-date'), descCol = col('csv-map-desc')
+  const style = document.getElementById('csv-map-style').value
+  const amtCol = col('csv-map-amount'), outCol = col('csv-map-out'), inCol = col('csv-map-in')
+  const dateFmt = document.getElementById('csv-map-dateformat').value
+
+  if(dateCol === -1) return {error: 'Pick which column holds the date.'}
+  if(style === 'single' && amtCol === -1) return {error: 'Pick which column holds the amount.'}
+  if(style === 'split' && outCol === -1 && inCol === -1) return {error: 'Pick at least one of the money in / money out columns.'}
+
+  const ownAccountNames = (bankAccounts || [])
+    .map(b => String(b.account_name || '').toLowerCase().trim()).filter(n => n.length > 3)
+
+  // Existing ledger, for duplicate detection: date + amount to the penny.
+  const existing = new Set((expenseUnifiedRows || []).map(r =>
+    `${r.date}|${Math.abs(Number(r.amount)).toFixed(2)}`))
+
+  const prepared = csvImportState.rows.map((cells, idx) => {
+    const date = parseCsvDate(cells[dateCol], dateFmt)
+    const desc = String(descCol === -1 ? '' : (cells[descCol] ?? '')).trim()
+    let amount = NaN
+    if(style === 'single') amount = parseCsvAmount(cells[amtCol])
+    else {
+      const out = outCol === -1 ? NaN : parseCsvAmount(cells[outCol])
+      const inn = inCol  === -1 ? NaN : parseCsvAmount(cells[inCol])
+      if(!isNaN(out) && Math.abs(out) > 0) amount = -Math.abs(out)
+      else if(!isNaN(inn) && Math.abs(inn) > 0) amount = Math.abs(inn)
+    }
+
+    const lower = desc.toLowerCase()
+    const isTransfer = ownAccountNames.some(n => lower.includes(n))
+    const key = `${date}|${Math.abs(amount).toFixed(2)}`
+    return {
+      idx, date, desc, amount,
+      valid: !!date && !isNaN(amount) && Math.abs(amount) > 0,
+      duplicate: existing.has(key),
+      isTransfer,
+      direction: amount < 0 ? 'out' : 'in'
+    }
+  })
+  return {prepared}
+}
+
+function renderCsvPreview(){
+  const tbody = document.getElementById('csv-preview-tbody')
+  if(!tbody) return
+  const {error, prepared} = prepareCsvRows()
+  if(error){
+    csvError('csv-map-error', error)
+    tbody.innerHTML = ''
+    document.getElementById('csv-preview-stats').textContent = ''
+    return
+  }
+  csvError('csv-map-error', '')
+
+  const skipDupes = document.getElementById('csv-skip-duplicates').checked
+  const skipTransfers = document.getElementById('csv-skip-transfers').checked
+  prepared.forEach(r => {
+    const auto = !r.valid || (skipDupes && r.duplicate) || (skipTransfers && r.isTransfer)
+    if(auto) csvImportState.excluded.add(r.idx)
+    else csvImportState.excluded.delete(r.idx)
+  })
+  csvImportState.prepared = prepared
+
+  const included = prepared.filter(r => !csvImportState.excluded.has(r.idx))
+  const bad = prepared.filter(r => !r.valid).length
+  const dupes = prepared.filter(r => r.duplicate).length
+  const transfers = prepared.filter(r => r.isTransfer).length
+  const totalIn = included.filter(r => r.amount > 0).reduce((s, r) => s + r.amount, 0)
+  const totalOut = included.filter(r => r.amount < 0).reduce((s, r) => s + Math.abs(r.amount), 0)
+
+  document.getElementById('csv-preview-stats').innerHTML =
+    `<strong>${included.length}</strong> of ${prepared.length} will import · in ${fmt(totalIn)} · out ${fmt(totalOut)}` +
+    (bad ? ` · <span style="color:#c0392b">${bad} unreadable</span>` : '') +
+    (dupes ? ` · ${dupes} already in fleet` : '') +
+    (transfers ? ` · ${transfers} transfers` : '')
+
+  tbody.innerHTML = prepared.slice(0, 400).map(r => {
+    const on = !csvImportState.excluded.has(r.idx)
+    let note = ''
+    if(!r.valid) note = '<span style="color:#c0392b">could not read</span>'
+    else if(r.duplicate) note = '<span class="muted-text">already in fleet</span>'
+    else if(r.isTransfer) note = '<span class="muted-text">transfer</span>'
+    else note = r.amount < 0 ? 'Expense' : 'Income'
+    return `<tr style="${on ? '' : 'opacity:.45'}">
+      <td><input type="checkbox" ${on ? 'checked' : ''} ${r.valid ? '' : 'disabled'} onchange="toggleCsvRow(${r.idx}, this.checked)"></td>
+      <td class="muted-text">${r.date || '<span style="color:#c0392b">?</span>'}</td>
+      <td style="text-align:left;white-space:normal;max-width:340px">${stripHtml(r.desc) || '<span class="muted-text">(no description)</span>'}</td>
+      <td class="num" style="${r.amount < 0 ? '' : 'color:#27ae60'}">${isNaN(r.amount) ? '—' : fmt(Math.abs(r.amount))}</td>
+      <td>${note}</td>
+    </tr>`
+  }).join('') + (prepared.length > 400
+    ? `<tr><td colspan="5" class="muted-text" style="text-align:center">…and ${prepared.length - 400} more (all will import)</td></tr>` : '')
+}
+
+function toggleCsvRow(idx, on){
+  if(on) csvImportState.excluded.delete(idx); else csvImportState.excluded.add(idx)
+  const included = csvImportState.prepared.filter(r => !csvImportState.excluded.has(r.idx))
+  const el = document.getElementById('csv-preview-stats')
+  if(el) el.innerHTML = el.innerHTML.replace(/^<strong>\d+<\/strong>/, `<strong>${included.length}</strong>`)
+}
+
+function toggleAllCsvRows(on){
+  csvImportState.prepared.forEach(r => {
+    if(!r.valid) return
+    if(on) csvImportState.excluded.delete(r.idx); else csvImportState.excluded.add(r.idx)
+  })
+  renderCsvPreview()
+  const all = document.getElementById('csv-check-all')
+  if(all) all.checked = on
+}
+
+async function runCsvImport(){
+  const btn = document.getElementById('csv-import-btn')
+  const rows = csvImportState.prepared.filter(r => !csvImportState.excluded.has(r.idx) && r.valid)
+  if(!rows.length) return toast('Nothing selected to import', true)
+
+  btn.disabled = true
+  btn.textContent = 'Importing…'
+  try {
+    const bankAccountId = document.getElementById('csv-map-bank').value || null
+    const defaultType = document.getElementById('csv-map-type').value || 'other'
+
+    const expenseRows = rows.filter(r => r.amount < 0).map(r => ({
+      account_id: accountId,
+      date: r.date,
+      transaction_date: r.date,
+      amount: Math.abs(r.amount),
+      supplier: r.desc.slice(0, 120) || 'Imported',
+      type: defaultType,
+      notes: 'Imported from ' + csvImportState.fileName,
+      source: 'csv-import',
+      bank_account_id: bankAccountId ? Number(bankAccountId) : null,
+      is_overhead: false,
+      status: 'Paid',
+      payment_status: 'paid',
+      paid_date: r.date,
+      vat_status: 'none',
+      created_by_user_id: currentUser?.id || null,
+      created_by_name: currentUser?.full_name || 'CSV import'
+    }))
+
+    const incomeRows = rows.filter(r => r.amount > 0).map(r => ({
+      account_id: accountId,
+      date: r.date,
+      amount: r.amount,
+      type: 'other',
+      notes: (r.desc.slice(0, 120) || 'Imported') + ' — from ' + csvImportState.fileName,
+      bank_account_id: bankAccountId ? Number(bankAccountId) : null
+    }))
+
+    // Batch, so a 2,000-row statement doesn't blow the request limit.
+    const chunk = (arr, n) => arr.reduce((a, _, i) => (i % n ? a : [...a, arr.slice(i, i + n)]), [])
+    for(const batch of chunk(expenseRows, 200)){
+      const {error} = await sb.from('expenses').insert(batch)
+      if(error) throw error
+    }
+    for(const batch of chunk(incomeRows, 200)){
+      const {error} = await sb.from('income').insert(batch)
+      if(error) throw error
+    }
+
+    closeModal('import-csv')
+    toast(`Imported ${expenseRows.length} expense${expenseRows.length === 1 ? '' : 's'} and ${incomeRows.length} income row${incomeRows.length === 1 ? '' : 's'}`)
+    await renderExpenses()
+  } catch(e){
+    toast('Import failed: ' + (e.message || e), true)
+  } finally {
+    btn.disabled = false
+    btn.textContent = 'Import'
+  }
+}
+
+function expenseRowHaystackImpl(row){
   const iso = row.date || ''
   let monthLong = '', monthShort = '', ukDate = ''
   if(/^\d{4}-\d{2}-\d{2}$/.test(iso)){
