@@ -7269,14 +7269,11 @@ function renderTransactions(){
     if(statusF&&t.status!==statusF) return false
     if(dateFrom&&t.date<dateFrom) return false
     if(dateTo&&t.date>dateTo) return false
-    if(searchF){
-      const hay=`${t.supplier||''} ${t.notes||''} ${t.memo||''} ${t.car_reg||''} ${t.type||''}`.toLowerCase()
-      if(!hay.includes(searchF)) return false
-    }
+    if(!txMatchesSearch(t, searchF, allStock)) return false
     return true
   })
 
-  const allStock=[...ownedCars,...sorCars]
+  renderTxResultCount(filtered, searchF)
   const tbody=document.getElementById('tx-tbody')
   if(!filtered.length){tbody.innerHTML=`<tr><td colspan="11"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No transactions match</div></div></td></tr>`;return}
   
