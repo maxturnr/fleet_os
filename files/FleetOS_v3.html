@@ -4742,7 +4742,14 @@ function openTransactionTypePicker(){
   openModal('transaction-type')
 }
 
+let reconcileAdvancing = false
 function chooseTransactionType(type){
+  reconcileAdvancing = true
+  try { chooseTransactionTypeInner(type) }
+  finally { reconcileAdvancing = false }
+}
+
+function chooseTransactionTypeInner(type){
   closeModal('transaction-type')
   if(type === 'income'){
     openModal('add-income')
@@ -4925,7 +4932,9 @@ function closeModal(name){
   document.getElementById('modal-'+name).classList.remove('open')
   // Backing out of the type picker abandons the reconcile, so the next
   // plain "Add transaction" isn't silently prefilled from a bank row.
-  if(name === 'transaction-type' && reconcilingRow){
+  // reconcileAdvancing distinguishes cancelling from moving on to the
+  // chosen form, which also closes this modal.
+  if(name === 'transaction-type' && reconcilingRow && !reconcileAdvancing){
     reconcilingRow = null
     const hint = document.getElementById('transaction-type-hint')
     if(hint) hint.style.display = 'none'
@@ -11333,7 +11342,15 @@ async function finishReconcile(kind){
   reconcilingRow = null
   const hint = document.getElementById('transaction-type-hint')
   if(hint) hint.style.display = 'none'
-  await resolveReconRow(row.id, 'matched', `${kind.charAt(0).toUpperCase() + kind.slice(1)} · ${fmt(Math.abs(Number(row.amount)))}`)
+
+  const label = `${kind.charAt(0).toUpperCase() + kind.slice(1)} · ${fmt(Math.abs(Number(row.amount)))}`
+  const ok = await resolveReconRow(row.id, 'matched', label)
+  if(!ok) return   // resolveReconRow already warned; leave it in the queue
+
+  // Drop it from the queue straight away rather than waiting for the reload,
+  // so the row disappears the moment the modal closes.
+  const local = reconRows.find(r => String(r.id) === String(row.id))
+  if(local){ local.status = 'matched'; local.matched_label = label }
   if(currentTab === 'reconcile') await renderReconcile()
 }
 
@@ -11346,15 +11363,28 @@ function applyReconcilePrefill(kind){
   const amt = Math.abs(Number(r.amount)).toFixed(2)
   const desc = (r.descr || '').slice(0, 120)
   const set = (id, val) => { const el = document.getElementById(id); if(el && val != null) el.value = val }
+
   if(kind === 'expense'){
     set('expense-date', r.txn_date); set('expense-amount', amt); set('expense-supplier', desc)
     if(r.bank_account_id) set('expense-bank-account', String(r.bank_account_id))
+    // Setting .value doesn't fire oninput, so the net/VAT panel would sit
+    // at zero next to a filled-in amount.
+    try { calculateExpenseVAT() } catch(e){}
   } else if(kind === 'income'){
-    set('income-date', r.txn_date); set('income-amount', amt); set('income-notes', desc)
+    set('income-date', r.txn_date); set('income-amount', amt)
+    set('income-description', desc); set('income-notes', desc)
     if(r.bank_account_id) set('income-bank-account', String(r.bank_account_id))
+    try { calculateIncomeVAT() } catch(e){}
+    try { calculateIncomeCommission() } catch(e){}
   } else if(kind === 'refund'){
     set('refund-date', r.txn_date); set('refund-amount', amt); set('refund-supplier', desc)
     if(r.bank_account_id) set('refund-bank-account', String(r.bank_account_id))
+  }
+
+  // Make it obvious the figures came from the bank rather than being typed.
+  const banner = document.getElementById(`${kind === 'expense' ? 'expense' : kind}-modal-title`)
+  if(banner && !/reconciling/i.test(banner.textContent)){
+    banner.innerHTML = `${banner.textContent} <span style="font-weight:400;font-size:12px;color:#736d63">· reconciling ${fmt(Math.abs(Number(r.amount)))} from ${fmtDate(r.txn_date)}</span>`
   }
 }
 
@@ -11362,7 +11392,11 @@ async function resolveReconRow(id, status, label){
   const {error} = await sb.from('recon_bank')
     .update({status, matched_label: label || null, resolved_at: new Date().toISOString()})
     .eq('id', id)
-  if(error) toast('Saved, but could not mark the bank row as done', true)
+  if(error){
+    toast('Transaction saved, but the bank row stayed in the queue: ' + error.message, true)
+    return false
+  }
+  return true
 }
 
 async function ignoreReconRow(id){
