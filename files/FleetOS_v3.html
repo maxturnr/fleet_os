@@ -1729,6 +1729,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
       <button class="nav-btn active" onclick="showTab('dashboard',this)" title="Dashboard"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 7l6-4 6 4v6a1 1 0 01-1 1H3a1 1 0 01-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></span><span class="nav-label">Dashboard</span><span class="nav-short">DB</span></button>
       <button class="nav-btn" onclick="showTab('stock',this)" title="Stock"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M2 8h12" stroke="currentColor" stroke-width="1.4"/></svg></span><span class="nav-label">Stock</span><span class="nav-short">ST</span></button>
       <button class="nav-btn" onclick="showTab('expenses',this)" title="Transactions"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 12L13 4M13 4H7M13 4v6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Transactions</span><span class="nav-short">TX</span></button>
+      <button class="nav-btn" data-tab-btn="reconcile" onclick="showTab('reconcile',this)" title="Reconcile"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 5h8M11 5L9 3M11 5L9 7M13 11H5M5 11l2-2M5 11l2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Reconcile</span><span class="nav-short">RC</span></button>
       <button class="nav-btn" onclick="showTab('credit-lines',this)" title="Credit Lines"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Credit Lines</span><span class="nav-short">CL</span></button>
       <button class="nav-btn" onclick="showTab('income',this)" title="Income"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4L13 12M3 12V6M3 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="nav-label">Income</span><span class="nav-short">IN</span></button>
 
@@ -2277,6 +2278,69 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
     </div>
 
     <!-- CREDIT LINES -->
+    <!-- RECONCILE -->
+    <div class="tab-panel" id="tab-reconcile">
+      <div class="expenses-template">
+        <div class="expenses-surface">
+          <div class="expenses-header">
+            <div class="expenses-header-copy">
+              <div class="expenses-page-title">Reconcile</div>
+              <div class="muted-text" style="font-size:13px;margin-top:4px">Uploaded bank rows waiting to be added to your books. Nothing here counts until you assign it.</div>
+            </div>
+            <button class="expenses-add-btn" type="button" onclick="openCsvImport()">Upload statement</button>
+          </div>
+
+          <div class="expenses-summary">
+            <div class="expenses-summary-card">
+              <div class="expenses-summary-value" id="recon-pending-count">0</div>
+              <div class="expenses-summary-label">To reconcile</div>
+            </div>
+            <div class="expenses-summary-card">
+              <div class="expenses-summary-value money-in" id="recon-done-count">0</div>
+              <div class="expenses-summary-label">Done</div>
+            </div>
+            <div class="expenses-summary-card" style="grid-column:span 2">
+              <div class="expenses-summary-label" id="recon-progress-label" style="margin-bottom:8px">Nothing uploaded yet</div>
+              <div style="height:8px;background:#ece6dd;border-radius:99px;overflow:hidden">
+                <div id="recon-progress-fill" style="height:100%;width:0%;background:#14130f;border-radius:99px;transition:width .3s ease"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="expenses-controls">
+            <div class="expenses-controls-left">
+              <input type="search" class="expenses-quick-filter" id="recon-search"
+                     placeholder="Search description or amount…" oninput="renderReconcile()"
+                     autocomplete="off" style="min-width:230px;flex:1 1 230px">
+              <select class="expenses-quick-filter" id="recon-status-filter" onchange="renderReconcile()">
+                <option value="pending">To reconcile</option>
+                <option value="matched">Added to books</option>
+                <option value="transfer">Transfers</option>
+                <option value="ignored">Ignored</option>
+                <option value="">All</option>
+              </select>
+              <select class="expenses-quick-filter" id="recon-direction-filter" onchange="renderReconcile()">
+                <option value="">In and out</option>
+                <option value="out">Money out</option>
+                <option value="in">Money in</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="expenses-table-shell">
+            <div class="expenses-table-wrapper">
+              <table class="expenses-table">
+                <thead><tr>
+                  <th>Date</th><th>Description</th><th>Amount</th><th>Status</th><th></th>
+                </tr></thead>
+                <tbody id="recon-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="tab-panel" id="tab-credit-lines">
       <div class="uni-shell">
       <div class="uni-surface">
@@ -2748,6 +2812,37 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
   </div>
 </div>
 
+<!-- MODAL: Transfer between own accounts -->
+<div class="modal-overlay" id="modal-add-transfer">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header"><div class="modal-title">Transfer between accounts</div><button class="modal-close" onclick="closeModal('add-transfer')">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <input type="hidden" id="transfer-recon-id">
+        <div class="form-group"><label class="form-label">Date</label>
+          <input class="form-control" type="date" id="transfer-date"></div>
+        <div class="form-group"><label class="form-label">Amount (£)</label>
+          <input class="form-control" type="number" id="transfer-amount" placeholder="0.00" step="0.01" min="0"></div>
+        <div class="form-group"><label class="form-label">From account</label>
+          <select class="form-control" id="transfer-from"></select></div>
+        <div class="form-group"><label class="form-label">To account</label>
+          <select class="form-control" id="transfer-to"></select></div>
+        <div class="form-group span2"><label class="form-label">Reference (optional)</label>
+          <input class="form-control" type="text" id="transfer-notes" placeholder="e.g. topping up the buying account"></div>
+        <div class="form-group span2">
+          <div class="muted-text" style="font-size:12px;background:#fbfaf7;border:1px solid #ece6dd;border-radius:10px;padding:11px 13px">
+            Transfers are recorded so your bank balances reconcile, but they are excluded from profit and loss, overheads and corporation tax. No money has entered or left the business.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('add-transfer')">Cancel</button>
+      <button class="btn-primary" id="save-transfer-btn" onclick="saveTransfer()">Save transfer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Import bank statement CSV -->
 <div class="modal-overlay" id="modal-import-csv">
   <div class="modal" style="max-width:960px">
@@ -2836,7 +2931,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('import-csv')">Cancel</button>
-      <button class="btn-primary" id="csv-import-btn" onclick="runCsvImport()" style="display:none">Import</button>
+      <button class="btn-primary" id="csv-import-btn" onclick="runCsvImport()" style="display:none">Upload</button>
     </div>
   </div>
 </div>
@@ -2979,6 +3074,7 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
   <div class="modal" style="max-width:460px">
     <div class="modal-header"><div class="modal-title">Transaction Type</div><button class="modal-close" onclick="closeModal('transaction-type')">×</button></div>
     <div class="modal-body">
+      <div id="transaction-type-hint" style="display:none;font-size:13px;background:#fbfaf7;border:1px solid #ece6dd;border-radius:10px;padding:11px 13px;margin-bottom:14px"></div>
       <div class="transaction-type-picker">
         <button class="transaction-type-option" type="button" onclick="chooseTransactionType('expense')">
           <div>
@@ -2998,6 +3094,13 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
           <div>
             <div class="transaction-type-option-title">Refund</div>
             <div class="transaction-type-option-copy">Record money back received against a prior expense.</div>
+          </div>
+          <div class="transaction-type-option-arrow">→</div>
+        </button>
+        <button class="transaction-type-option" type="button" onclick="chooseTransactionType('transfer')">
+          <div>
+            <div class="transaction-type-option-title">Transfer</div>
+            <div class="transaction-type-option-copy">Move money between your own accounts. Never counts as profit or cost.</div>
           </div>
           <div class="transaction-type-option-arrow">→</div>
         </button>
@@ -3832,12 +3935,22 @@ function toast(msg,isError=false){
   t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800)
 }
 
+// Money moving between your own bank accounts isn't a cost and isn't income -
+// nothing leaves the business. Dividends are drawings, not a trading expense.
+// Neither belongs anywhere in profit and loss.
+function isTransferTxn(t){
+  return String(t?.type || '').toLowerCase() === 'transfer'
+}
+function isExcludedFromPnl(t){
+  return isTransferTxn(t) || t?.type === 'Dividend'
+}
+
 function getDirectCosts(stockId){
   let total=0
-  
+
   // Exclude the car purchase from direct costs - the buy price lives in 'paid'.
   // Matches getOwnedDirectCostBreakdown: both 'Vehicle Purchase' and 'purchase'.
-  transactions.filter(t=>t.stock_id===stockId && t.type!=='Vehicle Purchase' && t.type!=='purchase').forEach(t=>{
+  transactions.filter(t=>t.stock_id===stockId && t.type!=='Vehicle Purchase' && t.type!=='purchase' && !isTransferTxn(t)).forEach(t=>{
     total+=getExpenseNetAmount(t)
   })
   
@@ -4541,6 +4654,7 @@ function renderCurrentTab(){
   else if(currentTab==='stock') renderStock()
   else if(currentTab==='transactions') renderTransactions()
   else if(currentTab==='expenses') renderExpenses()
+  else if(currentTab==='reconcile') renderReconcile()
   else if(currentTab==='credit-lines') renderCreditLines()
   else if(currentTab==='income') renderIncome()
 
@@ -4638,7 +4752,79 @@ function chooseTransactionType(type){
     openModal('add-refund')
     return
   }
+  if(type === 'transfer'){
+    openTransferModal(reconcilingRow ? {
+      reconId: reconcilingRow.id,
+      date: reconcilingRow.txn_date,
+      amount: reconcilingRow.amount,
+      notes: (reconcilingRow.descr || '').slice(0, 120),
+      fromId: reconcilingRow.bank_account_id
+    } : null)
+    return
+  }
   openModal('add-expense')
+}
+
+// Transfers are stored as an expense row typed 'transfer' with no stock_id.
+// isExcludedFromPnl() keeps them out of overheads, corporation tax and
+// direct costs, so they show in the ledger and reconcile the bank without
+// ever touching profit.
+function openTransferModal(prefill){
+  document.getElementById('transfer-recon-id').value = prefill?.reconId || ''
+  document.getElementById('transfer-date').value = prefill?.date || today()
+  document.getElementById('transfer-amount').value = prefill?.amount != null ? Math.abs(prefill.amount) : ''
+  document.getElementById('transfer-notes').value = prefill?.notes || ''
+  document.getElementById('transfer-from').innerHTML = bankAccountOptions('Select account...', prefill?.fromId || null)
+  document.getElementById('transfer-to').innerHTML = bankAccountOptions('Select account...', null)
+  document.getElementById('modal-add-transfer').classList.add('open')
+}
+
+async function saveTransfer(){
+  const btn = document.getElementById('save-transfer-btn')
+  const date = document.getElementById('transfer-date').value
+  const amount = Number(document.getElementById('transfer-amount').value)
+  const fromId = document.getElementById('transfer-from').value
+  const toId = document.getElementById('transfer-to').value
+  const notes = document.getElementById('transfer-notes').value.trim()
+  const reconId = document.getElementById('transfer-recon-id').value
+
+  if(!date) return toast('Pick a date', true)
+  if(!amount || amount <= 0) return toast('Enter an amount', true)
+  if(!fromId || !toId) return toast('Choose both accounts', true)
+  if(fromId === toId) return toast('The two accounts must be different', true)
+
+  const nameOf = id => (bankAccounts.find(b => String(b.id) === String(id))?.account_name) || 'account'
+  btn.disabled = true; btn.textContent = 'Saving…'
+  try {
+    const {error} = await sb.from('expenses').insert([{
+      account_id: accountId,
+      date, transaction_date: date,
+      amount,
+      supplier: `Transfer: ${nameOf(fromId)} → ${nameOf(toId)}`,
+      type: 'transfer',
+      notes: notes || null,
+      source: 'manual',
+      bank_account_id: Number(fromId),
+      paid_from_account_id: Number(fromId),
+      is_overhead: false,
+      status: 'Paid',
+      payment_status: 'paid',
+      paid_date: date,
+      vat_status: 'none',
+      created_by_user_id: currentUser?.id || null,
+      created_by_name: currentUser?.full_name || 'Transfer'
+    }])
+    if(error) throw error
+    if(reconId) await resolveReconRow(reconId, 'transfer', `Transfer ${nameOf(fromId)} → ${nameOf(toId)}`)
+    closeModal('add-transfer')
+    toast('Transfer recorded')
+    await renderExpenses()
+    if(currentTab === 'reconcile') await renderReconcile()
+  } catch(e){
+    toast('Could not save transfer: ' + (e.message || e), true)
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save transfer'
+  }
 }
 
 function openModal(name){
@@ -4730,10 +4916,20 @@ function openModal(name){
   if(name==='add-income'){
     populateIncomeForm()
   }
+  if(name === 'add-expense') applyReconcilePrefill('expense')
+  if(name === 'add-income')  applyReconcilePrefill('income')
+  if(name === 'add-refund')  applyReconcilePrefill('refund')
   document.getElementById('modal-'+name).classList.add('open')
 }
 function closeModal(name){
   document.getElementById('modal-'+name).classList.remove('open')
+  // Backing out of the type picker abandons the reconcile, so the next
+  // plain "Add transaction" isn't silently prefilled from a bank row.
+  if(name === 'transaction-type' && reconcilingRow){
+    reconcilingRow = null
+    const hint = document.getElementById('transaction-type-hint')
+    if(hint) hint.style.display = 'none'
+  }
   if(name==='split-tx') splittingTxId=null
   if(name==='add-mileage-trip') window.mileageSaveAllowed=false
   if(name==='add-expense'){
@@ -7872,7 +8068,7 @@ function renderPnl(){
 
   const totalGross=ownedGross+sorGross
   
-  const overhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&(!from||t.date>=from)&&(!to||t.date<=to)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
+  const overhead=transactions.filter(t=>!t.stock_id&&!isExcludedFromPnl(t)&&(!from||t.date>=from)&&(!to||t.date<=to)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
   const vatBreakdown = getVatBreakdown(from, to)
   
   const netBeforeTax=totalGross-overhead
@@ -7884,7 +8080,7 @@ function renderPnl(){
   
   const profitBeforeTax=netBeforeTax+mileageRefund
   // Corp tax: 20% of car profit minus paid overhead only (credit lines excluded until paid)
-  const paidOverhead=transactions.filter(t=>!t.stock_id&&t.type!=='Dividend'&&getExpensePaymentStatus(t)==='paid'&&(!from||t.date>=from)&&(!to||t.date<=to)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
+  const paidOverhead=transactions.filter(t=>!t.stock_id&&!isExcludedFromPnl(t)&&getExpensePaymentStatus(t)==='paid'&&(!from||t.date>=from)&&(!to||t.date<=to)).reduce((s,t)=>s+getExpenseNetAmount(t),0)
   const taxableProfit=totalGross-paidOverhead
   const corpTax=taxableProfit>0?taxableProfit*0.20:0
   
@@ -11000,65 +11196,187 @@ function toggleAllCsvRows(on){
   if(all) all.checked = on
 }
 
+// Upload stages rows in recon_bank. Nothing reaches the ledger until you
+// reconcile it, so an import can never quietly corrupt the accounts.
 async function runCsvImport(){
   const btn = document.getElementById('csv-import-btn')
   const rows = csvImportState.prepared.filter(r => !csvImportState.excluded.has(r.idx) && r.valid)
   if(!rows.length) return toast('Nothing selected to import', true)
 
   btn.disabled = true
-  btn.textContent = 'Importing…'
+  btn.textContent = 'Uploading…'
   try {
     const bankAccountId = document.getElementById('csv-map-bank').value || null
-    const defaultType = document.getElementById('csv-map-type').value || 'other'
+    const bankName = bankAccounts.find(b => String(b.id) === String(bankAccountId))?.account_name || null
 
-    const expenseRows = rows.filter(r => r.amount < 0).map(r => ({
+    const staged = rows.map(r => ({
       account_id: accountId,
-      date: r.date,
-      transaction_date: r.date,
-      amount: Math.abs(r.amount),
-      supplier: r.desc.slice(0, 120) || 'Imported',
-      type: defaultType,
-      notes: 'Imported from ' + csvImportState.fileName,
-      source: 'csv-import',
       bank_account_id: bankAccountId ? Number(bankAccountId) : null,
-      is_overhead: false,
-      status: 'Paid',
-      payment_status: 'paid',
-      paid_date: r.date,
-      vat_status: 'none',
-      created_by_user_id: currentUser?.id || null,
-      created_by_name: currentUser?.full_name || 'CSV import'
+      acct: bankName,
+      txn_date: r.date,
+      amount: Math.abs(r.amount),
+      direction: r.amount < 0 ? 'out' : 'in',
+      descr: r.desc.slice(0, 500),
+      status: 'pending',
+      source_file: csvImportState.fileName
     }))
 
-    const incomeRows = rows.filter(r => r.amount > 0).map(r => ({
-      account_id: accountId,
-      date: r.date,
-      amount: r.amount,
-      type: 'other',
-      notes: (r.desc.slice(0, 120) || 'Imported') + ' — from ' + csvImportState.fileName,
-      bank_account_id: bankAccountId ? Number(bankAccountId) : null
-    }))
-
-    // Batch, so a 2,000-row statement doesn't blow the request limit.
+    // Batched, and upsert-on-conflict so re-uploading an overlapping
+    // statement doesn't create a second copy of the same line.
     const chunk = (arr, n) => arr.reduce((a, _, i) => (i % n ? a : [...a, arr.slice(i, i + n)]), [])
-    for(const batch of chunk(expenseRows, 200)){
-      const {error} = await sb.from('expenses').insert(batch)
+    let inserted = 0
+    for(const batch of chunk(staged, 200)){
+      const {error, count} = await sb.from('recon_bank')
+        .upsert(batch, {onConflict: 'account_id,txn_date,amount,descr', ignoreDuplicates: true, count: 'exact'})
       if(error) throw error
-    }
-    for(const batch of chunk(incomeRows, 200)){
-      const {error} = await sb.from('income').insert(batch)
-      if(error) throw error
+      inserted += (count ?? batch.length)
     }
 
     closeModal('import-csv')
-    toast(`Imported ${expenseRows.length} expense${expenseRows.length === 1 ? '' : 's'} and ${incomeRows.length} income row${incomeRows.length === 1 ? '' : 's'}`)
-    await renderExpenses()
+    toast(`${staged.length} rows uploaded — reconcile them to add them to your books`)
+    await showTab('reconcile', document.querySelector('[data-tab-btn="reconcile"]'))
   } catch(e){
-    toast('Import failed: ' + (e.message || e), true)
+    toast('Upload failed: ' + (e.message || e), true)
   } finally {
     btn.disabled = false
-    btn.textContent = 'Import'
+    btn.textContent = 'Upload'
   }
+}
+
+// ---- Reconcile ------------------------------------------------------------
+let reconRows = []
+
+async function renderReconcile(){
+  const {data, error} = await sb.from('recon_bank')
+    .select('*').eq('account_id', accountId)
+    .order('txn_date', {ascending: false}).order('id', {ascending: false})
+  if(error){ toast('Could not load reconcile queue', true); return }
+  reconRows = data || []
+
+  const pending = reconRows.filter(r => r.status === 'pending')
+  const done = reconRows.length - pending.length
+  const pct = reconRows.length ? Math.round(100 * done / reconRows.length) : 0
+
+  const setText = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v }
+  setText('recon-pending-count', pending.length)
+  setText('recon-done-count', done)
+  setText('recon-progress-label', reconRows.length ? `${done} of ${reconRows.length} reconciled (${pct}%)` : 'Nothing uploaded yet')
+  const bar = document.getElementById('recon-progress-fill')
+  if(bar) bar.style.width = pct + '%'
+
+  const dirF = document.getElementById('recon-direction-filter')?.value || ''
+  const statusF = document.getElementById('recon-status-filter')?.value || 'pending'
+  const q = (document.getElementById('recon-search')?.value || '').trim().toLowerCase()
+
+  const view = reconRows.filter(r => {
+    if(statusF && r.status !== statusF) return false
+    if(dirF && r.direction !== dirF) return false
+    if(q){
+      const hay = `${r.descr || ''} ${r.txn_date || ''} ${Math.abs(Number(r.amount)).toFixed(2)} ${r.acct || ''}`.toLowerCase()
+      if(!hay.includes(q)) return false
+    }
+    return true
+  })
+
+  const tbody = document.getElementById('recon-tbody')
+  if(!tbody) return
+  if(!view.length){
+    tbody.innerHTML = `<tr><td colspan="5"><div class="expenses-empty-state">
+      <div class="expenses-empty-title">${reconRows.length ? 'Nothing here' : 'No bank rows uploaded yet'}</div>
+      <div class="expenses-empty-text">${reconRows.length ? 'Try a different filter.' : 'Go to Transactions and use Import CSV to upload a bank statement.'}</div>
+    </div></td></tr>`
+    return
+  }
+
+  tbody.innerHTML = view.map(r => {
+    const out = r.direction === 'out'
+    const resolved = r.status !== 'pending'
+    return `<tr>
+      <td class="muted-text">${fmtDate(r.txn_date)}</td>
+      <td style="text-align:left;white-space:normal;max-width:380px">${stripHtml(r.descr || '')}
+        ${r.acct ? `<div class="muted-text" style="font-size:11px">${stripHtml(r.acct)}</div>` : ''}</td>
+      <td class="num" style="${out ? '' : 'color:#27ae60'}">${out ? '' : '+'}${fmt(Math.abs(Number(r.amount)))}</td>
+      <td>${resolved
+        ? `<span class="badge badge-muted">${r.status}</span>${r.matched_label ? `<div class="muted-text" style="font-size:11px">${stripHtml(r.matched_label)}</div>` : ''}`
+        : `<span class="badge" style="background:rgba(231,76,60,0.12);color:#c0392b">pending</span>`}</td>
+      <td style="white-space:nowrap">${resolved
+        ? `<button class="btn-ghost" onclick="unresolveReconRow(${r.id})">Undo</button>`
+        : `<button class="btn-primary" style="padding:6px 12px;font-size:12px" onclick="reconcileRow(${r.id})">Add as…</button>
+           <button class="btn-ghost" onclick="ignoreReconRow(${r.id})">Ignore</button>`}</td>
+    </tr>`
+  }).join('')
+}
+
+// Opens the same Transaction Type picker used by Add transaction, so the
+// reconcile options are identical to the add options - same modals, same
+// fields, just prefilled from the bank line.
+let reconcilingRow = null
+function reconcileRow(id){
+  const row = reconRows.find(r => String(r.id) === String(id))
+  if(!row) return
+  reconcilingRow = row
+  const money = row.direction === 'out' ? 'out' : 'in'
+  const hint = document.getElementById('transaction-type-hint')
+  if(hint){
+    hint.style.display = ''
+    hint.innerHTML = `Reconciling <strong>${fmt(Math.abs(Number(row.amount)))}</strong> ${money} on ${fmtDate(row.txn_date)} — ${stripHtml((row.descr || '').slice(0, 70))}`
+  }
+  openModal('transaction-type')
+}
+
+// Called after a save that came from the reconcile queue. Marks the bank
+// row done and clears the prefill so the next plain "Add transaction" is
+// a blank form again.
+async function finishReconcile(kind){
+  if(!reconcilingRow) return
+  const row = reconcilingRow
+  reconcilingRow = null
+  const hint = document.getElementById('transaction-type-hint')
+  if(hint) hint.style.display = 'none'
+  await resolveReconRow(row.id, 'matched', `${kind.charAt(0).toUpperCase() + kind.slice(1)} · ${fmt(Math.abs(Number(row.amount)))}`)
+  if(currentTab === 'reconcile') await renderReconcile()
+}
+
+// Fill whichever Add Transaction modal just opened with the bank line's
+// date, amount and description. Same form as adding by hand - the only
+// difference is that three fields arrive already filled in.
+function applyReconcilePrefill(kind){
+  const r = reconcilingRow
+  if(!r) return
+  const amt = Math.abs(Number(r.amount)).toFixed(2)
+  const desc = (r.descr || '').slice(0, 120)
+  const set = (id, val) => { const el = document.getElementById(id); if(el && val != null) el.value = val }
+  if(kind === 'expense'){
+    set('expense-date', r.txn_date); set('expense-amount', amt); set('expense-supplier', desc)
+    if(r.bank_account_id) set('expense-bank-account', String(r.bank_account_id))
+  } else if(kind === 'income'){
+    set('income-date', r.txn_date); set('income-amount', amt); set('income-notes', desc)
+    if(r.bank_account_id) set('income-bank-account', String(r.bank_account_id))
+  } else if(kind === 'refund'){
+    set('refund-date', r.txn_date); set('refund-amount', amt); set('refund-supplier', desc)
+    if(r.bank_account_id) set('refund-bank-account', String(r.bank_account_id))
+  }
+}
+
+async function resolveReconRow(id, status, label){
+  const {error} = await sb.from('recon_bank')
+    .update({status, matched_label: label || null, resolved_at: new Date().toISOString()})
+    .eq('id', id)
+  if(error) toast('Saved, but could not mark the bank row as done', true)
+}
+
+async function ignoreReconRow(id){
+  await resolveReconRow(id, 'ignored', 'Ignored')
+  await renderReconcile()
+}
+
+async function unresolveReconRow(id){
+  const {error} = await sb.from('recon_bank')
+    .update({status: 'pending', matched_label: null, matched_kind: null, matched_id: null, resolved_at: null})
+    .eq('id', id)
+  if(error) return toast('Could not undo', true)
+  toast('Back in the queue — any transaction it created is still in your ledger')
+  await renderReconcile()
 }
 
 function expenseRowHaystackImpl(row){
@@ -11925,6 +12243,7 @@ async function saveExpense(){
   btn.disabled = false
   btn.textContent = 'Save Expense'
   closeModal('add-expense')
+  await finishReconcile('expense')
   await loadAll()
   toast(expenseId ? 'Expense updated' : 'Expense added')
 }
@@ -11989,6 +12308,7 @@ async function saveRefund(){
   btn.disabled = false
   btn.textContent = 'Save Refund'
   closeModal('add-refund')
+  await finishReconcile('refund')
   await loadAll()
   toast('Refund added')
 }
@@ -12546,6 +12866,7 @@ async function saveIncome(){
   btn.textContent = 'Save Income'
 
   closeModal('add-income')
+  await finishReconcile('income')
   await loadAll()
   toast(incomeId ? 'Income updated' : 'Income added')
 }
