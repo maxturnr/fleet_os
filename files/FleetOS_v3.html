@@ -2206,10 +2206,11 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
                 <option value="credit">Credit Line</option>
                 <option value="bank">Bank Feed</option>
               </select>
-              <select class="expenses-quick-filter" id="expense-reconciled-filter" onchange="applyExpenseFilters()">
-                <option value="">All statuses</option>
-                <option value="unreconciled">Unreconciled</option>
-                <option value="reconciled">Reconciled</option>
+              <select class="expenses-quick-filter" id="expense-assigned-filter" onchange="applyExpenseFilters()">
+                <option value="">Assigned or not</option>
+                <option value="unassigned">Not assigned to a car</option>
+                <option value="car">Assigned to a car</option>
+                <option value="overhead">Overhead</option>
               </select>
             </div>
             <div class="expenses-controls-right">
@@ -3327,9 +3328,9 @@ body *, body *::before, body *::after{letter-spacing:0 !important;}
             </div>
           </div>
         </div>
-        <div class="form-group"><label class="form-label">Bank Account</label>
+        <div class="form-group"><label class="form-label">Bank Account *</label>
           <select class="form-control" id="income-bank-account">
-            <option value="">Unassigned</option>
+            <option value="">Select account…</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">Payment Method</label>
@@ -4991,7 +4992,7 @@ function populateIncomeForm(existingIncome=null){
   document.getElementById('income-stock-id').value = stockId
   document.getElementById('income-car-search').value = car ? `${car.stock_number} · ${car.reg}` : ''
 
-  document.getElementById('income-bank-account').innerHTML = bankAccountOptions('Unassigned', selectedBankId)
+  document.getElementById('income-bank-account').innerHTML = bankAccountOptions('Select account…', selectedBankId)
   document.getElementById('income-owner-payout-account').innerHTML = bankAccountOptions('Select account...', selectedOwnerPayoutAccountId)
 
   handleIncomeVehicleChange()
@@ -9586,8 +9587,9 @@ function buildUnifiedExpenseRows(expenseRows=[], incomeRows=[]){
           return car ? [car.make, car.model].filter(Boolean).join(' ') || 'Unnamed vehicle' : 'Unknown vehicle'
         }
         if(txn.is_overhead) return 'Overhead'
-        if(reconciliations.some(r => r.bank_transaction_id === txn.id && r.status === 'matched')) return 'Reconciled'
-        return 'Requires Reconciliation'
+        // Reconciling happens on the Reconcile tab now. Here this only ever
+        // meant "no car picked", so say that.
+        return 'Unassigned'
       })(),
       vehicleSubtitle: (() => {
         if(txn.stock_id){
@@ -9637,7 +9639,7 @@ function toggleExpenseFilters(forceState){
 }
 
 function resetExpenseFilters(){
-  ;['expense-account-filter','expense-type-filter','expense-detail-filter','expense-direction-filter','expense-reconciled-filter','expense-from','expense-to','expense-search'].forEach(id => {
+  ;['expense-account-filter','expense-type-filter','expense-detail-filter','expense-direction-filter','expense-assigned-filter','expense-from','expense-to','expense-search'].forEach(id => {
     const element = document.getElementById(id)
     if(element) element.value = ''
   })
@@ -11506,7 +11508,7 @@ function applyExpenseFilters(){
   const typeFilter = document.getElementById('expense-type-filter')?.value || ''
   const detailFilter = document.getElementById('expense-detail-filter')?.value || ''
   const directionFilter = document.getElementById('expense-direction-filter')?.value || ''
-  const reconciledFilter = document.getElementById('expense-reconciled-filter')?.value || ''
+  const assignedFilter = document.getElementById('expense-assigned-filter')?.value || ''
   const fromDate = document.getElementById('expense-from')?.value || ''
   const toDate = document.getElementById('expense-to')?.value || ''
   const sortBy = document.getElementById('expense-sort')?.value || 'recent'
@@ -11517,10 +11519,10 @@ function applyExpenseFilters(){
     if(typeFilter && row.type !== typeFilter) return false
     if(detailFilter && row.detailType !== detailFilter) return false
     if(directionFilter && row.amountDirection !== directionFilter) return false
-    if(reconciledFilter){
-      const isRecon = row.vehicleTitle !== 'Requires Reconciliation'
-      if(reconciledFilter === 'unreconciled' && isRecon) return false
-      if(reconciledFilter === 'reconciled' && !isRecon) return false
+    if(assignedFilter){
+      const bucket = row.vehicleTitle === 'Unassigned' ? 'unassigned'
+                   : row.vehicleTitle === 'Overhead'   ? 'overhead' : 'car'
+      if(bucket !== assignedFilter) return false
     }
     if(fromDate && row.date < fromDate) return false
     if(toDate && row.date > toDate) return false
@@ -12818,6 +12820,15 @@ async function saveIncome(){
   const type = document.getElementById('income-type').value
   const vatStatus = normalizeVatStatus(document.getElementById('income-vat-status').value)
   const {netAmount, vatAmount} = getVatComponents(amount, vatStatus)
+
+  // Require a bank account for cash-affecting income so the proceeds land on the
+  // balance sheet. Part-exchange is deliberately exempt (no cash movement).
+  if(type !== 'part_exchange' && !normalizeBankAccountId(document.getElementById('income-bank-account').value)){
+    btn.disabled = false
+    btn.textContent = 'Save Income'
+    toast('Select the bank account this money was paid into', true)
+    return
+  }
 
   const incomeData = {
     account_id: accountId,
