@@ -1,0 +1,10 @@
+{
+  "name": "Pitch Money",
+  "short_name": "Money",
+  "description": "Live money view for your dealership",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#14130f",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

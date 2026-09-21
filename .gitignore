@@ -1,7 +1,8 @@
-node_modules/
-.env
-.netlify/
-*.log
-.DS_Store
-.vercel
+node_modules
+.next
+out
 .env*.local
+.env
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts

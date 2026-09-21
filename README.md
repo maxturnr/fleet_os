@@ -1,203 +1,69 @@
-# Fleet OS v2 - Profit & Loss Tracker
+# Pitch Money
 
-A comprehensive fleet management system with QuickBooks integration for automatic transaction syncing.
+The money view for [Pitch DMS](https://app.pitchdms.com). Same Supabase project, same login, no sync — every number is read live from the DMS tables through a set of financial views.
 
-## Features
+This repo used to be Fleet OS / Pierfront (a single 13k-line HTML file on its own Supabase project). That has been retired on the `pitch-money-v1` branch; git history has it if you ever need it.
 
-- **Owned Stock Management** - Track purchased vehicles with full P&L calculations
-- **Sale or Return (SOR)** - Manage consignment vehicles with commission tracking
-- **Transaction Management** - Manual entry + automatic QuickBooks sync
-- **QuickBooks Integration** - Real-time webhook for automatic transaction imports
-- **P&L Reporting** - Comprehensive profit/loss analysis with tax calculations
-- **Balance Sheet** - Track assets, liabilities, and working capital
+## What it does (v1)
 
-## Tech Stack
+- **Dashboard** — estimated net position, cash in bank, capital tied up in stock, stock value, realised vs unrealised profit (30 / 90 / YTD / custom), "where has the money gone?", VAT and corporation-tax estimates.
+- **Vehicles** — every car with stand-in cost, projected margin, realised profit, days in stock. Filters: in stock / sold / all, date range, search.
+- **Vehicle detail** — full cost breakdown with who added what, add / edit / delete a cost, attach a receipt.
+- **Snap receipt** — photo or PDF → Claude reads amount, date, supplier, type → pick the car → written into the DMS in one tap.
+- **Ask AI** — natural-language questions answered from the live financial context (Claude), with conversation history per user.
+- **Tax & export** — margin-scheme VAT and corporation-tax estimates with editable assumptions, and a CSV export for the accountant.
+- **Activity** — feed of costs, sales, overheads and stock arrivals.
 
-- **Frontend**: Single-page HTML application (vanilla JS)
-- **Database**: Supabase (PostgreSQL)
-- **Hosting**: Netlify (static site + serverless functions)
-- **Integration**: QuickBooks Online API with webhooks
+## Stack
 
-## Project Structure
+Next.js 14 (App Router) · TypeScript · Tailwind (Pitch DMS "fleet" tokens) · `@supabase/ssr` · Anthropic SDK. Deployed on Vercel (region `arn1`, same as the DMS).
 
-```
-Fleet OS/
-├── files/
-│   ├── FleetOS_v2.html          # Main application
-│   └── migration.sql             # Database schema
-├── netlify/
-│   └── functions/
-│       └── qb-webhook.js         # QuickBooks webhook handler
-├── package.json                  # Dependencies
-├── netlify.toml                  # Netlify configuration
-├── .env.example                  # Environment variables template
-├── WEBHOOK_SETUP.md              # Detailed webhook setup guide
-└── README.md                     # This file
-```
+## Data layer (all in the `pitch` Supabase project)
 
-## Quick Start
+Migration: `supabase/migrations/20260921_pitch_money_v1.sql` (already applied).
 
-### 1. Database Setup
+| Object | Purpose |
+| --- | --- |
+| `v_vehicle_financials` | One row per vehicle: purchase price, total costs, stand-in cost, sale/advertised price, margin-scheme VAT, realised & projected profit, days in stock. Formulas mirror `src/lib/finance/pnl.ts` + `vat.ts` in the DMS. |
+| `v_cost_lines` | Every `vehicle_costs` row joined with the mirrored `expenses` row (for creator + receipt). |
+| `v_overheads` | Non-vehicle expenses. |
+| `v_activity` | Union feed of costs / sales / overheads / stock-in. |
+| `pm_dashboard(dealership)` | Headline numbers + "where the money went". Uses the DMS's `v_account_balance` for cash. |
+| `pm_period_summary(start, end, dealership)` | Realised P&L, overheads, VAT and corp-tax estimate for a range. |
+| `pm_add_vehicle_cost` / `pm_update_vehicle_cost` / `pm_delete_vehicle_cost` | Write the **same two rows the DMS writes** (`vehicle_costs` + `expenses` mirror) so both apps agree. |
+| `ai_conversations` | Chat history (RLS: own rows only). |
+| `pm_tax_assumptions` | Editable corp-tax / VAT rate per dealership. |
 
-1. Create a Supabase project at https://supabase.com
-2. Run the SQL migration in `files/migration.sql` via Supabase SQL Editor
-3. Note your Supabase URL and service role key
+Every view and RPC is scoped inside Postgres by `pm_user_dealership_ids()` (active rows in `dealership_users`), so a user can only ever see their own dealership(s).
 
-### 2. QuickBooks App Setup
+Receipts go to the DMS's existing public `invoices` bucket under `expenses/<dealership>/…`, exactly like the DMS's own expense upload, so they show in both apps.
 
-1. Go to https://developer.intuit.com/
-2. Create a new app or use existing
-3. Add your domain to Redirect URIs
-4. Note your Client ID and Client Secret
-5. Generate a webhook verifier token (random string)
-
-### 3. Local Development
+## Running locally
 
 ```bash
-# Install dependencies
+cp .env.example .env.local   # fill in the keys
 npm install
-
-# Create .env file (copy from .env.example)
-cp .env.example .env
-
-# Edit .env with your credentials
-# SUPABASE_URL, SUPABASE_SERVICE_KEY, QB_CLIENT_SECRET, QB_WEBHOOK_TOKEN
-
-# Start local dev server
-npm run dev
+npm run dev                  # http://localhost:3100
 ```
 
-### 4. Deploy to Netlify
+Environment variables:
 
-#### Option A: CLI Deployment
-```bash
-npm run deploy
-```
+| Name | Where |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same values as the Pitch DMS project |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only; receipt uploads |
+| `ANTHROPIC_API_KEY` (+ optional `ANTHROPIC_MODEL`) | AI assistant + receipt reading |
+| `NEXT_PUBLIC_DMS_URL` | Links back to the DMS |
+| `AUTH_COOKIE_DOMAIN` / `NEXT_PUBLIC_AUTH_COOKIE_DOMAIN` | Optional. Set both apps to `.pitchdms.com` for true single sign-on across subdomains (see below). |
 
-#### Option B: GitHub Integration
-1. Push code to GitHub
-2. Connect repo to Netlify
-3. Set environment variables in Netlify dashboard
-4. Deploy automatically on push
+## Shared login
 
-### 5. Configure QuickBooks Webhook
+Both apps use the same Supabase Auth project, so the same email/password works in each. Sessions are stored in cookies per hostname, so today you sign in once per app. To make one login carry across `app.pitchdms.com` and `money.pitchdms.com`, set the cookie domain to `.pitchdms.com` in **both** apps (`AUTH_COOKIE_DOMAIN` here; in the DMS pass `cookieOptions: { domain: '.pitchdms.com' }` to `createBrowserClient` / `createServerClient`).
 
-See `WEBHOOK_SETUP.md` for detailed instructions.
+## Roles
 
-**Quick version:**
-1. Go to Intuit Developer Portal → Your App → Webhooks
-2. Add webhook URL: `https://your-site.netlify.app/.netlify/functions/qb-webhook`
-3. Enter your webhook token
-4. Select entities: Purchase, Bill, Expense, Payment, Invoice, SalesReceipt
-5. Save and test
+`dealership_users.role` → Pitch Money role: `owner`/`admin` → owner, `manager` → manager, `sales`/`member` → sales, anything else → viewer (read-only). Tax pages are owner/manager only; viewers can't add costs.
 
-## Environment Variables
+## Not in v1 (on purpose)
 
-Required in Netlify (Site Settings → Environment Variables):
-
-```bash
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your_service_role_key
-QB_CLIENT_ID=your_qb_client_id
-QB_CLIENT_SECRET=your_qb_client_secret
-QB_WEBHOOK_TOKEN=your_random_webhook_token
-QB_ENVIRONMENT=sandbox  # or 'production'
-```
-
-## How It Works
-
-### QuickBooks Integration Flow
-
-1. **User connects QB** - OAuth flow stores access/refresh tokens in Supabase
-2. **Transaction created in QB** - QuickBooks sends webhook notification
-3. **Webhook receives event** - Netlify function validates signature
-4. **Fetch transaction details** - Function calls QB API for full data
-5. **Store in database** - Transaction saved with `source='quickbooks'` and `assigned=false`
-6. **User assigns transaction** - In Fleet OS UI, user links transaction to specific car or marks as overhead
-7. **P&L updates** - Profit calculations automatically include assigned costs
-
-### Transaction Assignment
-
-Unassigned QuickBooks transactions appear with a warning badge:
-- Click "Assign" button next to transaction
-- Search for car by registration, stock number, or make/model
-- Select car to link transaction
-- Or mark as "Overhead" for general business expenses
-
-### Supported QB Transaction Types
-
-- **Purchase** - Direct purchases with payment
-- **Bill** - Invoices from vendors
-- **Expense** - General expenses
-- **Payment** - Customer payments received
-- **Invoice** - Sales invoices
-- **SalesReceipt** - Direct sales receipts
-
-## Database Schema
-
-### `cars` table
-- Stores both owned and SOR vehicles
-- `type` field: 'owned' or 'sor'
-- Tracks purchase/sale dates, prices, fees
-- Links to transactions via `stock_id`
-
-### `transactions` table
-- Manual and QuickBooks transactions
-- `source`: 'manual' or 'quickbooks'
-- `assigned`: boolean - whether linked to car or marked as overhead
-- `stock_id`: foreign key to cars table
-- `qb_id`: unique QB transaction identifier
-- `raw_data`: full QB transaction JSON
-
-### `settings` table
-- Key-value store for app configuration
-- Stores QB tokens and connection status
-
-### `balance_sheet` table
-- Tracks assets and liabilities
-- Updated manually via UI
-
-## Troubleshooting
-
-### Webhook not receiving data
-- Check Netlify Functions logs
-- Verify webhook token matches
-- Test webhook in Intuit Developer Portal
-
-### Transactions not appearing
-- Check Supabase logs for errors
-- Verify service key has write permissions
-- Ensure database migration ran successfully
-
-### QB connection expires
-- Access tokens expire after 1 hour
-- Refresh tokens valid for 100 days
-- Re-connect QB if refresh token expires
-
-## Security Notes
-
-- Never commit `.env` file
-- Use Supabase service role key (not anon key) for webhook function
-- Keep QB client secret secure
-- Webhook token should be random and strong
-- Consider enabling Supabase RLS for production
-
-## Future Enhancements
-
-- [ ] Automatic token refresh for QB API
-- [ ] Email notifications for unassigned transactions
-- [ ] Bulk transaction assignment
-- [ ] Export reports to PDF
-- [ ] Multi-user support with roles
-- [ ] Mobile app version
-
-## Support
-
-For issues or questions:
-- QuickBooks API: https://developer.intuit.com/app/developer/qbo/docs
-- Supabase: https://supabase.com/docs
-- Netlify Functions: https://docs.netlify.com/functions/overview/
-
-## License
-
-Private - Internal use only
+Double-entry ledger, bank feeds, QuickBooks/Xero two-way sync, multi-branch consolidation, native apps. Marking a car as sold stays in the DMS (deals/invoices live there); the vehicle page links straight to it.

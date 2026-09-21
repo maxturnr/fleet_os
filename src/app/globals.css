@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens copied from Pitch DMS globals.css so both apps share one look. */
+:root {
+  --f-bg: 245 245 245;
+  --f-surface: 255 255 255;
+  --f-input: 250 250 249;
+  --f-sidebar: 245 245 245;
+  --f-inverse: 20 19 15;
+  --f-text: 20 19 15;
+  --f-text-secondary: 58 55 49;
+  --f-muted: 122 115 104;
+  --f-label: 149 143 130;
+  --f-faint: 163 156 143;
+  --f-placeholder: 178 173 162;
+  --f-blue: 53 167 246;
+  --f-green: 35 165 107;
+  --f-red: 217 107 97;
+  --f-purple: 142 141 247;
+  --f-amber: 214 143 42;
+  --f-border: rgba(20, 19, 15, 0.08);
+  --f-border-input: #e7e0e2;
+  --f-border-strong: rgba(20, 19, 15, 0.14);
+  --f-blue-dim: rgba(53, 167, 246, 0.12);
+  --f-green-dim: rgba(35, 165, 107, 0.1);
+  --f-red-dim: rgba(217, 107, 97, 0.1);
+  --f-purple-dim: rgba(142, 141, 247, 0.12);
+  --f-amber-dim: rgba(214, 143, 42, 0.12);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --f-bg: 10 10 9;
+    --f-surface: 28 27 24;
+    --f-input: 38 37 33;
+    --f-sidebar: 10 10 9;
+    --f-inverse: 46 45 40;
+    --f-text: 244 242 237;
+    --f-text-secondary: 208 203 195;
+    --f-muted: 150 143 132;
+    --f-label: 130 124 114;
+    --f-faint: 110 104 95;
+    --f-placeholder: 95 90 82;
+    --f-blue: 79 168 255;
+    --f-green: 52 197 133;
+    --f-red: 233 120 110;
+    --f-purple: 165 164 255;
+    --f-amber: 232 168 66;
+    --f-border: rgba(255, 255, 255, 0.1);
+    --f-border-input: #3a3833;
+    --f-border-strong: rgba(255, 255, 255, 0.16);
+    --f-blue-dim: rgba(79, 168, 255, 0.16);
+    --f-green-dim: rgba(52, 197, 133, 0.16);
+    --f-red-dim: rgba(233, 120, 110, 0.16);
+    --f-purple-dim: rgba(165, 164, 255, 0.16);
+    --f-amber-dim: rgba(232, 168, 66, 0.16);
+    color-scheme: dark;
+  }
+}
+
+html, body { height: 100%; }
+body {
+  @apply bg-fleet-bg text-fleet-text antialiased;
+  font-feature-settings: 'tnum' 1, 'cv11' 1;
+}
+
+@layer components {
+  .card { @apply rounded-fleet-xl border border-fleet-border bg-fleet-surface shadow-fleet-card; }
+  .card-pad { @apply p-4 sm:p-5; }
+  .label { @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-fleet-label; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-fleet border border-fleet-border-strong bg-fleet-surface px-3.5 py-2 text-sm font-medium text-fleet-text transition hover:bg-fleet-input disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-primary { @apply btn border-transparent bg-fleet-inverse text-white hover:opacity-90 dark:text-fleet-text; }
+  .btn-danger { @apply btn border-transparent text-fleet-red hover:bg-fleet-red-dim; }
+  .btn-sm { @apply px-2.5 py-1.5 text-xs; }
+  .input { @apply w-full rounded-fleet border border-fleet-border-input bg-fleet-input px-3 py-2 text-sm text-fleet-text placeholder:text-fleet-placeholder focus:outline-none focus:ring-2 focus:ring-fleet-blue/40; }
+  .chip { @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .nav-link { @apply flex items-center gap-2.5 rounded-fleet px-3 py-2 text-sm font-medium text-fleet-text-secondary transition hover:bg-fleet-surface hover:text-fleet-text; }
+  .nav-link-active { @apply bg-fleet-surface text-fleet-text shadow-fleet-card; }
+}
+
+.prose-chat p { @apply mb-2 last:mb-0; }
+.prose-chat ul { @apply mb-2 list-disc pl-5; }
+.prose-chat ol { @apply mb-2 list-decimal pl-5; }
+.prose-chat table { @apply my-2 w-full text-xs; }
+.prose-chat th, .prose-chat td { @apply border-b border-fleet-border px-2 py-1 text-left; }
+.prose-chat th { @apply label; }
+.prose-chat strong { @apply font-semibold; }
+.prose-chat code { @apply rounded bg-fleet-input px-1 text-[12px]; }
