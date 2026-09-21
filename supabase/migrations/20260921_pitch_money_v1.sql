@@ -445,3 +445,14 @@ create policy "dealership members" on public.pm_tax_assumptions
   using (dealership_id in (select public.pm_user_dealership_ids()))
   with check (dealership_id in (select public.pm_user_dealership_ids()));
 grant select, insert, update on public.pm_tax_assumptions to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- RPCs are for signed-in users only (remove default PUBLIC/anon execute)
+-- ---------------------------------------------------------------------------
+revoke execute on function public.pm_user_role(uuid) from public, anon;
+revoke execute on function public.pm_period_summary(date, date, uuid) from public, anon;
+revoke execute on function public.pm_dashboard(uuid) from public, anon;
+revoke execute on function public.pm_add_vehicle_cost(uuid, date, text, numeric, text, text, text, text, text, text) from public, anon;
+revoke execute on function public.pm_update_vehicle_cost(uuid, date, text, numeric, text, text, text, text, text, text) from public, anon;
+revoke execute on function public.pm_delete_vehicle_cost(uuid) from public, anon;
+revoke execute on function public.pm_user_dealership_ids() from anon;
