@@ -28,6 +28,7 @@ export async function middleware(request: NextRequest) {
   const isPublic = PUBLIC.some((p) => pathname.startsWith(p));
 
   if (!user && !isPublic) {
+    if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const login = request.nextUrl.clone();
     login.pathname = '/login';
     login.searchParams.set('next', pathname);
