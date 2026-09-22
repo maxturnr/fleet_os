@@ -3,20 +3,21 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTransition } from 'react';
-import { Activity, Car, Camera, ExternalLink, LayoutDashboard, LogOut, MessageSquare, Receipt, Sparkles } from 'lucide-react';
+import { Activity, ArrowLeftRight, Camera, Car, ExternalLink, LayoutDashboard, LogOut, MessageSquare, Receipt, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { signOut, switchDealership } from '@/lib/actions';
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/vehicles', label: 'Vehicles', icon: Car },
+  { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/receipts', label: 'Snap receipt', icon: Camera },
   { href: '/assistant', label: 'Ask AI', icon: Sparkles },
   { href: '/tax', label: 'Tax & export', icon: Receipt },
   { href: '/activity', label: 'Activity', icon: Activity },
 ];
 
-const MOBILE = ['/dashboard', '/vehicles', '/receipts', '/assistant', '/tax'];
+const MOBILE = ['/dashboard', '/vehicles', '/transactions', '/receipts', '/assistant'];
 
 export function AppShell({ children, user, dealership, dealerships, dmsUrl }: {
   children: React.ReactNode;

@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { DEALERSHIP_COOKIE, canWrite, requireAuth } from '@/lib/auth';
+import type { AllocSplitInput } from '@/lib/types';
 
 export interface CostInput {
   vehicle_id: string;
@@ -126,4 +127,43 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect('/login');
+}
+
+/* ---------------------------------------------------------------------------
+ * Allocating QuickBooks transactions to cars
+ * ------------------------------------------------------------------------- */
+
+export async function saveAllocations(transactionId: string, splits: AllocSplitInput[]) {
+  const auth = await requireAuth();
+  if (!canWrite(auth.role)) return { ok: false as const, error: 'Your role is read-only.' };
+
+  const clean = splits
+    .map((s) => ({
+      amount: Math.round(Number(s.amount) * 100) / 100,
+      vehicle_id: s.is_overhead ? null : s.vehicle_id || null,
+      is_overhead: !!s.is_overhead,
+      category: s.category || null,
+      vat_status: s.vat_status || 'unknown',
+      vat_amount: s.vat_amount === null || s.vat_amount === undefined || Number.isNaN(Number(s.vat_amount)) ? null : Math.round(Number(s.vat_amount) * 100) / 100,
+      notes: s.notes || null,
+    }))
+    .filter((s) => s.amount > 0);
+
+  for (const s of clean) {
+    if (!s.is_overhead && !s.vehicle_id) return { ok: false as const, error: 'Pick a car, or mark the split as an overhead.' };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('pm_save_allocations', {
+    p_transaction_id: transactionId,
+    p_splits: clean,
+  });
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath('/transactions');
+  revalidatePath(`/transactions/${transactionId}`);
+  revalidatePath('/vehicles');
+  revalidatePath('/dashboard');
+  for (const s of clean) if (s.vehicle_id) revalidatePath(`/vehicles/${s.vehicle_id}`);
+  return { ok: true as const, result: data as { splits: number; gross: number; unallocated: number } };
 }

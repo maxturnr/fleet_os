@@ -153,3 +153,84 @@ export const VAT_TYPES = [
   { value: 'excluded', label: 'VAT excluded (add 20%)' },
   { value: 'none', label: 'No VAT' },
 ] as const;
+
+export type AllocStatus = 'todo' | 'partial' | 'done' | 'not_spend';
+
+export interface QbTransaction {
+  id: string;
+  dealership_id: string;
+  txn_date: string;
+  txn_type: string | null;
+  doc_num: string | null;
+  name: string | null;
+  memo: string | null;
+  account: string | null;
+  category: string | null;
+  amount: number;
+  spend: number;
+  money_in: number;
+  is_overhead: boolean | null;
+  reconciled: boolean | null;
+  split_count: number;
+  allocated: number;
+  unallocated: number;
+  alloc_status: AllocStatus;
+  vehicle_ids: string[] | null;
+  registrations: string | null;
+}
+
+export interface QbAllocation {
+  id: string;
+  transaction_id: string;
+  amount: number;
+  vehicle_id: string | null;
+  registration: string | null;
+  make: string | null;
+  model: string | null;
+  is_overhead: boolean;
+  category: string | null;
+  vat_status: string | null;
+  vat_amount: number | null;
+  notes: string | null;
+}
+
+export interface AllocSplitInput {
+  amount: number;
+  vehicle_id?: string | null;
+  is_overhead?: boolean;
+  category?: string | null;
+  vat_status?: string | null;
+  vat_amount?: number | null;
+  notes?: string | null;
+}
+
+export interface AllocProgress {
+  rows: number;
+  spend: number;
+  done_rows: number;
+  done_value: number;
+  todo_rows: number;
+  todo_value: number;
+  vehicle_value: number;
+  overhead_value: number;
+}
+
+/** What a split is, in money terms. Vehicle splits land on the car; overheads don't. */
+export const ALLOC_CATEGORIES = [
+  'purchase', 'parts', 'mechanical', 'MOT', 'valet', 'transport', 'advertising',
+  'warranty', 'auction fee', 'fuel', 'other',
+] as const;
+
+export const VAT_STATUSES = [
+  { value: 'unknown', label: 'Not sure yet' },
+  { value: 'standard', label: 'Standard 20% — reclaimable' },
+  { value: 'margin', label: 'Margin scheme — no reclaim' },
+  { value: 'zero', label: 'Zero-rated' },
+  { value: 'exempt', label: 'Exempt / no VAT' },
+] as const;
+
+export const OVERHEAD_CATEGORIES = [
+  'Advertising', 'Insurance', 'Travelling expenses', 'Motor running expenses', 'Telephone',
+  'Subscriptions', 'Software', 'Bank charges', 'Legal and professional fees', 'Rent', 'Wages',
+  'Equipment', 'Drawings', 'Other',
+] as const;

@@ -1,6 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import type { ActivityItem, CostLine, Dashboard, PeriodSummary, TaxAssumptions, VehicleFinancials } from '@/lib/types';
+import type { ActivityItem, AllocProgress, CostLine, Dashboard, PeriodSummary, QbAllocation, QbTransaction, TaxAssumptions, VehicleFinancials } from '@/lib/types';
 
 /**
  * The only place Pitch Money talks to the database for money numbers.
@@ -94,4 +94,75 @@ export async function getAiContext(dealershipId: string) {
   ]);
   const pYtdSlim = { ...pYtd, sold: { ...pYtd.sold, vehicles: undefined } };
   return { dashboard: dash, last_90_days: p90, year_to_date: pYtdSlim, vehicles: (vehicles.data || []).map(numify), overheads_last_90: (overheads.data || []).map(numify) };
+}
+
+/* ---------------------------------------------------------------------------
+ * QuickBooks transactions + allocations
+ * Every pound that left the bank is a row here. Allocating it to a car (or to
+ * overheads) is what turns the bank statement into per-car profit.
+ * ------------------------------------------------------------------------- */
+
+export type TxnFilter = 'todo' | 'done' | 'vehicle' | 'overhead' | 'money_in' | 'all';
+
+export async function listTransactions(
+  dealershipId: string,
+  filter: TxnFilter = 'todo',
+  opts: { from?: string; to?: string; q?: string; limit?: number } = {},
+) {
+  const supabase = await createClient();
+  let q = supabase.from('v_qb_transactions').select('*').eq('dealership_id', dealershipId);
+
+  if (filter === 'money_in') q = q.in('txn_type', ['Deposit', 'Invoice']);
+  else if (filter !== 'all') q = q.in('txn_type', ['Expense', 'Cheque']);
+
+  if (filter === 'todo') q = q.in('alloc_status', ['todo', 'partial']);
+  else if (filter === 'done') q = q.eq('alloc_status', 'done');
+  else if (filter === 'vehicle') q = q.eq('alloc_status', 'done').eq('is_overhead', false);
+  else if (filter === 'overhead') q = q.eq('is_overhead', true);
+
+  if (opts.from) q = q.gte('txn_date', opts.from);
+  if (opts.to) q = q.lte('txn_date', opts.to);
+  if (opts.q) {
+    const s = opts.q.replace(/[%,]/g, ' ').trim();
+    if (s) q = q.or(`memo.ilike.%${s}%,name.ilike.%${s}%,category.ilike.%${s}%,account.ilike.%${s}%,registrations.ilike.%${s}%`);
+  }
+
+  const { data, error } = await q
+    .order('txn_date', { ascending: false })
+    .order('amount')
+    .limit(opts.limit ?? 300);
+  if (error) throw error;
+  return (data || []).map(numify) as QbTransaction[];
+}
+
+export async function getTransaction(id: string) {
+  const supabase = await createClient();
+  const [{ data: txn, error }, { data: splits, error: sErr }] = await Promise.all([
+    supabase.from('v_qb_transactions').select('*').eq('id', id).maybeSingle(),
+    supabase.from('v_qb_allocations').select('*').eq('transaction_id', id).order('amount', { ascending: false }),
+  ]);
+  if (error) throw error;
+  if (sErr) throw sErr;
+  if (!txn) return null;
+  return { txn: numify(txn) as QbTransaction, splits: (splits || []).map(numify) as QbAllocation[] };
+}
+
+export async function getAllocProgress(dealershipId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('pm_alloc_progress', { p_dealership_id: dealershipId });
+  if (error) throw error;
+  return data as AllocProgress;
+}
+
+/** Cars to pick from when splitting — reg, make, model, in-stock flag. */
+export async function listVehiclePicker(dealershipId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('v_vehicle_financials')
+    .select('vehicle_id, registration, make, model, is_sold, sold_date, in_stock_date')
+    .eq('dealership_id', dealershipId)
+    .order('is_sold')
+    .order('in_stock_date', { ascending: false });
+  if (error) throw error;
+  return (data || []) as { vehicle_id: string; registration: string; make: string | null; model: string | null; is_sold: boolean }[];
 }
